@@ -22,6 +22,18 @@ button{border:0;border-radius:12px;padding:11px 14px;background:linear-gradient(
 footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.save-status{font-size:12px;color:#aab6ce}.save-status[data-state="saved"]{color:#8ee0a8}.save-status[data-state="warning"]{color:#ffd27b}
 .inventory-panel{margin-top:14px}.inventory-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.inventory-head h2{margin:0;color:var(--gold);font-size:20px}.currency-row{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px}.currency-row b{color:#fff}.inventory-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}.inventory-card{min-width:0;background:#080f20aa;border:1px solid #52658b55;border-radius:12px;padding:10px}.inventory-card .portrait{font-size:28px}.inventory-card b{display:block;color:var(--gold);font-size:13px;margin-top:4px}.inventory-card p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+.summon-panel{margin:14px 0;padding:12px;background:#080f20aa;border:1px solid #65789a55;border-radius:14px}
+.summon-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
+.summon-head h3{margin:0;color:var(--gold);font-size:17px}
+.summon-actions{display:flex;gap:8px;flex-wrap:wrap;margin:10px 0}
+.summon-actions button{flex:1;min-width:130px}
+.summon-meta{font-size:12px;color:var(--muted);line-height:1.6;margin:5px 0}
+.summon-results{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:7px;margin-top:10px}
+.summon-result{min-width:0;padding:9px 6px;text-align:center;border:1px solid #65789a66;border-radius:10px;background:#111b30;animation:summonReveal .28s ease-out both}
+.summon-result .portrait{font-size:28px}.summon-result b{display:block;font-size:12px;color:#fff;margin-top:4px;overflow-wrap:anywhere}
+.summon-result small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
+.summon-result[data-rarity="4"]{border-color:#62b6e8}.summon-result[data-rarity="5"]{border-color:#e6bd62;box-shadow:inset 0 0 18px #e6bd6218}
+@keyframes summonReveal{from{opacity:0;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .stage-status{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;background:#080f20aa;border-radius:11px;margin-bottom:8px;font-size:13px}.stage-status strong{color:var(--gold)}.stage-difficulty{color:#aab6ce;font-size:11px;border:1px solid #65789a66;border-radius:20px;padding:3px 7px;margin-left:6px}
 #enemyIntent{padding:8px 10px;border-left:3px solid var(--gold);background:#080f2088;border-radius:6px}#nextStage{width:100%;margin-top:8px}#nextStage[hidden]{display:none}
 .team-panel{margin-top:14px}.team-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
@@ -69,6 +81,13 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
    <div><h2 id="inventoryHeading">冒險背包</h2><p class="hint">持有卡片與資源會自動保存於目前瀏覽器；不同裝置的存檔不會自動同步。</p></div>
    <div class="currency-row"><span>金幣 <b id="gold">0</b></span><span>召喚石 <b id="summonStones">0</b></span><span>已持有 <b id="ownedCardCount">0</b> 種</span><span>最高解鎖 <b id="unlockedStage">1</b>/3</span></div>
   </div>
+  <div class="summon-panel" aria-labelledby="summonHeading">
+   <div class="summon-head"><div><h3 id="summonHeading">星門召喚</h3><p class="summon-meta">召喚石可從關卡通關取得；重複角色會轉為持有數量。</p></div></div>
+   <div class="summon-actions"><button id="summonSingle" type="button">單次召喚 · 1 石</button><button id="summonTen" type="button">十連召喚 · 10 石</button></div>
+   <p id="summonRates" class="summon-meta">機率：★3 70% · ★4 25% · ★5 5%</p>
+   <p id="summonPity" class="summon-meta">五星保底計數載入中…</p>
+   <div id="summonResults" class="summon-results" aria-live="polite"></div>
+  </div>
   <div id="inventoryGrid" class="inventory-grid"></div>
  </section>
  <footer>獨立原創原型；角色、圖像與名稱皆為暫用原創素材。</footer>
@@ -79,6 +98,7 @@ import { CARD_CATALOG, DEFAULT_TEAM, buildTeam } from "./team.js";
 import { ACTIVE_SKILLS, createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns } from "./skills.js";
 import { createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
 import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency } from "./inventory.js";
+import { summonCards, SUMMON_RATES, SUMMON_COSTS } from "./summon.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
@@ -108,7 +128,7 @@ function createBoard(){
  let board=Array.from({length:30},rand);for(let tries=0;tries<30&&hasMatch(board);tries++)board=Array.from({length:30},rand);return board;
 }
 function renderEnemy(){ const stage=getCurrentStage(campaign),encounter=getCurrentEncounter(campaign)||stage.waves[stage.waves.length-1],intent=getEnemyIntent(campaign);$('stageName').textContent=stage.name;$('stageDifficulty').textContent=stage.difficulty;$('stageProgress').textContent=campaign.completed?'已通關':'第 '+(campaign.waveIndex+1)+' / '+stage.waves.length+' 波';$('enemy').textContent=encounter.emoji;$('enemyName').textContent=encounter.name+(encounter.boss?' · BOSS':'');$('enemyElement').textContent='敵人屬性：'+icons[encounter.element]+' '+elementNames[encounter.element];$('enemyHp').textContent=campaign.enemyHp+' / '+encounter.hp;$('enemyBar').style.width=Math.max(0,campaign.enemyHp/encounter.hp*100)+'%';$('enemyIntent').textContent=campaign.completed?'關卡已完成':('敵人預告：'+intent.label+(intent.damage?' · '+intent.damage+' 傷害':'')+(intent.enraged?' · 狂暴':''));$('nextStage').hidden=!campaign.completed;$('nextStage').textContent=campaign.campaignComplete?'重新挑戰全章':'前往下一關';}
-function stats(){ $('hp').textContent=hp+' / '+maxHp;$('atk').textContent=Object.values(currentTeam.attackByElement).reduce((sum,value)=>sum+value,0);$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||campaign.completed||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();}
+function stats(){ $('hp').textContent=hp+' / '+maxHp;$('atk').textContent=Object.values(currentTeam.attackByElement).reduce((sum,value)=>sum+value,0);$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||campaign.completed||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();renderSummonPanel();}
 function renderInventory(){
  const grid=$('inventoryGrid');grid.innerHTML='';
  const owned=listOwnedCards(profile);
@@ -123,6 +143,39 @@ function renderInventory(){
  $('summonStones').textContent=profile.currencies.summonStones;
  $('ownedCardCount').textContent=owned.length;
  $('unlockedStage').textContent=unlockedStageIndex+1;
+ renderSummonPanel();
+}
+function renderSummonPanel(){
+ const state=profile.summonState||{totalSummons:0,epicPity:0},stones=profile.currencies.summonStones;
+ $('summonRates').textContent='召喚機率：★3 '+(SUMMON_RATES.common*100)+'% · ★4 '+(SUMMON_RATES.rare*100)+'% · ★5 '+(SUMMON_RATES.epic*100)+'%；十連至少保證 1 張 ★4 以上。';
+ $('summonPity').textContent='累計召喚 '+state.totalSummons+' 次 · 距離 ★5 保底最多 '+(20-state.epicPity)+' 抽（連續未出 ★5 計數 '+state.epicPity+'）。';
+ $('summonSingle').disabled=busy||stones<SUMMON_COSTS.single;
+ $('summonTen').disabled=busy||stones<SUMMON_COSTS.ten;
+}
+function renderSummonResults(results,guaranteeTriggered){
+ const container=$('summonResults');container.replaceChildren();
+ results.forEach(({card,duplicate})=>{
+  const tile=document.createElement('div');tile.className='summon-result';tile.dataset.rarity=String(card.rarity);
+  const portrait=document.createElement('div');portrait.className='portrait';portrait.textContent=card.emoji;
+  const name=document.createElement('b');name.textContent=card.name;
+  const rarity=document.createElement('small');rarity.textContent='★'.repeat(card.rarity)+' · '+(duplicate?'重複卡片 +1':'新角色加入');
+  tile.append(portrait,name,rarity);container.appendChild(tile);
+ });
+ if(guaranteeTriggered){const note=document.createElement('p');note.className='summon-meta';note.textContent='本次十連已觸發 ★4 以上保證。';container.appendChild(note);}
+}
+function performSummon(count){
+ if(busy)return;
+ try{
+  const result=summonCards(profile,count,Math.random);
+  profile=result.save;
+  renderSummonResults(result.results,result.guaranteeTriggered);
+  renderInventory();renderTeam();
+  const newCards=result.results.filter(item=>!item.duplicate).length;
+  $('log').textContent=(count===10?'十連召喚':'單次召喚')+'完成！取得 '+result.results.length+' 張卡片，其中 '+newCards+' 張為新角色。';
+  persist('召喚結果已儲存');
+ }catch(error){
+  $('log').textContent=error.message==='Not enough summonStones'?'召喚石不足，無法進行這次召喚。':error.message;
+ }
 }
 function renderTeam(){
  const slots=$('teamSlots');slots.innerHTML='';
@@ -241,7 +294,7 @@ function nextStage(){
  campaign=advanceCampaignStage(campaign);selected=-1;shield=0;pendingDamageMultiplier=1;
  $('log').textContent='進入 '+getCurrentStage(campaign).name+'！新的敵人正在前方等待。';$('combatBreakdown').textContent='新關卡開始。';render();persist();
 }
-$('newGame').addEventListener('click',reset);$('nextStage').addEventListener('click',nextStage);$('saveNow').addEventListener('click',()=>persist("已手動儲存"));
+$('newGame').addEventListener('click',reset);$('nextStage').addEventListener('click',nextStage);$('saveNow').addEventListener('click',()=>persist("已手動儲存"));$('summonSingle').addEventListener('click',()=>performSummon(1));$('summonTen').addEventListener('click',()=>performSummon(10));
 $('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
 renderTeam();renderInventory();render();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
 })();
