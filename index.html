@@ -28,7 +28,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .team-slot select{width:100%;min-width:0;background:#202d48;color:#fff;border:1px solid #65789a;border-radius:8px;padding:8px;font:inherit;font-size:12px}
 .team-slot p{font-size:11px;color:var(--muted);line-height:1.5;margin:7px 0 0}
 .skill-panel{margin-top:14px}.skill-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}.skill-card{min-width:0;background:#080f20aa;border:1px solid #52658b55;border-radius:12px;padding:9px}.skill-card b{display:block;color:var(--gold);font-size:13px}.skill-card p{font-size:11px;color:var(--muted);line-height:1.45;min-height:42px;margin:6px 0}.skill-card button{width:100%;padding:9px 6px;font-size:12px}.skill-card button:disabled{filter:grayscale(.5)}
-@media(max-width:680px){.team-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.team-slot:last-child{grid-column:1/-1}.team-summary{width:100%;justify-content:space-between}}
+@media(max-width:680px){.team-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.team-slot:last-child{grid-column:1/-1}.team-summary{width:100%;justify-content:space-between}.skill-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.skill-card:last-child{grid-column:1/-1}}
 @media(max-width:680px){.battle{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}.side .wide{grid-column:1/-1}.stats{grid-template-columns:repeat(2,1fr)}main{padding:14px 10px 28px}.panel{padding:12px}}
 </style>
 </head>
@@ -75,7 +75,7 @@ let skillStates=createSkillStates(teamIds),shield=0,pendingDamageMultiplier=1;
 let cells=[],selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=maxHp,score=0,maxCombo=0,enemyHp=180,enemyMax=180,enemyIndex=0,currentEnemy=enemies[0];
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
 function renderEnemy(){ $('enemy').textContent=currentEnemy.emoji;$('enemyName').textContent=currentEnemy.name;$('enemyElement').textContent='敵人屬性：'+icons[currentEnemy.element]+' '+elementNames[currentEnemy.element];$('enemyHp').textContent=enemyHp+' / '+enemyMax;$('enemyBar').style.width=Math.max(0,enemyHp/enemyMax*100)+'%';}
-function stats(){ $('hp').textContent=hp+' / '+maxHp;$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();}
+function stats(){ $('hp').textContent=hp+' / '+maxHp;$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();renderSkillControls();}
 function renderTeam(){
  const slots=$('teamSlots');slots.innerHTML='';
  teamIds.forEach((cardId,index)=>{
