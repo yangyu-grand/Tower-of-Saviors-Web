@@ -33,20 +33,23 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   <div class="battle">
    <div><div id="board" class="board" aria-label="符石盤"></div><p class="hint">操作：點選兩顆相鄰符石交換，或用滑鼠／手指拖曳。橫向或直向連成 3 顆即可消除。</p></div>
    <aside class="side">
-    <div class="panel wide"><div class="enemy" id="enemy">🐉</div><b id="enemyName">暮影幼龍</b><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p></div>
+    <div class="panel wide"><div class="enemy" id="enemy">🐉</div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p></div>
     <div class="panel"><b>隊伍屬性</b><p class="hint">火 🔥　水 💧　木 🌿<br>光 ✨　暗 🌙　心 💗</p><div class="actions"><button id="heal">心符石回復</button></div></div>
-    <div class="panel"><b>戰鬥紀錄</b><p class="log" id="log" aria-live="polite">拖曳或點選符石，開始你的第一場戰鬥！</p></div>
+    <div class="panel"><b>戰鬥紀錄</b><p class="log" id="log" aria-live="polite">拖曳或點選符石，開始你的第一場戰鬥！</p><p class="hint" id="combatBreakdown">傷害計算明細會顯示在這裡。</p></div>
    </aside>
   </div>
  </section>
  <footer>獨立原創原型；角色、圖像與名稱皆為暫用原創素材。</footer>
 </main>
-<script>
+<script type="module">
+import { calculateCombatResult } from "./combat.js";
 (()=>{
-const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'};
-const boardEl=document.querySelector('#board');let cells=[],selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=100,score=0,maxCombo=0,enemyHp=180,enemyMax=180,turn=0;
+const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
+const enemies=[{name:'熔岩幼龍',emoji:'🐉',element:'fire'},{name:'潮汐守衛',emoji:'🧜',element:'water'},{name:'苔岩巨獸',emoji:'🦍',element:'wood'},{name:'曙光獅鷲',emoji:'🦅',element:'light'},{name:'暮影蝠王',emoji:'🦇',element:'dark'},{name:'心核魔像',emoji:'🗿',element:'heart'}];
+const boardEl=document.querySelector('#board');let cells=[],selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=100,score=0,maxCombo=0,enemyHp=180,enemyMax=180,enemyIndex=0,currentEnemy=enemies[0];
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
-function stats(){ $('hp').textContent=hp;$('score').textContent=score;$('combo').textContent=maxCombo;$('enemyHp').textContent=enemyHp+' / '+enemyMax;$('enemyBar').style.width=Math.max(0,enemyHp/enemyMax*100)+'%';$('heal').disabled=busy||hp>=100; }
+function renderEnemy(){ $('enemy').textContent=currentEnemy.emoji;$('enemyName').textContent=currentEnemy.name;$('enemyElement').textContent='敵人屬性：'+icons[currentEnemy.element]+' '+elementNames[currentEnemy.element];$('enemyHp').textContent=enemyHp+' / '+enemyMax;$('enemyBar').style.width=Math.max(0,enemyHp/enemyMax*100)+'%';}
+function stats(){ $('hp').textContent=hp;$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||hp>=100;renderEnemy();}
 function render(){boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label',t);b.dataset.i=i;b.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return}tap(i)});boardEl.appendChild(b)});stats()}
 function cellIndex(target){const cell=target&&target.closest?target.closest('.orb'):null;return cell&&boardEl.contains(cell)?Number(cell.dataset.i):-1}
 function onBoardPointerDown(event){if(busy||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;const index=cellIndex(event.target);if(index<0)return;dragFrom=index;dragPointerId=event.pointerId}
@@ -58,9 +61,41 @@ window.addEventListener('pointercancel',onWindowPointerCancel);
 function adjacent(a,b){return Math.abs(a-b)===6||Math.floor(a/6)===Math.floor(b/6)&&Math.abs(a-b)===1}
 function tap(i){if(busy)return;if(selected<0){selected=i;render();return}if(selected===i){selected=-1;render();return}const a=selected;selected=-1;if(adjacent(a,i))swapTry(a,i);else{selected=i;render()}}
 function findMatches(){const found=new Set();for(let r=0;r<5;r++)for(let c=0;c<6;c++){const i=r*6+c,t=cells[i];if(c<=3&&cells[i+1]===t&&cells[i+2]===t){let k=c;while(k<6&&cells[r*6+k]===t)found.add(r*6+k++);}if(r<=2&&cells[i+6]===t&&cells[i+12]===t){let k=r;while(k<5&&cells[k*6+c]===t)found.add(k++*6+c);}}return found}
-async function swapTry(a,b){if(busy||!adjacent(a,b))return;busy=true;[cells[a],cells[b]]=[cells[b],cells[a]];render();let matches=findMatches();if(!matches.size){await wait(140);[cells[a],cells[b]]=[cells[b],cells[a]];busy=false;render();$('log').textContent='沒有形成消除，符石已換回。';return}let combo=0,totalDamage=0,totalHeal=0;while(matches.size&&combo<12){combo++;const removed=[...matches].map(i=>cells[i]);const counts={};removed.forEach(t=>counts[t]=(counts[t]||0)+1);const damage=removed.reduce((n,t)=>n+(t==='heart'?0:8),0)+Object.entries(counts).reduce((n,[t,c])=>n+(t==='heart'?0:c*3),0);const healing=(counts.heart||0)*7;totalDamage+=damage;totalHeal+=healing;score+=matches.size*10*combo;matches.forEach(i=>cells[i]=null);render();await wait(180);for(let c=0;c<6;c++){let stack=[];for(let r=4;r>=0;r--){const v=cells[r*6+c];if(v)stack.push(v)}while(stack.length<5)stack.push(rand());for(let r=4;r>=0;r--)cells[r*6+c]=stack[4-r]}render();await wait(120);matches=findMatches()}maxCombo=Math.max(maxCombo,combo);hp=Math.min(100,hp+totalHeal);enemyHp=Math.max(0,enemyHp-totalDamage);turn++;if(enemyHp<=0){score+=100;enemyHp=enemyMax=180+turn*45;$('enemy').textContent=['🐉','👹','🦇','🦂'][turn%4];$('enemyName').textContent=['暮影幼龍','熔岩魔將','深淵蝠王','沙海巨蠍'][turn%4];$('log').textContent='敵人被擊敗！獲得 100 分，新的敵人出現！'}else{hp=Math.max(0,hp-(combo>1?Math.max(2,9-combo):9));$('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。'}if(hp<=0){$('log').textContent+=' 生命值歸零，請重新開始。';$('board').style.opacity='.55'}busy=false;render()}
+async function swapTry(a,b){
+ if(busy||hp<=0||!adjacent(a,b))return;
+ busy=true;[cells[a],cells[b]]=[cells[b],cells[a]];render();
+ let matches=findMatches();
+ if(!matches.size){await wait(140);[cells[a],cells[b]]=[cells[b],cells[a]];busy=false;render();$('log').textContent='沒有形成消除，符石已換回。';return}
+ let combo=0,totalDamage=0,totalHeal=0;const damageLines=[];
+ while(matches.size&&combo<12){
+  combo++;
+  const removed=[...matches].map(i=>cells[i]),counts={};
+  removed.forEach(t=>counts[t]=(counts[t]||0)+1);
+  const result=calculateCombatResult({counts,combo,enemyElement:currentEnemy.element});
+  totalDamage+=result.damage;totalHeal+=result.healing;
+  let detail=result.breakdown.map(item=>icons[item.element]+' '+item.count+'×11×'+result.comboMultiplier.toFixed(2)+'×'+item.multiplier.toFixed(2)+'='+item.damage).join('；');
+  if(!detail)detail='沒有攻擊符石';
+  if(result.healing)detail+='；💗回復 '+result.healing;
+  damageLines.push('Combo '+combo+'：'+detail);
+  score+=matches.size*10*combo;
+  matches.forEach(i=>cells[i]=null);render();await wait(180);
+  for(let c=0;c<6;c++){let stack=[];for(let r=4;r>=0;r--){const v=cells[r*6+c];if(v)stack.push(v)}while(stack.length<5)stack.push(rand());for(let r=4;r>=0;r--)cells[r*6+c]=stack[4-r]}
+  render();await wait(120);matches=findMatches();
+ }
+ maxCombo=Math.max(maxCombo,combo);hp=Math.min(100,hp+totalHeal);enemyHp=Math.max(0,enemyHp-totalDamage);
+ $('combatBreakdown').textContent=damageLines.join('｜');
+ if(enemyHp<=0){
+  const defeatedName=currentEnemy.name;score+=100;enemyIndex++;currentEnemy=enemies[enemyIndex%enemies.length];enemyMax=180+Math.floor(enemyIndex/enemies.length)*45;enemyHp=enemyMax;
+  $('log').textContent='擊敗'+defeatedName+'！獲得 100 分，新的敵人 '+currentEnemy.name+' 出現！';
+ }else{
+  hp=Math.max(0,hp-(combo>1?Math.max(2,9-combo):9));
+  $('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。';
+ }
+ if(hp<=0){$('log').textContent+=' 生命值歸零，請重新開始。';$('board').style.opacity='.55'}
+ busy=false;render();
+}
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
-function reset(){cells=Array.from({length:30},rand);for(let tries=0;tries<20&&findMatches().size;tries++)cells=Array.from({length:30},rand);selected=-1;dragFrom=-1;dragPointerId=null;busy=false;hp=100;score=0;maxCombo=0;enemyHp=enemyMax=180;turn=0;$('enemy').textContent='🐉';$('enemyName').textContent='暮影幼龍';$('board').style.opacity='1';$('log').textContent='新旅程開始！找出三顆以上相同符石。';render()}
+function reset(){cells=Array.from({length:30},rand);for(let tries=0;tries<20&&findMatches().size;tries++)cells=Array.from({length:30},rand);selected=-1;dragFrom=-1;dragPointerId=null;busy=false;hp=100;score=0;maxCombo=0;enemyIndex=0;currentEnemy=enemies[0];enemyHp=enemyMax=180;$('board').style.opacity='1';$('combatBreakdown').textContent='傷害計算明細會顯示在這裡。';$('log').textContent='新旅程開始！找出三顆以上相同符石。';render()}
 $('newGame').addEventListener('click',reset);$('heal').addEventListener('click',()=>{if(!busy&&hp<100){hp=Math.min(100,hp+20);score=Math.max(0,score-30);$('log').textContent='使用回復技能：生命 +20，消耗 30 分。';stats()}});reset();
 })();
 </script>
