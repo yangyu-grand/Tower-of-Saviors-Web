@@ -23,7 +23,7 @@ test("damage includes rune count, combo multiplier and elemental multiplier", ()
   assert.equal(result.comboMultiplier, 1.25);
   assert.equal(result.damage, 62);
   assert.deepEqual(result.breakdown[0], {
-    element: "fire", count: 3, baseDamage: 33, comboMultiplier: 1.25,
+    element: "fire", count: 3, baseDamage: 33, runeCountMultiplier: 1, comboMultiplier: 1.25,
     multiplier: 1.5, relation: "advantage", damage: 62
   });
 });
