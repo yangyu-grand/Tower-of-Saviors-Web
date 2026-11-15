@@ -13,12 +13,14 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - 6 × 5 rune board with six rune types.
 - Adjacent swaps by click/tap and pointer drag (mouse and touch).
 - Horizontal/vertical match-3 clearing, gravity refill, and cascading combos.
-- Score, player HP, heart-rune healing, and sequential enemies.
+- Score, party HP, heart-rune healing, and a three-stage campaign with three waves per stage.
 - Data-driven elemental matchups and a pure combat calculation module.
 - Five-slot party formation with an original starter card roster.
 - Ten original active skills: damage boosts, rune conversion, shields, and healing.
 - Per-card cooldowns advance only after successful rune-match turns; the skill used on a turn does not lose a cooldown count immediately.
 - Active skills are wired into the game UI and affect the next attack, board, incoming damage mitigation, or team HP.
+- Three original stages with nine encounters, boss telegraphs, enrage thresholds, and shield-piercing special attacks.
+- Enemy intent previews, wave transitions, stage-clear rewards, and campaign completion.
 - Team cost validation, team HP aggregation, element-specific attack totals, and a fire leader skill.
 - Party attack stats are applied to matched-rune damage; extra runes beyond three add a small bonus.
 - Responsive layout for narrow screens.
@@ -40,10 +42,9 @@ These are original prototype rules and are intentionally data-driven so they can
 
 ## Next priorities
 
-1. Add stages, enemy attack patterns, and boss mechanics.
-2. Add inventory, summoning, progression, and persistent saves.
-3. Expand leader skills and balance active-skill values.
-4. Improve animations, sound, and browser/mobile QA.
+1. Add inventory, summoning, card progression, and persistent saves.
+2. Expand leader skills and balance active-skill and boss values.
+3. Improve animations, sound, and browser/mobile QA.
 
 ## Project structure
 
@@ -51,6 +52,8 @@ These are original prototype rules and are intentionally data-driven so they can
 - `combat.js` — pure elemental matchup and party-powered damage calculations.
 - `team.js` — original card catalog, team validation, and leader-skill aggregation.
 - `skills.js` — active-skill definitions, activation effects, and cooldown state transitions.
+- `stages.js` — campaign data, wave progression, enemy intents, boss phases, and shield mitigation.
 - `tests/combat.test.js` — deterministic combat unit tests.
 - `tests/team.test.js` — deterministic party and card validation tests.
 - `tests/skills.test.js` — deterministic active-skill and cooldown tests.
+- `tests/stages.test.js` — deterministic campaign, wave, enemy-turn, and boss tests.
