@@ -44,3 +44,37 @@ test("rejects invalid combo, element and rune counts", () => {
   assert.throws(() => calculateCombatResult({ counts: {}, combo: 1, enemyElement: "ice" }), RangeError);
   assert.throws(() => calculateCombatResult({ counts: { fire: -1 }, combo: 1, enemyElement: "fire" }), RangeError);
 });
+
+test("team attack stats drive damage with combo and elemental modifiers", () => {
+  const result = calculateCombatResult({
+    counts: { fire: 3 },
+    combo: 2,
+    enemyElement: "wood",
+    teamAttackByElement: { fire: 180 }
+  });
+  assert.equal(result.damage, 338);
+  assert.equal(result.breakdown[0].baseDamage, 180);
+  assert.equal(result.breakdown[0].runeCountMultiplier, 1);
+});
+
+test("matching more than three runes adds a small rune-count bonus", () => {
+  const result = calculateCombatResult({
+    counts: { fire: 4 },
+    combo: 1,
+    enemyElement: "water",
+    teamAttackByElement: { fire: 100 }
+  });
+  assert.equal(result.damage, 55);
+  assert.equal(result.breakdown[0].runeCountMultiplier, 1.1);
+});
+
+test("rejects invalid team attack data", () => {
+  assert.throws(() => calculateCombatResult({
+    counts: { fire: 3 }, combo: 1, enemyElement: "wood",
+    teamAttackByElement: { ice: 100 }
+  }), RangeError);
+  assert.throws(() => calculateCombatResult({
+    counts: { fire: 3 }, combo: 1, enemyElement: "wood",
+    teamAttackByElement: { fire: -1 }
+  }), RangeError);
+});
