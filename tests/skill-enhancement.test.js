@@ -30,6 +30,7 @@ test("enhancement consumes exactly one duplicate while retaining the owned card"
 
 test("enhancement costs increase with the current skill level", () => {
   let save = addCard(createDefaultSave(), "tide_monk", 4);
+  save.currencies.gold = 10000;
   for (let level = 1; level < 4; level += 1) {
     const entry = save.inventory.find((item) => item.cardId === "tide_monk");
     assert.equal(getSkillEnhancementQuote(entry).goldCost, level * 250);
