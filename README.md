@@ -14,7 +14,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Adjacent swaps by click/tap and pointer drag (mouse and touch).
 - Horizontal/vertical match-3 clearing, gravity refill and cascading combos.
 - Score, player HP, heart-rune healing and sequential enemies.
-- Data-driven elemental matchup, damage breakdown and pure combat calculation module.
+- Data-driven elemental matchup and pure combat calculation module, now powered by the selected party's element-specific attack stats.\n- Five-slot party formation with an original starter card roster, team cost validation, total HP, and a leader skill.
 - Responsive layout for narrow screens.
 - Deterministic Node.js tests for elemental matchups and damage calculations.
 
