@@ -27,9 +27,12 @@ export function getElementalMatchup(attackerElement, enemyElement) {
   return { multiplier: 1, relation: "neutral" };
 }
 
-export function calculateCombatResult({ counts = {}, combo = 1, enemyElement, teamAttackByElement = null }) {
+export function calculateCombatResult({ counts = {}, combo = 1, enemyElement, teamAttackByElement = null, skillMultiplier = 1 }) {
   assertElement(enemyElement, "enemy element");
   if (!Number.isInteger(combo) || combo < 1) throw new RangeError("combo must be a positive integer");
+  if (typeof skillMultiplier !== "number" || !Number.isFinite(skillMultiplier) || skillMultiplier < 1 || skillMultiplier > 10) {
+    throw new RangeError("skillMultiplier must be between 1 and 10");
+  }
   for (const [element, count] of Object.entries(counts)) {
     assertElement(element, "rune element");
     if (!Number.isInteger(count) || count < 0) throw new RangeError(`count for ${element} must be a non-negative integer`);
@@ -61,7 +64,7 @@ export function calculateCombatResult({ counts = {}, combo = 1, enemyElement, te
       ? 1
       : 1 + Math.max(0, count - 3) * 0.1;
     const elementDamage = Math.round(
-      baseDamage * runeCountMultiplier * comboMultiplier * matchup.multiplier
+      baseDamage * runeCountMultiplier * comboMultiplier * matchup.multiplier * skillMultiplier
     );
     damage += elementDamage;
     breakdown.push({
@@ -71,5 +74,5 @@ export function calculateCombatResult({ counts = {}, combo = 1, enemyElement, te
     });
   }
   const heartCount = counts.heart ?? 0;
-  return { damage, healing: heartCount * HEAL_PER_HEART_RUNE, comboMultiplier, breakdown };
+  return { damage, healing: heartCount * HEAL_PER_HEART_RUNE, comboMultiplier, skillMultiplier, breakdown };
 }
