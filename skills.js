@@ -16,6 +16,39 @@ export const ACTIVE_SKILLS = Object.freeze({
   solar_archon: Object.freeze({ id: "solar_judgement", name: "曜日裁決", description: "下一次成功攻擊傷害提升 55%。", cooldown: 4, type: "damageBoost", multiplier: 1.55 })
 });
 
+export const MAX_SKILL_LEVEL = 5;
+
+const SKILL_ELEMENT_NAMES = Object.freeze({
+  fire: "火", water: "水", wood: "木", light: "光", dark: "暗", heart: "心"
+});
+
+export function getActiveSkill(cardId, skillLevel = 1) {
+  const base = ACTIVE_SKILLS[cardId];
+  if (!base) throw new RangeError("Unknown active skill card: " + String(cardId));
+  if (!Number.isInteger(skillLevel) || skillLevel < 1 || skillLevel > MAX_SKILL_LEVEL) {
+    throw new RangeError("skillLevel must be an integer between 1 and " + MAX_SKILL_LEVEL);
+  }
+
+  const skill = { ...base };
+  if (skill.type === "damageBoost") {
+    skill.multiplier = Number((base.multiplier + 0.05 * (skillLevel - 1)).toFixed(2));
+    skill.description = "下一次成功攻擊傷害提升 " + Math.round((skill.multiplier - 1) * 100) + "%。";
+  } else if (skill.type === "convert") {
+    skill.count = base.count + Math.floor((skillLevel - 1) / 2);
+    const elementName = SKILL_ELEMENT_NAMES[skill.target];
+    skill.description = "將最多 " + skill.count + " 顆非" + elementName + "符石轉為" + elementName + "符石。";
+  } else if (skill.type === "shield") {
+    skill.amount = base.amount + 5 * (skillLevel - 1);
+    skill.description = "獲得 " + skill.amount + " 點護盾，抵擋後續敵人攻擊。";
+  } else if (skill.type === "heal") {
+    skill.fraction = Math.min(0.45, Number((base.fraction + 0.05 * (skillLevel - 1)).toFixed(2)));
+    skill.description = "立即回復隊伍生命上限的 " + Math.round(skill.fraction * 100) + "%。";
+  }
+
+  if (skillLevel >= MAX_SKILL_LEVEL) skill.cooldown = Math.max(2, base.cooldown - 1);
+  return skill;
+}
+
 function cloneSkillStates(states = {}) {
   return Object.fromEntries(Object.entries(states).map(([cardId, state]) => [cardId, {
     remaining: Number.isInteger(state?.remaining) && state.remaining > 0 ? state.remaining : 0,
@@ -40,10 +73,9 @@ export function canActivateSkill(cardId, skillStates, isResolving = false) {
 
 export function activateSkill({
   cardId, skillStates, board, hp, maxHp, shield = 0,
-  damageMultiplier = 1, random = Math.random
+  damageMultiplier = 1, random = Math.random, skillLevel = 1
 }) {
-  const skill = ACTIVE_SKILLS[cardId];
-  if (!skill) throw new RangeError("Unknown active skill card: " + String(cardId));
+  const skill = getActiveSkill(cardId, skillLevel);
   if (!canActivateSkill(cardId, skillStates)) throw new Error("Skill is unavailable or on cooldown");
   if (!Array.isArray(board)) throw new TypeError("board must be an array");
   if (!Number.isFinite(hp) || !Number.isFinite(maxHp) || maxHp <= 0 || hp < 0 || hp > maxHp) {
