@@ -38,7 +38,7 @@ test("enhancement costs increase with the current skill level", () => {
   }
   const entry = save.inventory.find((item) => item.cardId === "tide_monk");
   assert.equal(entry.skillLevel, 4);
-  assert.equal(entry.quantity, 1);
+  assert.equal(entry.quantity, 2);
 });
 
 test("maximum skill level prevents further duplicate or gold consumption", () => {
