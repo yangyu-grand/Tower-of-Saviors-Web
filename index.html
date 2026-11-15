@@ -1,0 +1,61 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10172a">
+<title>符石遠征｜Puzzle RPG</title>
+<style>
+:root{color-scheme:dark;--bg:#0b1020;--panel:#151e34;--gold:#f6c96b;--muted:#aab6ce}
+*{box-sizing:border-box}body{margin:0;min-height:100vh;background:radial-gradient(ellipse at top,#26385b 0,#111a30 42%,#080d19 100%);color:#f7f4ec;font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif}
+main{width:min(960px,100%);margin:auto;padding:22px 16px 40px}.top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+h1{font-size:clamp(25px,5vw,40px);margin:4px 0;color:var(--gold);letter-spacing:.08em}.sub{color:var(--muted);margin:0 0 18px}
+.panel{background:linear-gradient(145deg,#1a2742,#10182b);border:1px solid #52658b66;border-radius:18px;padding:16px;box-shadow:0 16px 40px #0006}
+.stats{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px}.stat{background:#080f20aa;border-radius:12px;padding:10px;text-align:center}.stat small{display:block;color:var(--muted);font-size:12px}.stat b{font-size:20px}
+.battle{display:grid;grid-template-columns:minmax(0,1fr) 230px;gap:14px;align-items:start}
+.board{display:grid;grid-template-columns:repeat(6,1fr);gap:6px;padding:8px;background:#070d1b;border-radius:15px;border:1px solid #65789a55;touch-action:pan-y;user-select:none}
+.orb{aspect-ratio:1;border:2px solid #ffffff30;border-radius:50%;display:grid;place-items:center;font-size:clamp(22px,5vw,38px);cursor:pointer;box-shadow:inset 0 3px 7px #fff5,inset 0 -7px 10px #0006,0 3px 5px #0007;transition:transform .12s,border-color .12s;touch-action:none}
+.orb.selected{outline:3px solid #fff;outline-offset:1px;transform:scale(.91)}.orb:focus-visible{outline:3px solid white}
+.fire{background:linear-gradient(145deg,#ffb05b,#b72c32)}.water{background:linear-gradient(145deg,#8be4ff,#1762bd)}.wood{background:linear-gradient(145deg,#b6ed80,#267a45)}.light{background:linear-gradient(145deg,#fff4a4,#b98a20)}.dark{background:linear-gradient(145deg,#bd9bff,#522a91)}.heart{background:linear-gradient(145deg,#ffb4d4,#b52d72)}
+.side{display:grid;gap:10px}.enemy{font-size:52px;text-align:center;padding:8px}.bar{height:12px;background:#070d1b;border-radius:20px;overflow:hidden}.fill{height:100%;width:100%;background:linear-gradient(90deg,#f05c67,#ffc06a);transition:width .25s}
+button{border:0;border-radius:12px;padding:11px 14px;background:linear-gradient(135deg,#f6d58b,#c38a39);color:#25190a;font-weight:800;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}.actions{display:flex;gap:8px;flex-wrap:wrap}.hint{color:var(--muted);font-size:13px;line-height:1.6}.log{min-height:48px;color:#ffe4a4;font-size:14px;line-height:1.6}
+footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
+@media(max-width:680px){.battle{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}.side .wide{grid-column:1/-1}.stats{grid-template-columns:repeat(2,1fr)}main{padding:14px 10px 28px}.panel{padding:12px}}
+</style>
+</head>
+<body>
+<main>
+ <div class="top"><div><h1>符石遠征</h1><p class="sub">原創益智 RPG 原型 · 消除、連擊、屬性與戰鬥</p></div><button id="newGame">重新開始</button></div>
+ <section class="panel">
+  <div class="stats">
+   <div class="stat"><small>生命值</small><b id="hp">100</b></div><div class="stat"><small>攻擊力</small><b id="atk">12</b></div><div class="stat"><small>總分</small><b id="score">0</b></div><div class="stat"><small>最大 Combo</small><b id="combo">0</b></div>
+  </div>
+  <div class="battle">
+   <div><div id="board" class="board" aria-label="符石盤"></div><p class="hint">操作：點選兩顆相鄰符石交換，或用滑鼠／手指拖曳。橫向或直向連成 3 顆即可消除。</p></div>
+   <aside class="side">
+    <div class="panel wide"><div class="enemy" id="enemy">🐉</div><b id="enemyName">暮影幼龍</b><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p></div>
+    <div class="panel"><b>隊伍屬性</b><p class="hint">火 🔥　水 💧　木 🌿<br>光 ✨　暗 🌙　心 💗</p><div class="actions"><button id="heal">心符石回復</button></div></div>
+    <div class="panel"><b>戰鬥紀錄</b><p class="log" id="log" aria-live="polite">拖曳或點選符石，開始你的第一場戰鬥！</p></div>
+   </aside>
+  </div>
+ </section>
+ <footer>獨立原創原型；角色、圖像與名稱皆為暫用原創素材。</footer>
+</main>
+<script>
+(()=>{
+const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'};
+const boardEl=document.querySelector('#board');let cells=[],selected=-1,dragFrom=-1,busy=false,hp=100,score=0,maxCombo=0,enemyHp=180,enemyMax=180,turn=0;
+const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
+function stats(){ $('hp').textContent=hp;$('score').textContent=score;$('combo').textContent=maxCombo;$('enemyHp').textContent=enemyHp+' / '+enemyMax;$('enemyBar').style.width=Math.max(0,enemyHp/enemyMax*100)+'%';$('heal').disabled=busy||hp>=100; }
+function render(){boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label',t);b.dataset.i=i;b.addEventListener('click',()=>tap(i));b.addEventListener('pointerdown',()=>{dragFrom=i});b.addEventListener('pointerup',()=>{if(dragFrom>=0&&dragFrom!==i)swapTry(dragFrom,i);dragFrom=-1});boardEl.appendChild(b)});stats()}
+function adjacent(a,b){return Math.abs(a-b)===6||Math.floor(a/6)===Math.floor(b/6)&&Math.abs(a-b)===1}
+function tap(i){if(busy)return;if(selected<0){selected=i;render();return}if(selected===i){selected=-1;render();return}const a=selected;selected=-1;if(adjacent(a,i))swapTry(a,i);else{selected=i;render()}}
+function findMatches(){const found=new Set();for(let r=0;r<5;r++)for(let c=0;c<6;c++){const i=r*6+c,t=cells[i];if(c<=3&&cells[i+1]===t&&cells[i+2]===t){let k=c;while(k<6&&cells[r*6+k]===t)found.add(r*6+k++);}if(r<=2&&cells[i+6]===t&&cells[i+12]===t){let k=r;while(k<5&&cells[k*6+c]===t)found.add(k++*6+c);}}return found}
+async function swapTry(a,b){if(busy||!adjacent(a,b))return;busy=true;[cells[a],cells[b]]=[cells[b],cells[a]];render();let matches=findMatches();if(!matches.size){await wait(140);[cells[a],cells[b]]=[cells[b],cells[a]];busy=false;render();$('log').textContent='沒有形成消除，符石已換回。';return}let combo=0,totalDamage=0,totalHeal=0;while(matches.size&&combo<12){combo++;const removed=[...matches].map(i=>cells[i]);const counts={};removed.forEach(t=>counts[t]=(counts[t]||0)+1);const damage=removed.reduce((n,t)=>n+(t==='heart'?0:8),0)+Object.entries(counts).reduce((n,[t,c])=>n+(t==='heart'?0:c*3),0);const healing=(counts.heart||0)*7;totalDamage+=damage;totalHeal+=healing;score+=matches.size*10*combo;matches.forEach(i=>cells[i]=null);render();await wait(180);for(let c=0;c<6;c++){let stack=[];for(let r=4;r>=0;r--){const v=cells[r*6+c];if(v)stack.push(v)}while(stack.length<5)stack.push(rand());for(let r=4;r>=0;r--)cells[r*6+c]=stack[4-r]}render();await wait(120);matches=findMatches()}maxCombo=Math.max(maxCombo,combo);hp=Math.min(100,hp+totalHeal);enemyHp=Math.max(0,enemyHp-totalDamage);turn++;if(enemyHp<=0){score+=100;enemyHp=enemyMax=180+turn*45;$('enemy').textContent=['🐉','👹','🦇','🦂'][turn%4];$('enemyName').textContent=['暮影幼龍','熔岩魔將','深淵蝠王','沙海巨蠍'][turn%4];$('log').textContent='敵人被擊敗！獲得 100 分，新的敵人出現！'}else{hp=Math.max(0,hp-(combo>1?Math.max(2,9-combo):9));$('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。'}if(hp<=0){$('log').textContent+=' 生命值歸零，請重新開始。';$('board').style.opacity='.55'}busy=false;render()}
+function wait(ms){return new Promise(r=>setTimeout(r,ms))}
+function reset(){cells=Array.from({length:30},rand);for(let tries=0;tries<20&&findMatches().size;tries++)cells=Array.from({length:30},rand);selected=-1;busy=false;hp=100;score=0;maxCombo=0;enemyHp=enemyMax=180;turn=0;$('enemy').textContent='🐉';$('enemyName').textContent='暮影幼龍';$('board').style.opacity='1';$('log').textContent='新旅程開始！找出三顆以上相同符石。';render()}
+$('newGame').addEventListener('click',reset);$('heal').addEventListener('click',()=>{if(!busy&&hp<100){hp=Math.min(100,hp+20);score=Math.max(0,score-30);$('log').textContent='使用回復技能：生命 +20，消耗 30 分。';stats()}});reset();
+})();
+</script>
+</body>
+</html>
