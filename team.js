@@ -14,7 +14,7 @@ function freezeCard(card) {
 export const CARD_CATALOG = Object.freeze([
   freezeCard({
     id: "ember_scout", name: "赤焰斥候", emoji: "🔥", element: "fire",
-    hp: 950, atk: 180, cost: 6,
+    hp: 950, atk: 180, cost: 6, rarity: 3,
     leaderSkill: {
       name: "赤焰先鋒",
       description: "隊伍火屬性攻擊提升 20%，隊伍生命提升 5%。",
