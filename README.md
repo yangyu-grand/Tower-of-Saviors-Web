@@ -31,7 +31,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Team cost validation, team HP aggregation, element-specific attack totals, and a fire leader skill.
 - Party attack stats are applied to matched-rune damage; extra runes beyond three add a small bonus.
 - Responsive layout for narrow screens.
-- Deterministic Node.js tests for combat rules, team validation, and leader-stat aggregation.
+- Deterministic Node.js tests for combat rules, team validation, leader-stat aggregation, card progression, and embedded browser-module syntax.
 
 ## Original prototype combat rules
 
