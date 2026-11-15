@@ -24,6 +24,8 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - A ten-card starter inventory plus five original summon-only characters across three rarity tiers; owned-card-only team selection.
 - Gold and summon-stone currencies with encounter and boss-clear rewards.
 - Single and ten-pull summoning with 3★/4★/5★ rates, a guaranteed 4★+ result per ten-pull, duplicate-card quantities, and a 20-pull 5★ pity counter.
+- Card progression up to level 99, with battle EXP distributed to the active five-card team and gold-funded one-level training for any owned card.
+- Card HP and ATK grow by 2.5% per level; leveled team stats feed into party HP, elemental attack, leader-skill calculations, and save validation.
 - Versioned local saves for inventory, team, campaign/wave, rune board, HP, score, shields, and active-skill cooldowns.
 - Automatic checkpoint saves after stable gameplay actions plus a manual save control; invalid saves fall back safely without deleting the stored data.
 - Team cost validation, team HP aggregation, element-specific attack totals, and a fire leader skill.
@@ -47,7 +49,7 @@ These are original prototype rules and are intentionally data-driven so they can
 
 ## Next priorities
 
-1. Add card progression, experience, and evolution materials.
+1. Add evolution materials, card evolution, and skill enhancement.
 2. Expand leader skills and balance active-skill and boss values.
 3. Improve animations, sound, and browser/mobile QA.
 
@@ -60,6 +62,7 @@ These are original prototype rules and are intentionally data-driven so they can
 - `stages.js` — campaign data, wave progression, enemy intents, boss phases, and shield mitigation.
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
+- `progression.js` — card experience, level caps, team EXP distribution, stat growth, and gold-funded training.
 - `tests/combat.test.js` — deterministic combat unit tests.
 - `tests/team.test.js` — deterministic party and card validation tests.
 - `tests/skills.test.js` — deterministic active-skill and cooldown tests.
