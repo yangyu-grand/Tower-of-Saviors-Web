@@ -21,7 +21,7 @@ h1{font-size:clamp(25px,5vw,40px);margin:4px 0;color:var(--gold);letter-spacing:
 button{border:0;border-radius:12px;padding:11px 14px;background:linear-gradient(135deg,#f6d58b,#c38a39);color:#25190a;font-weight:800;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}.actions{display:flex;gap:8px;flex-wrap:wrap}.hint{color:var(--muted);font-size:13px;line-height:1.6}.log{min-height:48px;color:#ffe4a4;font-size:14px;line-height:1.6}
 footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .top-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}.save-status{font-size:12px;color:#aab6ce}.save-status[data-state="saved"]{color:#8ee0a8}.save-status[data-state="warning"]{color:#ffd27b}
-.inventory-panel{margin-top:14px}.inventory-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.inventory-head h2{margin:0;color:var(--gold);font-size:20px}.currency-row{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px}.currency-row b{color:#fff}.inventory-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}.inventory-card{min-width:0;background:#080f20aa;border:1px solid #52658b55;border-radius:12px;padding:10px}.inventory-card .portrait{font-size:28px}.inventory-card b{display:block;color:var(--gold);font-size:13px;margin-top:4px}.inventory-card p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+.inventory-panel{margin-top:14px}.inventory-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}.inventory-head h2{margin:0;color:var(--gold);font-size:20px}.currency-row{display:flex;gap:12px;flex-wrap:wrap;color:var(--muted);font-size:13px}.currency-row b{color:#fff}.inventory-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}.inventory-card{min-width:0;background:#080f20aa;border:1px solid #52658b55;border-radius:12px;padding:10px}.inventory-card .portrait{font-size:28px}.inventory-card b{display:block;color:var(--gold);font-size:13px;margin-top:4px}.inventory-card p{margin:5px 0 0;color:var(--muted);font-size:11px;line-height:1.5}.inventory-card .xp-track{height:6px;background:#070d1b;border-radius:10px;overflow:hidden;margin-top:7px}.inventory-card .xp-fill{height:100%;background:linear-gradient(90deg,#62b6e8,#f6c96b)}.inventory-card button{width:100%;margin-top:8px;padding:8px 5px;font-size:11px}
 .summon-panel{margin:14px 0;padding:12px;background:#080f20aa;border:1px solid #65789a55;border-radius:14px}
 .summon-head{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;flex-wrap:wrap}
 .summon-head h3{margin:0;color:var(--gold);font-size:17px}
@@ -99,6 +99,7 @@ import { ACTIVE_SKILLS, createSkillStates, canActivateSkill, activateSkill, adva
 import { createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
 import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency, SUMMON_EPIC_PITY_LIMIT } from "./inventory.js";
 import { summonCards, SUMMON_RATES, SUMMON_COSTS } from "./summon.js";
+import { getCardLevels, grantTeamExperience, getTrainingQuote, trainCard, MAX_CARD_LEVEL, experienceToNextLevel } from "./progression.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
@@ -107,7 +108,7 @@ const loaded=loadSave(storage);
 let profile=loaded.save;
 let campaign={...profile.campaign};
 const boardEl=document.querySelector('#board');
-let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds),maxHp=currentTeam.totalHp;
+let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory)}),maxHp=currentTeam.totalHp;
 let skillStates=profile.skillStates,shield=profile.shield,pendingDamageMultiplier=profile.pendingDamageMultiplier;
 let cells=profile.board?[...profile.board]:createBoard(),selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex;
 function makeSaveSnapshot(){return {...profile,teamIds:[...teamIds],campaign:{...campaign},unlockedStageIndex,hp,score,maxCombo,board:[...cells],skillStates:Object.fromEntries(Object.entries(skillStates).map(([id,state])=>[id,{...state}])),shield,pendingDamageMultiplier,updatedAt:Date.now()};}
@@ -136,8 +137,16 @@ function renderInventory(){
   const entry=profile.inventory.find(item=>item.cardId===card.id),item=document.createElement('div');item.className='inventory-card';
   const portrait=document.createElement('div');portrait.className='portrait';portrait.textContent=card.emoji;
   const name=document.createElement('b');name.textContent=card.name;
-  const meta=document.createElement('p');meta.textContent=card.element+' 屬性 · '+'★'.repeat(card.rarity||3)+' · Lv.'+entry.level+' · 持有 '+entry.quantity+' 張';
-  item.append(portrait,name,meta);grid.appendChild(item);
+  const meta=document.createElement('p');meta.textContent=card.element+' 屬性 · '+'★'.repeat(card.rarity||3)+' · Lv.'+entry.level+' · ATK '+card.atk+' / HP '+card.hp+' · 持有 '+entry.quantity+' 張';
+  const expRequired=entry.level>=MAX_CARD_LEVEL?0:experienceToNextLevel(entry.level);
+  const expText=document.createElement('p');expText.textContent=entry.level>=MAX_CARD_LEVEL?'經驗值已達上限':'EXP '+entry.exp+' / '+expRequired;
+  const track=document.createElement('div');track.className='xp-track';track.setAttribute('aria-label','角色經驗進度');
+  const fill=document.createElement('div');fill.className='xp-fill';fill.style.width=(entry.level>=MAX_CARD_LEVEL?100:Math.min(100,entry.exp/expRequired*100))+'%';track.appendChild(fill);
+  const quote=getTrainingQuote(entry),button=document.createElement('button');button.type='button';
+  button.textContent=entry.level>=MAX_CARD_LEVEL?'已達最高等級':'特訓升級 · '+quote.goldCost+' 金幣';
+  button.disabled=busy||entry.level>=MAX_CARD_LEVEL||profile.currencies.gold<quote.goldCost;
+  button.addEventListener('click',()=>performTraining(card.id));
+  item.append(portrait,name,meta,expText,track,button);grid.appendChild(item);
  });
  $('gold').textContent=profile.currencies.gold.toLocaleString('zh-TW');
  $('summonStones').textContent=profile.currencies.summonStones;
@@ -177,6 +186,22 @@ function performSummon(count){
   $('log').textContent=error.message==='Not enough summonStones'?'召喚石不足，無法進行這次召喚。':error.message;
  }
 }
+function performTraining(cardId){
+ if(busy)return;
+ try{
+  const previousMaxHp=maxHp;
+  const result=trainCard(profile,cardId);
+  profile=result.save;
+  if(teamIds.includes(cardId)){
+   currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory)});
+   maxHp=currentTeam.totalHp;
+   if(hp>0)hp=Math.min(maxHp,hp+Math.max(0,maxHp-previousMaxHp));
+  }
+  const card=listOwnedCards(profile).find(item=>item.id===cardId);
+  $('log').textContent=card.name+' 特訓完成：升至 Lv.'+result.level+'，ATK '+card.atk+'、HP '+card.hp+'。消耗 '+result.goldCost+' 金幣。';
+  renderTeam();renderInventory();render();persist('角色特訓已儲存');
+ }catch(error){$('log').textContent=error.message==='Not enough gold'?'金幣不足，無法進行特訓。':error.message;}
+}
 function renderTeam(){
  const slots=$('teamSlots');slots.innerHTML='';
  teamIds.forEach((cardId,index)=>{
@@ -185,14 +210,14 @@ function renderTeam(){
   const select=document.createElement('select');select.setAttribute('aria-label',label.textContent);
   listOwnedCards(profile).forEach(optionCard=>{
    const option=document.createElement('option');option.value=optionCard.id;
-   option.textContent=optionCard.emoji+' '+optionCard.name+' · ATK '+optionCard.atk+' · HP '+optionCard.hp+' · C '+optionCard.cost;
+   option.textContent=optionCard.emoji+' '+optionCard.name+' · Lv.'+optionCard.level+' · ATK '+optionCard.atk+' · HP '+optionCard.hp+' · C '+optionCard.cost;
    select.appendChild(option);
   });
   select.value=cardId;
   select.addEventListener('change',()=>{
    const candidate=[...teamIds];candidate[index]=select.value;
    try{
-    const nextTeam=buildTeam(candidate);teamIds=candidate;currentTeam=nextTeam;skillStates=createSkillStates(teamIds,skillStates);maxHp=currentTeam.totalHp;hp=Math.min(hp,maxHp);
+    const nextTeam=buildTeam(candidate,{levels:getCardLevels(profile.inventory)});teamIds=candidate;currentTeam=nextTeam;skillStates=createSkillStates(teamIds,skillStates);maxHp=currentTeam.totalHp;hp=Math.min(hp,maxHp);
     renderTeam();stats();persist();$('log').textContent='隊伍編組已更新。新的隊長技能與屬性攻擊已生效。';
    }catch(error){select.value=teamIds[index];$('log').textContent=error.message;}
   });
@@ -278,8 +303,17 @@ async function swapTry(a,b){
   $('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。'+enemyTurn.message+shieldText+pierceText;
  }
  if(hp<=0)$('log').textContent+=' 生命值歸零，請重新開始。';
+ const expReward=20+(outcome.defeated?(outcome.stageCompleted?120:50):0),previousMaxHp=maxHp;
+ const expResult=grantTeamExperience(profile,teamIds,expReward);profile=expResult.save;
+ currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory)});maxHp=currentTeam.totalHp;
+ if(hp>0)hp=Math.min(maxHp,hp+Math.max(0,maxHp-previousMaxHp));
+ const levelUps=expResult.results.filter(item=>item.levelsGained>0);
+ if(levelUps.length){
+  const summary=levelUps.map(item=>listOwnedCards(profile).find(card=>card.id===item.cardId).name+' Lv.'+item.level).join('、');
+  $('log').textContent+=' 隊伍獲得 '+expReward+' EXP；升級：'+summary+'。';
+ }else $('log').textContent+=' 隊伍全員獲得 '+expReward+' EXP。';
  skillStates=advanceSkillCooldowns(skillStates);if(totalDamage>0)pendingDamageMultiplier=1;
- busy=false;render();renderInventory();persist();
+ busy=false;renderTeam();render();renderInventory();persist();
 }
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function reset(){
