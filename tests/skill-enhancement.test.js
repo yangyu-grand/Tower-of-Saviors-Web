@@ -43,6 +43,7 @@ test("enhancement costs increase with the current skill level", () => {
 
 test("maximum skill level prevents further duplicate or gold consumption", () => {
   let save = addCard(createDefaultSave(), "moss_guard", 5);
+  save.currencies.gold = 10000;
   for (let i = 0; i < 4; i += 1) save = enhanceCardSkill(save, "moss_guard").save;
   const before = normalizeSave(save);
   assert.equal(before.inventory.find((item) => item.cardId === "moss_guard").skillLevel, MAX_SKILL_LEVEL);
