@@ -21,6 +21,10 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Active skills are wired into the game UI and affect the next attack, board, incoming damage mitigation, or team HP.
 - Three original stages with nine encounters, boss telegraphs, enrage thresholds, and shield-piercing special attacks.
 - Enemy intent previews, wave transitions, stage-clear rewards, and campaign completion.
+- A ten-card starter inventory with card quantities, levels, and owned-card-only team selection.
+- Gold and summon-stone currencies with encounter and boss-clear rewards.
+- Versioned local saves for inventory, team, campaign/wave, rune board, HP, score, shields, and active-skill cooldowns.
+- Automatic checkpoint saves after stable gameplay actions plus a manual save control; invalid saves fall back safely without deleting the stored data.
 - Team cost validation, team HP aggregation, element-specific attack totals, and a fire leader skill.
 - Party attack stats are applied to matched-rune damage; extra runes beyond three add a small bonus.
 - Responsive layout for narrow screens.
@@ -42,7 +46,7 @@ These are original prototype rules and are intentionally data-driven so they can
 
 ## Next priorities
 
-1. Add inventory, summoning, card progression, and persistent saves.
+1. Add summoning, card progression, and duplicate-card handling.
 2. Expand leader skills and balance active-skill and boss values.
 3. Improve animations, sound, and browser/mobile QA.
 
@@ -53,7 +57,9 @@ These are original prototype rules and are intentionally data-driven so they can
 - `team.js` — original card catalog, team validation, and leader-skill aggregation.
 - `skills.js` — active-skill definitions, activation effects, and cooldown state transitions.
 - `stages.js` — campaign data, wave progression, enemy intents, boss phases, and shield mitigation.
+- `inventory.js` — owned-card inventory, currency operations, save validation, and browser storage adapter.
 - `tests/combat.test.js` — deterministic combat unit tests.
 - `tests/team.test.js` — deterministic party and card validation tests.
 - `tests/skills.test.js` — deterministic active-skill and cooldown tests.
 - `tests/stages.test.js` — deterministic campaign, wave, enemy-turn, and boss tests.
+- `tests/inventory.test.js` — deterministic inventory, save validation, storage-failure, and currency tests.
