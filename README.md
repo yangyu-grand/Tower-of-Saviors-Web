@@ -1,36 +1,44 @@
 # Tower-of-Saviors-Web
 
-An original puzzle RPG prototype inspired by match-3 team battlers. This project uses original placeholder names and emoji artwork; it does not include proprietary game assets.
+An original browser-based puzzle RPG prototype with original placeholder characters, visual assets and combat rules. No proprietary game artwork or copied game data is included.
 
 ## Run locally
 
-Open `index.html` in a modern desktop or mobile browser. No build step or external dependency is currently required.
+- Requires Node.js 18 or newer for tests.
+- Run deterministic combat tests with `npm test`.
+- Serve the project root with a static server because browser ES modules may not work from a `file://` URL. Example: `python3 -m http.server 8000`, then open `http://localhost:8000`.
 
-## Current prototype
+## Implemented
 
-- 6 × 5 rune board with six rune types
-- Adjacent swaps by click/tap selection
-- Match-3 horizontal and vertical clearing
-- Falling/refill loop and cascading combos
-- Basic score, HP, enemy HP, and healing action
-- Responsive layout for narrow screens
-- Pointer-based drag swapping (mouse and touch)
+- 6 × 5 rune board with six rune types.
+- Adjacent swaps by click/tap and pointer drag (mouse and touch).
+- Horizontal/vertical match-3 clearing, gravity refill and cascading combos.
+- Score, player HP, heart-rune healing and sequential enemies.
+- Data-driven elemental matchup, damage breakdown and pure combat calculation module.
+- Responsive layout for narrow screens.
+- Deterministic Node.js tests for elemental matchups and damage calculations.
 
-## Known limitations
+## Original elemental rules
 
-- Combat values are prototype rules, not a faithful recreation of any commercial game's formulas.
-- Elemental advantage/resistance, team formation, cards, skills, stages, inventory, gacha, and persistent saves are not implemented yet.
-- Browser-level QA should be performed before treating a change as release-ready.
+- Fire has advantage over wood; wood over water; water over fire.
+- Light and dark have reciprocal advantage over each other.
+- Advantage: 1.5× damage; disadvantage: 0.5×; other matchups: 1×.
+- Heart-element enemies are neutral to all five attack elements.
+- Each matched attack rune contributes 11 base damage.
+- Combo multiplier is `1 + 0.25 × (combo - 1)` for each cascade step.
+- Each matched heart rune restores 7 HP and does not deal damage.
 
-## Development priorities
+These are original prototype rules, not copied commercial-game formulas.
 
-1. Complete and test rune interaction and match resolution.
-2. Add explicit rune elements and elemental advantage/resistance in combat.
-3. Add a small original starter team with configurable member stats and leader skill.
-4. Add stages, enemy patterns, rewards, inventory, and save/load.
+## Next priorities
 
-## Project principles
+1. Add party members, card data, team formation and leader/active skills.
+2. Add stages, enemy attack patterns and boss mechanics.
+3. Add inventory, summoning, progression and persistent saves.
+4. Improve animations, sound and browser/mobile QA.
 
-- Extend the current implementation; do not replace completed features without a reason.
-- Prefer small, reviewable changes with a clear commit history.
-- Use original or properly licensed artwork, audio, names, and other assets.
+## Project structure
+
+- `index.html` — game interface and board interaction.
+- `combat.js` — pure elemental matchup and damage calculations.
+- `tests/combat.test.js` — deterministic combat unit tests.
