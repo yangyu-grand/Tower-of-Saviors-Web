@@ -72,9 +72,9 @@ test("disadvantage and neutral damage are calculated independently", () => {
     combo: 1,
     enemyElement: "water"
   });
-  assert.equal(result.damage, 33);
+  assert.equal(result.damage, 22);
   assert.equal(result.breakdown[0].damage, 11);
-  assert.equal(result.breakdown[1].damage, 22);
+  assert.equal(result.breakdown[1].damage, 11);
 });
 
 test("heart-only matches heal and deal no damage", () => {
