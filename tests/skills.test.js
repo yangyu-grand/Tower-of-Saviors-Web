@@ -9,7 +9,7 @@ const team = ["ember_scout", "tide_monk", "moss_guard", "dawn_archer", "heart_pr
 const board = Array.from({ length: 30 }, (_, index) => ["fire", "water", "wood", "light", "dark", "heart"][index % 6]);
 
 test("every starter card has a unique active skill definition", () => {
-  assert.equal(Object.keys(ACTIVE_SKILLS).length, 10);
+  assert.equal(Object.keys(ACTIVE_SKILLS).length, 15);
   assert.equal(new Set(Object.values(ACTIVE_SKILLS).map((skill) => skill.id)).size, 10);
 });
 
@@ -83,4 +83,11 @@ test("rejects unknown cards, invalid health, and invalid random values", () => {
   assert.throws(() => activateSkill({ cardId: "unknown", skillStates: {}, board, hp: 1, maxHp: 10 }), RangeError);
   assert.throws(() => activateSkill({ cardId: "heart_priest", skillStates: createSkillStates(team), board, hp: 101, maxHp: 100 }), RangeError);
   assert.throws(() => activateSkill({ cardId: "tide_monk", skillStates: createSkillStates(team), board, hp: 1, maxHp: 100, random: () => 1 }), RangeError);
+});
+
+test("newly summonable cards all have usable active skills", () => {
+  const ids = ["azure_minstrel", "verdant_alchemist", "astral_scribe", "abyss_weaver", "solar_archon"];
+  const states = createSkillStates(ids);
+  assert.equal(Object.keys(states).length, 5);
+  assert.ok(ids.every((id) => ACTIVE_SKILLS[id] && states[id].remaining === 0));
 });
