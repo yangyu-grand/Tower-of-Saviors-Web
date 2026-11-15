@@ -1,5 +1,6 @@
 export const TEAM_SIZE = 5;
 export const DEFAULT_COST_LIMIT = 30;
+export const CARD_STAT_GROWTH_PER_LEVEL = 0.025;
 
 const ATTACK_ELEMENTS = Object.freeze(["fire", "water", "wood", "light", "dark"]);
 
@@ -79,6 +80,15 @@ export function getCard(cardId) {
   return card;
 }
 
+export function getCardStats(cardId, level = 1) {
+  const card = getCard(cardId);
+  if (!Number.isInteger(level) || level < 1 || level > 99) {
+    throw new RangeError("Card level must be an integer between 1 and 99");
+  }
+  const multiplier = 1 + CARD_STAT_GROWTH_PER_LEVEL * (level - 1);
+  return { ...card, level, hp: Math.round(card.hp * multiplier), atk: Math.round(card.atk * multiplier) };
+}
+
 export function buildTeam(cardIds, options = {}) {
   const costLimit = options.costLimit ?? DEFAULT_COST_LIMIT;
   if (!Number.isInteger(costLimit) || costLimit < 0) {
@@ -93,7 +103,9 @@ export function buildTeam(cardIds, options = {}) {
     throw new RangeError("A team cannot contain duplicate cards");
   }
 
-  const cards = cardIds.map(getCard);
+  const levels = options.levels ?? {};
+  if (!levels || typeof levels !== "object" || Array.isArray(levels)) throw new TypeError("levels must be a card-id-to-level object");
+  const cards = cardIds.map((cardId) => getCardStats(cardId, levels[cardId] ?? 1));
   const totalCost = cards.reduce((sum, card) => sum + card.cost, 0);
   if (totalCost > costLimit) {
     throw new RangeError("Team cost " + totalCost + " exceeds limit " + costLimit);
