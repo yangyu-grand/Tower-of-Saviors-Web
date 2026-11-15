@@ -8,9 +8,9 @@ import { calculateCombatResult } from "../combat.js";
 const team = ["ember_scout", "tide_monk", "moss_guard", "dawn_archer", "heart_priest"];
 const board = Array.from({ length: 30 }, (_, index) => ["fire", "water", "wood", "light", "dark", "heart"][index % 6]);
 
-test("every starter card has a unique active skill definition", () => {
+test("every catalog card has a unique active skill definition", () => {
   assert.equal(Object.keys(ACTIVE_SKILLS).length, 15);
-  assert.equal(new Set(Object.values(ACTIVE_SKILLS).map((skill) => skill.id)).size, 10);
+  assert.equal(new Set(Object.values(ACTIVE_SKILLS).map((skill) => skill.id)).size, 15);
 });
 
 test("skill states are created for the current team and preserve remaining cooldowns", () => {
