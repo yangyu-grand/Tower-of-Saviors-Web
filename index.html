@@ -42,7 +42,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   <div class="battle">
    <div><div id="board" class="board" aria-label="符石盤"></div><p class="hint">操作：點選兩顆相鄰符石交換，或用滑鼠／手指拖曳。橫向或直向連成 3 顆即可消除。</p></div>
    <aside class="side">
-    <div class="panel wide"><div class="enemy" id="enemy">🐉</div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p></div>
+    <div class="panel wide"><div class="enemy" id="enemy">🐉</div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p><p class="hint" id="shieldStatus">護盾：0</p><p class="hint" id="skillEffectStatus">下一次攻擊增益：無</p></div>
     <div class="panel"><b>隊伍屬性</b><p class="hint">火 🔥　水 💧　木 🌿<br>光 ✨　暗 🌙　心 💗</p><div class="actions"><button id="heal">隊伍回復技能</button></div></div>
     <div class="panel"><b>戰鬥紀錄</b><p class="log" id="log" aria-live="polite">拖曳或點選符石，開始你的第一場戰鬥！</p><p class="hint" id="combatBreakdown">傷害計算明細會顯示在這裡。</p></div>
    </aside>
@@ -75,7 +75,7 @@ let skillStates=createSkillStates(teamIds),shield=0,pendingDamageMultiplier=1;
 let cells=[],selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=maxHp,score=0,maxCombo=0,enemyHp=180,enemyMax=180,enemyIndex=0,currentEnemy=enemies[0];
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
 function renderEnemy(){ $('enemy').textContent=currentEnemy.emoji;$('enemyName').textContent=currentEnemy.name;$('enemyElement').textContent='敵人屬性：'+icons[currentEnemy.element]+' '+elementNames[currentEnemy.element];$('enemyHp').textContent=enemyHp+' / '+enemyMax;$('enemyBar').style.width=Math.max(0,enemyHp/enemyMax*100)+'%';}
-function stats(){ $('hp').textContent=hp+' / '+maxHp;$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();renderSkillControls();}
+function stats(){ $('hp').textContent=hp+' / '+maxHp;$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();}
 function renderTeam(){
  const slots=$('teamSlots');slots.innerHTML='';
  teamIds.forEach((cardId,index)=>{
