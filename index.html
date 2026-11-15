@@ -97,7 +97,7 @@ import { calculateCombatResult } from "./combat.js";
 import { CARD_CATALOG, DEFAULT_TEAM, buildTeam } from "./team.js";
 import { ACTIVE_SKILLS, createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns } from "./skills.js";
 import { createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
-import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency } from "./inventory.js";
+import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency, SUMMON_EPIC_PITY_LIMIT } from "./inventory.js";
 import { summonCards, SUMMON_RATES, SUMMON_COSTS } from "./summon.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
@@ -148,7 +148,7 @@ function renderInventory(){
 function renderSummonPanel(){
  const state=profile.summonState||{totalSummons:0,epicPity:0},stones=profile.currencies.summonStones;
  $('summonRates').textContent='召喚機率：★3 '+(SUMMON_RATES.common*100)+'% · ★4 '+(SUMMON_RATES.rare*100)+'% · ★5 '+(SUMMON_RATES.epic*100)+'%；十連至少保證 1 張 ★4 以上。';
- $('summonPity').textContent='累計召喚 '+state.totalSummons+' 次 · 距離 ★5 保底最多 '+(20-state.epicPity)+' 抽（連續未出 ★5 計數 '+state.epicPity+'）。';
+ $('summonPity').textContent='累計召喚 '+state.totalSummons+' 次 · 距離 ★5 保底最多 '+(SUMMON_EPIC_PITY_LIMIT-state.epicPity)+' 抽（連續未出 ★5 計數 '+state.epicPity+'）。';
  $('summonSingle').disabled=busy||stones<SUMMON_COSTS.single;
  $('summonTen').disabled=busy||stones<SUMMON_COSTS.ten;
 }
