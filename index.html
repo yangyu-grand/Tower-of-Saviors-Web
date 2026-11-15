@@ -20,6 +20,8 @@ h1{font-size:clamp(25px,5vw,40px);margin:4px 0;color:var(--gold);letter-spacing:
 .side{display:grid;gap:10px}.enemy{font-size:52px;text-align:center;padding:8px}.bar{height:12px;background:#070d1b;border-radius:20px;overflow:hidden}.fill{height:100%;width:100%;background:linear-gradient(90deg,#f05c67,#ffc06a);transition:width .25s}
 button{border:0;border-radius:12px;padding:11px 14px;background:linear-gradient(135deg,#f6d58b,#c38a39);color:#25190a;font-weight:800;cursor:pointer}button:disabled{opacity:.4;cursor:not-allowed}.actions{display:flex;gap:8px;flex-wrap:wrap}.hint{color:var(--muted);font-size:13px;line-height:1.6}.log{min-height:48px;color:#ffe4a4;font-size:14px;line-height:1.6}
 footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
+.stage-status{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;background:#080f20aa;border-radius:11px;margin-bottom:8px;font-size:13px}.stage-status strong{color:var(--gold)}.stage-difficulty{color:#aab6ce;font-size:11px;border:1px solid #65789a66;border-radius:20px;padding:3px 7px;margin-left:6px}
+#enemyIntent{padding:8px 10px;border-left:3px solid var(--gold);background:#080f2088;border-radius:6px}#nextStage{width:100%;margin-top:8px}#nextStage[hidden]{display:none}
 .team-panel{margin-top:14px}.team-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .team-head h2{margin:0;color:var(--gold);font-size:20px}.team-summary{display:flex;gap:12px;color:var(--muted);font-size:13px}
 .team-summary b{color:#fff}.team-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}
@@ -37,12 +39,12 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
  <div class="top"><div><h1>符石遠征</h1><p class="sub">原創益智 RPG 原型 · 消除、連擊、屬性與戰鬥</p></div><button id="newGame">重新開始</button></div>
  <section class="panel">
   <div class="stats">
-   <div class="stat"><small>生命值</small><b id="hp">100</b></div><div class="stat"><small>攻擊力</small><b id="atk">12</b></div><div class="stat"><small>總分</small><b id="score">0</b></div><div class="stat"><small>最大 Combo</small><b id="combo">0</b></div>
+   <div class="stat"><small>隊伍生命</small><b id="hp">100</b></div><div class="stat"><small>總攻擊力</small><b id="atk">0</b></div><div class="stat"><small>總分</small><b id="score">0</b></div><div class="stat"><small>最大 Combo</small><b id="combo">0</b></div>
   </div>
   <div class="battle">
    <div><div id="board" class="board" aria-label="符石盤"></div><p class="hint">操作：點選兩顆相鄰符石交換，或用滑鼠／手指拖曳。橫向或直向連成 3 顆即可消除。</p></div>
    <aside class="side">
-    <div class="panel wide"><div class="enemy" id="enemy">🐉</div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p><p class="hint" id="shieldStatus">護盾：0</p><p class="hint" id="skillEffectStatus">下一次攻擊增益：無</p></div>
+    <div class="panel wide"><div class="stage-status"><div><strong id="stageName">灰燼山徑</strong><span class="stage-difficulty" id="stageDifficulty">初階</span></div><span id="stageProgress">第 1 / 3 波</span></div><div class="enemy" id="enemy">🐉</div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p><p class="hint" id="enemyIntent">敵人預告：普通攻擊</p><p class="hint" id="shieldStatus">護盾：0</p><p class="hint" id="skillEffectStatus">下一次攻擊增益：無</p><button id="nextStage" hidden>前往下一關</button></div>
     <div class="panel"><b>隊伍屬性</b><p class="hint">火 🔥　水 💧　木 🌿<br>光 ✨　暗 🌙　心 💗</p><div class="actions"><button id="heal">隊伍回復技能</button></div></div>
     <div class="panel"><b>戰鬥紀錄</b><p class="log" id="log" aria-live="polite">拖曳或點選符石，開始你的第一場戰鬥！</p><p class="hint" id="combatBreakdown">傷害計算明細會顯示在這裡。</p></div>
    </aside>
@@ -66,16 +68,17 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 import { calculateCombatResult } from "./combat.js";
 import { CARD_CATALOG, DEFAULT_TEAM, buildTeam } from "./team.js";
 import { ACTIVE_SKILLS, createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns } from "./skills.js";
+import { createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
-const enemies=[{name:'熔岩幼龍',emoji:'🐉',element:'fire'},{name:'潮汐守衛',emoji:'🧜',element:'water'},{name:'苔岩巨獸',emoji:'🦍',element:'wood'},{name:'曙光獅鷲',emoji:'🦅',element:'light'},{name:'暮影蝠王',emoji:'🦇',element:'dark'},{name:'心核魔像',emoji:'🗿',element:'heart'}];
+let campaign=createCampaignState();
 const boardEl=document.querySelector('#board');
 let teamIds=[...DEFAULT_TEAM],currentTeam=buildTeam(teamIds),maxHp=currentTeam.totalHp;
 let skillStates=createSkillStates(teamIds),shield=0,pendingDamageMultiplier=1;
-let cells=[],selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=maxHp,score=0,maxCombo=0,enemyHp=180,enemyMax=180,enemyIndex=0,currentEnemy=enemies[0];
+let cells=[],selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=maxHp,score=0,maxCombo=0;
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
-function renderEnemy(){ $('enemy').textContent=currentEnemy.emoji;$('enemyName').textContent=currentEnemy.name;$('enemyElement').textContent='敵人屬性：'+icons[currentEnemy.element]+' '+elementNames[currentEnemy.element];$('enemyHp').textContent=enemyHp+' / '+enemyMax;$('enemyBar').style.width=Math.max(0,enemyHp/enemyMax*100)+'%';}
-function stats(){ $('hp').textContent=hp+' / '+maxHp;$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();}
+function renderEnemy(){ const stage=getCurrentStage(campaign),encounter=getCurrentEncounter(campaign)||stage.waves[stage.waves.length-1],intent=getEnemyIntent(campaign);$('stageName').textContent=stage.name;$('stageDifficulty').textContent=stage.difficulty;$('stageProgress').textContent=campaign.completed?'已通關':'第 '+(campaign.waveIndex+1)+' / '+stage.waves.length+' 波';$('enemy').textContent=encounter.emoji;$('enemyName').textContent=encounter.name+(encounter.boss?' · BOSS':'');$('enemyElement').textContent='敵人屬性：'+icons[encounter.element]+' '+elementNames[encounter.element];$('enemyHp').textContent=campaign.enemyHp+' / '+encounter.hp;$('enemyBar').style.width=Math.max(0,campaign.enemyHp/encounter.hp*100)+'%';$('enemyIntent').textContent=campaign.completed?'關卡已完成':('敵人預告：'+intent.label+(intent.damage?' · '+intent.damage+' 傷害':'')+(intent.enraged?' · 狂暴':''));$('nextStage').hidden=!campaign.completed;$('nextStage').textContent=campaign.campaignComplete?'重新挑戰全章':'前往下一關';}
+function stats(){ $('hp').textContent=hp+' / '+maxHp;$('atk').textContent=Object.values(currentTeam.attackByElement).reduce((sum,value)=>sum+value,0);$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||campaign.completed||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();}
 function renderTeam(){
  const slots=$('teamSlots');slots.innerHTML='';
  teamIds.forEach((cardId,index)=>{
@@ -114,13 +117,13 @@ function renderSkillControls(){
   const description=document.createElement('p');description.textContent=skill.description;
   const button=document.createElement('button');button.type='button';
   button.textContent=state.remaining>0?'冷卻 '+state.remaining+' 回合':'發動技能';
-  button.disabled=busy||hp<=0||state.remaining>0||(skill.type==='heal'&&hp>=maxHp);
+  button.disabled=busy||hp<=0||campaign.completed||state.remaining>0||(skill.type==='heal'&&hp>=maxHp);
   button.addEventListener('click',()=>useSkill(cardId));
   wrapper.append(title,description,button);container.appendChild(wrapper);
  });
 }
 function useSkill(cardId){
- if(busy||hp<=0||!canActivateSkill(cardId,skillStates,busy))return;
+ if(busy||hp<=0||campaign.completed||!canActivateSkill(cardId,skillStates,busy))return;
  if(ACTIVE_SKILLS[cardId].type==='heal'&&hp>=maxHp)return;
  const result=activateSkill({cardId,skillStates,board:cells,hp,maxHp,shield,damageMultiplier:pendingDamageMultiplier,random:Math.random});
  skillStates=result.skillStates;cells=result.board;hp=result.hp;shield=result.shield;pendingDamageMultiplier=result.damageMultiplier;
@@ -128,52 +131,70 @@ function useSkill(cardId){
 }
 function render(){boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label',t);b.dataset.i=i;b.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return}tap(i)});boardEl.appendChild(b)});stats()}
 function cellIndex(target){const cell=target&&target.closest?target.closest('.orb'):null;return cell&&boardEl.contains(cell)?Number(cell.dataset.i):-1}
-function onBoardPointerDown(event){if(busy||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;const index=cellIndex(event.target);if(index<0)return;dragFrom=index;dragPointerId=event.pointerId}
+function onBoardPointerDown(event){if(busy||hp<=0||campaign.completed||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;const index=cellIndex(event.target);if(index<0)return;dragFrom=index;dragPointerId=event.pointerId}
 function onWindowPointerUp(event){if(dragPointerId===null||event.pointerId!==dragPointerId)return;const start=dragFrom,end=cellIndex(event.target);dragFrom=-1;dragPointerId=null;if(start<0||end<0||start===end)return;suppressClick=true;setTimeout(()=>{suppressClick=false},0);if(adjacent(start,end)){selected=-1;swapTry(start,end)}else{$('log').textContent='只能交換上下或左右相鄰的符石。'}}
 function onWindowPointerCancel(event){if(dragPointerId!==null&&event.pointerId===dragPointerId){dragFrom=-1;dragPointerId=null}}
 boardEl.addEventListener('pointerdown',onBoardPointerDown);
 window.addEventListener('pointerup',onWindowPointerUp);
 window.addEventListener('pointercancel',onWindowPointerCancel);
 function adjacent(a,b){return Math.abs(a-b)===6||Math.floor(a/6)===Math.floor(b/6)&&Math.abs(a-b)===1}
-function tap(i){if(busy)return;if(selected<0){selected=i;render();return}if(selected===i){selected=-1;render();return}const a=selected;selected=-1;if(adjacent(a,i))swapTry(a,i);else{selected=i;render()}}
+function tap(i){if(busy||hp<=0||campaign.completed)return;if(selected<0){selected=i;render();return}if(selected===i){selected=-1;render();return}const a=selected;selected=-1;if(adjacent(a,i))swapTry(a,i);else{selected=i;render()}}
 function findMatches(){const found=new Set();for(let r=0;r<5;r++)for(let c=0;c<6;c++){const i=r*6+c,t=cells[i];if(c<=3&&cells[i+1]===t&&cells[i+2]===t){let k=c;while(k<6&&cells[r*6+k]===t)found.add(r*6+k++);}if(r<=2&&cells[i+6]===t&&cells[i+12]===t){let k=r;while(k<5&&cells[k*6+c]===t)found.add(k++*6+c);}}return found}
 async function swapTry(a,b){
- if(busy||hp<=0||!adjacent(a,b))return;
+ if(busy||hp<=0||campaign.completed||!adjacent(a,b))return;
  busy=true;[cells[a],cells[b]]=[cells[b],cells[a]];render();
  let matches=findMatches();
  if(!matches.size){await wait(140);[cells[a],cells[b]]=[cells[b],cells[a]];busy=false;render();$('log').textContent='沒有形成消除，符石已換回。';return}
  let combo=0,totalDamage=0,totalHeal=0;const damageLines=[];
  while(matches.size&&combo<12){
-  combo++;
-  const removed=[...matches].map(i=>cells[i]),counts={};
-  removed.forEach(t=>counts[t]=(counts[t]||0)+1);
-  const result=calculateCombatResult({counts,combo,enemyElement:currentEnemy.element,teamAttackByElement:currentTeam.attackByElement,skillMultiplier:pendingDamageMultiplier});
+  combo++;const removed=[...matches].map(i=>cells[i]),counts={};removed.forEach(t=>counts[t]=(counts[t]||0)+1);
+  const target=getCurrentEncounter(campaign)||getCurrentStage(campaign).waves.at(-1);
+  const result=calculateCombatResult({counts,combo,enemyElement:target.element,teamAttackByElement:currentTeam.attackByElement,skillMultiplier:pendingDamageMultiplier});
   totalDamage+=result.damage;totalHeal+=result.healing;
   let detail=result.breakdown.map(item=>icons[item.element]+' '+item.count+'顆×隊伍攻擊 '+item.baseDamage+'×符石 '+item.runeCountMultiplier.toFixed(2)+'×Combo '+result.comboMultiplier.toFixed(2)+'×屬性 '+item.multiplier.toFixed(2)+'×技能 '+result.skillMultiplier.toFixed(2)+'='+item.damage).join('；');
-  if(!detail)detail='沒有攻擊符石';
-  if(result.healing)detail+='；💗回復 '+result.healing;
-  damageLines.push('Combo '+combo+'：'+detail);
-  score+=matches.size*10*combo;
+  if(!detail)detail='沒有攻擊符石';if(result.healing)detail+='；💗回復 '+result.healing;
+  damageLines.push('Combo '+combo+'：'+detail);score+=matches.size*10*combo;
   matches.forEach(i=>cells[i]=null);render();await wait(180);
-  for(let c=0;c<6;c++){let stack=[];for(let r=4;r>=0;r--){const v=cells[r*6+c];if(v)stack.push(v)}while(stack.length<5)stack.push(rand());for(let r=4;r>=0;r--)cells[r*6+c]=stack[4-r]}
+  for(let c=0;c<6;c++){let stack=[];for(let r=4;r>=0;r--){const value=cells[r*6+c];if(value)stack.push(value)}while(stack.length<5)stack.push(rand());for(let r=4;r>=0;r--)cells[r*6+c]=stack[4-r]}
   render();await wait(120);matches=findMatches();
  }
- maxCombo=Math.max(maxCombo,combo);hp=Math.min(maxHp,hp+totalHeal);enemyHp=Math.max(0,enemyHp-totalDamage);
- $('combatBreakdown').textContent=damageLines.join('｜');
- if(enemyHp<=0){
-  const defeatedName=currentEnemy.name;score+=100;enemyIndex++;currentEnemy=enemies[enemyIndex%enemies.length];enemyMax=180+Math.floor(enemyIndex/enemies.length)*45;enemyHp=enemyMax;
-  $('log').textContent='擊敗'+defeatedName+'！獲得 100 分，新的敵人 '+currentEnemy.name+' 出現！';
+ maxCombo=Math.max(maxCombo,combo);hp=Math.min(maxHp,hp+totalHeal);$('combatBreakdown').textContent=damageLines.join('｜');
+ const outcome=damageCurrentEnemy(campaign,totalDamage);campaign=outcome.state;
+ if(outcome.defeated){
+  score+=outcome.stageCompleted?150:100;
+  if(outcome.stageCompleted){
+   const restored=Math.min(maxHp-hp,Math.ceil(maxHp*.15));hp+=restored;
+   $('log').textContent=outcome.campaignCompleted
+    ?'擊敗 '+outcome.defeatedEnemy.name+'！全章通關！獲得 150 分並回復 '+restored+' HP。'
+    :'擊敗 '+outcome.defeatedEnemy.name+'！關卡完成，獲得 150 分並回復 '+restored+' HP。';
+  }else{$('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！獲得 100 分，下一波 '+outcome.nextEncounter.name+' 出現。'}
  }else{
-  const incomingDamage=combo>1?Math.max(2,9-combo):9;const absorbed=Math.min(shield,incomingDamage);shield-=absorbed;hp=Math.max(0,hp-(incomingDamage-absorbed));
-  $('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。'+(absorbed?' 護盾抵擋 '+absorbed+' 傷害。':'');
+  const enemyTurn=resolveEnemyTurn(campaign);campaign=enemyTurn.state;
+  const mitigation=mitigateIncomingDamage(enemyTurn.incomingDamage,shield,enemyTurn.intent.shieldPierce);
+  shield=mitigation.remainingShield;hp=Math.max(0,hp-mitigation.hpDamage);
+  const shieldText=mitigation.shieldDamage?'護盾吸收 '+mitigation.shieldDamage+' 點。':'';
+  const pierceText=mitigation.piercingDamage?'其中 '+mitigation.piercingDamage+' 點穿透護盾。':'';
+  $('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。'+enemyTurn.message+shieldText+pierceText;
  }
- if(hp<=0){$('log').textContent+=' 生命值歸零，請重新開始。';$('board').style.opacity='.55'}
- skillStates=advanceSkillCooldowns(skillStates);pendingDamageMultiplier=1;
+ if(hp<=0)$('log').textContent+=' 生命值歸零，請重新開始。';
+ skillStates=advanceSkillCooldowns(skillStates);if(totalDamage>0)pendingDamageMultiplier=1;
  busy=false;render();
 }
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
-function reset(){cells=Array.from({length:30},rand);for(let tries=0;tries<20&&findMatches().size;tries++)cells=Array.from({length:30},rand);selected=-1;dragFrom=-1;dragPointerId=null;busy=false;hp=maxHp;score=0;maxCombo=0;enemyIndex=0;currentEnemy=enemies[0];enemyHp=enemyMax=180;skillStates=createSkillStates(teamIds);shield=0;pendingDamageMultiplier=1;$('board').style.opacity='1';$('combatBreakdown').textContent='傷害計算明細會顯示在這裡。';$('log').textContent='新旅程開始！找出三顆以上相同符石。';render()}
-$('newGame').addEventListener('click',reset);$('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats()}});renderTeam();reset();
+function reset(){
+ campaign=createCampaignState();cells=Array.from({length:30},rand);
+ for(let tries=0;tries<20&&findMatches().size;tries++)cells=Array.from({length:30},rand);
+ selected=-1;dragFrom=-1;dragPointerId=null;busy=false;hp=maxHp;score=0;maxCombo=0;
+ skillStates=createSkillStates(teamIds);shield=0;pendingDamageMultiplier=1;
+ $('combatBreakdown').textContent='傷害計算明細會顯示在這裡。';$('log').textContent='新旅程開始！找出三顆以上相同符石。';render();
+}
+function nextStage(){
+ if(!campaign.completed)return;
+ if(campaign.campaignComplete){reset();return}
+ campaign=advanceCampaignStage(campaign);selected=-1;shield=0;pendingDamageMultiplier=1;
+ $('log').textContent='進入 '+getCurrentStage(campaign).name+'！新的敵人正在前方等待。';$('combatBreakdown').textContent='新關卡開始。';render();
+}
+$('newGame').addEventListener('click',reset);$('nextStage').addEventListener('click',nextStage);$('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats()}});renderTeam();reset();
 })();
 </script>
 </body>
