@@ -95,7 +95,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 <script type="module">
 import { calculateCombatResult } from "./combat.js";
 import { CARD_CATALOG, DEFAULT_TEAM, buildTeam } from "./team.js";
-import { createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns, getActiveSkill, MAX_SKILL_LEVEL } from "./skills.js";
+import { createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns, getActiveSkill } from "./skills.js";
 import { createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
 import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency, SUMMON_EPIC_PITY_LIMIT } from "./inventory.js";
 import { summonCards, SUMMON_RATES, SUMMON_COSTS } from "./summon.js";
