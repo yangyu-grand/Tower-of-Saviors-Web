@@ -1,4 +1,4 @@
-import { CARD_CATALOG, STARTER_CARD_IDS, DEFAULT_TEAM, buildTeam } from "./team.js";
+import { CARD_CATALOG, STARTER_CARD_IDS, DEFAULT_TEAM, buildTeam, getCardStats } from "./team.js";
 import { createCampaignState, getCurrentStage, getCurrentEncounter } from "./stages.js";
 import { ACTIVE_SKILLS, createSkillStates } from "./skills.js";
 
@@ -44,9 +44,12 @@ export function isCardOwned(save, cardId) {
 }
 
 export function listOwnedCards(save) {
-  const quantities = new Map((save?.inventory ?? []).map((entry) => [entry.cardId, entry.quantity]));
-  return CARD_CATALOG.filter((card) => (quantities.get(card.id) ?? 0) > 0)
-    .map((card) => ({ ...card, quantity: quantities.get(card.id) }));
+  const entries = new Map((save?.inventory ?? []).map((entry) => [entry.cardId, entry]));
+  return CARD_CATALOG.filter((card) => (entries.get(card.id)?.quantity ?? 0) > 0)
+    .map((card) => {
+      const entry = entries.get(card.id);
+      return { ...getCardStats(card.id, entry.level), quantity: entry.quantity, exp: entry.exp };
+    });
 }
 
 export function addCard(save, cardId, quantity = 1) {
@@ -97,6 +100,10 @@ export function normalizeSave(input) {
     assertSafeInteger(entry.quantity, "card quantity", 1, 999);
     assertSafeInteger(entry.level, "card level", 1, 99);
     assertSafeInteger(entry.exp, "card experience", 0, 1000000);
+    const requiredExp = 100 + 25 * (entry.level - 1);
+    if (entry.level === 99 ? entry.exp !== 0 : entry.exp >= requiredExp) {
+      throw new RangeError("Card experience must be below the next-level threshold");
+    }
     return { cardId: entry.cardId, quantity: entry.quantity, level: entry.level, exp: entry.exp };
   });
 
@@ -107,7 +114,8 @@ export function normalizeSave(input) {
   if (new Set(teamIds).size !== teamIds.length) throw new RangeError("Saved team cannot contain duplicate cards");
   const owned = new Set(inventory.filter((entry) => entry.quantity > 0).map((entry) => entry.cardId));
   if (teamIds.some((cardId) => !owned.has(cardId))) throw new RangeError("Saved team contains a card not owned in inventory");
-  const team = buildTeam(teamIds);
+  const levels = Object.fromEntries(inventory.map((entry) => [entry.cardId, entry.level]));
+  const team = buildTeam(teamIds, { levels });
 
   if (!isRecord(input.currencies)) throw new TypeError("currencies must be an object");
   assertSafeInteger(input.currencies.gold, "gold");
