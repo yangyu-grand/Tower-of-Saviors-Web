@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { CARD_CATALOG, DEFAULT_COST_LIMIT, DEFAULT_TEAM, TEAM_SIZE, buildTeam, getCard } from "../team.js";
+import { CARD_CATALOG, STARTER_CARD_IDS, DEFAULT_COST_LIMIT, DEFAULT_TEAM, TEAM_SIZE, buildTeam, getCard } from "../team.js";
 
 test("starter team contains five unique cards within the default cost limit", () => {
   const team = buildTeam(DEFAULT_TEAM);
@@ -49,4 +49,12 @@ test("rejects teams above the configured cost limit", () => {
 
 test("rejects invalid cost limits", () => {
   assert.throws(() => buildTeam(DEFAULT_TEAM, { costLimit: -1 }), RangeError);
+});
+
+test("catalog contains ten starters and five summon-only cards across three rarity tiers", () => {
+  assert.equal(CARD_CATALOG.length, 15);
+  assert.equal(STARTER_CARD_IDS.length, 10);
+  assert.ok(CARD_CATALOG.every((card) => [3, 4, 5].includes(card.rarity)));
+  assert.equal(CARD_CATALOG.filter((card) => card.rarity === 4).length, 3);
+  assert.equal(CARD_CATALOG.filter((card) => card.rarity === 5).length, 2);
 });

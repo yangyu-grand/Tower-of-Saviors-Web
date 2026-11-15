@@ -8,7 +8,12 @@ export const ACTIVE_SKILLS = Object.freeze({
   cinder_knight: Object.freeze({ id: "cinder_brand", name: "燼火烙印", description: "將最多 4 顆非火符石轉為火符石。", cooldown: 4, type: "convert", target: "fire", count: 4 }),
   river_oracle: Object.freeze({ id: "river_mist", name: "河灣甘霖", description: "將最多 5 顆非心符石轉為心符石。", cooldown: 4, type: "convert", target: "heart", count: 5 }),
   thorn_ranger: Object.freeze({ id: "thorn_volley", name: "荊棘連射", description: "下一次成功攻擊傷害提升 30%。", cooldown: 3, type: "damageBoost", multiplier: 1.3 }),
-  moon_sentinel: Object.freeze({ id: "moon_aegis", name: "月影守護", description: "獲得 28 點護盾，抵擋後續敵人攻擊。", cooldown: 4, type: "shield", amount: 28 })
+  moon_sentinel: Object.freeze({ id: "moon_aegis", name: "月影守護", description: "獲得 28 點護盾，抵擋後續敵人攻擊。", cooldown: 4, type: "shield", amount: 28 }),
+  azure_minstrel: Object.freeze({ id: "azure_resonance", name: "蒼潮共鳴", description: "下一次成功攻擊傷害提升 25%。", cooldown: 3, type: "damageBoost", multiplier: 1.25 }),
+  verdant_alchemist: Object.freeze({ id: "verdant_transmute", name: "翠森轉化", description: "將最多 5 顆非木符石轉為木符石。", cooldown: 4, type: "convert", target: "wood", count: 5 }),
+  astral_scribe: Object.freeze({ id: "astral_script", name: "星界秘文", description: "下一次成功攻擊傷害提升 35%。", cooldown: 4, type: "damageBoost", multiplier: 1.35 }),
+  abyss_weaver: Object.freeze({ id: "abyss_ward", name: "深淵結界", description: "獲得 35 點護盾，抵擋後續敵人攻擊。", cooldown: 4, type: "shield", amount: 35 }),
+  solar_archon: Object.freeze({ id: "solar_judgement", name: "曜日裁決", description: "下一次成功攻擊傷害提升 55%。", cooldown: 4, type: "damageBoost", multiplier: 1.55 })
 });
 
 function cloneSkillStates(states = {}) {

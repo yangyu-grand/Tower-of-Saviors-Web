@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   SAVE_KEY, RUNE_TYPES, createDefaultSave, normalizeSave, loadSave, saveGame,
-  isCardOwned, listOwnedCards, addCard, addCurrency, spendCurrency
+  isCardOwned, listOwnedCards, addCard, addCurrency, spendCurrency, SUMMON_EPIC_PITY_LIMIT
 } from "../inventory.js";
 
 function memoryStorage(initial = null) {
@@ -128,4 +128,20 @@ test("currency rewards and spending are validated and immutable", () => {
   assert.equal(spent.currencies.summonStones, 1);
   assert.throws(() => spendCurrency(save, "gold", 2000), /Not enough/);
   assert.throws(() => addCurrency(save, "unknown", 1), /Unknown currency/);
+});
+
+test("legacy saves without summon state migrate with zero summon history", () => {
+  const legacy = createDefaultSave();
+  delete legacy.summonState;
+  const migrated = normalizeSave(legacy);
+  assert.deepEqual(migrated.summonState, { totalSummons: 0, epicPity: 0 });
+});
+
+test("summon pity state is validated and bounded below the guaranteed pull", () => {
+  const invalid = createDefaultSave();
+  invalid.summonState.epicPity = SUMMON_EPIC_PITY_LIMIT;
+  assert.throws(() => normalizeSave(invalid), /epicPity/);
+  const negative = createDefaultSave();
+  negative.summonState.totalSummons = -1;
+  assert.throws(() => normalizeSave(negative), /totalSummons/);
 });
