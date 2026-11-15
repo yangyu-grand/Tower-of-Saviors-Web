@@ -1,9 +1,10 @@
-import { CARD_CATALOG, DEFAULT_TEAM, buildTeam } from "./team.js";
+import { CARD_CATALOG, STARTER_CARD_IDS, DEFAULT_TEAM, buildTeam } from "./team.js";
 import { createCampaignState, getCurrentStage, getCurrentEncounter } from "./stages.js";
 import { ACTIVE_SKILLS, createSkillStates } from "./skills.js";
 
 export const SAVE_KEY = "tower-of-saviors-web.save";
 export const SAVE_VERSION = 1;
+export const SUMMON_EPIC_PITY_LIMIT = 20;
 export const RUNE_TYPES = Object.freeze(["fire", "water", "wood", "light", "dark", "heart"]);
 const CARD_IDS = new Set(CARD_CATALOG.map((card) => card.id));
 
@@ -21,8 +22,9 @@ export function createDefaultSave() {
   const team = buildTeam(DEFAULT_TEAM);
   return {
     version: SAVE_VERSION,
-    inventory: CARD_CATALOG.map((card) => ({ cardId: card.id, quantity: 1, level: 1, exp: 0 })),
+    inventory: CARD_CATALOG.filter((card) => STARTER_CARD_IDS.includes(card.id)).map((card) => ({ cardId: card.id, quantity: 1, level: 1, exp: 0 })),
     currencies: { gold: 1000, summonStones: 3 },
+    summonState: { totalSummons: 0, epicPity: 0 },
     teamIds: [...DEFAULT_TEAM],
     campaign: createCampaignState(),
     unlockedStageIndex: 0,
@@ -111,6 +113,15 @@ export function normalizeSave(input) {
   assertSafeInteger(input.currencies.gold, "gold");
   assertSafeInteger(input.currencies.summonStones, "summonStones");
 
+  const summonInput = input.summonState ?? {};
+  if (!isRecord(summonInput)) throw new TypeError("summonState must be an object");
+  const summonState = {
+    totalSummons: summonInput.totalSummons ?? 0,
+    epicPity: summonInput.epicPity ?? 0
+  };
+  assertSafeInteger(summonState.totalSummons, "totalSummons");
+  assertSafeInteger(summonState.epicPity, "epicPity", 0, SUMMON_EPIC_PITY_LIMIT - 1);
+
   if (!isRecord(input.campaign)) throw new TypeError("campaign must be an object");
   const campaign = {
     stageIndex: input.campaign.stageIndex,
@@ -151,6 +162,7 @@ export function normalizeSave(input) {
     version: SAVE_VERSION,
     inventory,
     currencies: { gold: input.currencies.gold, summonStones: input.currencies.summonStones },
+    summonState,
     teamIds,
     campaign,
     unlockedStageIndex: input.unlockedStageIndex,
