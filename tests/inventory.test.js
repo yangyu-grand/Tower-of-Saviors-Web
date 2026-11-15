@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
-  SAVE_KEY, createDefaultSave, normalizeSave, loadSave, saveGame,
+  SAVE_KEY, RUNE_TYPES, createDefaultSave, normalizeSave, loadSave, saveGame,
   isCardOwned, listOwnedCards, addCard, addCurrency, spendCurrency
 } from "../inventory.js";
 
@@ -66,6 +66,33 @@ test("loads a fresh profile when no save exists and restores a valid save", () =
   const loaded = loadSave(storage);
   assert.equal(loaded.status, "loaded");
   assert.equal(loaded.save.score, 120);
+});
+
+test("save round-trip preserves board, campaign turn, cooldowns, currencies, and unlocks", () => {
+  const storage = memoryStorage();
+  const save = createDefaultSave();
+  save.board = Array.from({ length: 30 }, (_, index) => RUNE_TYPES[index % RUNE_TYPES.length]);
+  save.campaign = { ...save.campaign, turn: 2, enemyHp: 123 };
+  save.skillStates.ember_scout = { remaining: 3, justActivated: false };
+  save.currencies.gold = 3210;
+  save.unlockedStageIndex = 1;
+  assert.equal(saveGame(save, storage).ok, true);
+  const restored = loadSave(storage).save;
+  assert.deepEqual(restored.board, save.board);
+  assert.deepEqual(restored.campaign, save.campaign);
+  assert.equal(restored.skillStates.ember_scout.remaining, 3);
+  assert.equal(restored.currencies.gold, 3210);
+  assert.equal(restored.unlockedStageIndex, 1);
+});
+
+test("invalid saves never overwrite a previously valid stored save", () => {
+  const storage = memoryStorage();
+  const valid = createDefaultSave();
+  assert.equal(saveGame(valid, storage).ok, true);
+  const previous = storage.raw();
+  const invalid = { ...valid, hp: -10 };
+  assert.equal(saveGame(invalid, storage).ok, false);
+  assert.equal(storage.raw(), previous);
 });
 
 test("corrupt or unsupported saves safely fall back without deleting the stored value", () => {
