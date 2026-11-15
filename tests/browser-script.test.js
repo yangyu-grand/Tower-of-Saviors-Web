@@ -4,11 +4,19 @@ import { readFile } from "node:fs/promises";
 import vm from "node:vm";
 
 const html = await readFile(new URL("../index.html", import.meta.url), "utf8");
-const match = html.match(/<script type="module">([\\s\\S]*?)<\\/script>/);
+const openTag = '<script type="module">';
+const start = html.indexOf(openTag);
+const end = html.indexOf("</script>", start);
+const moduleSource = start >= 0 && end > start
+  ? html.slice(start + openTag.length, end)
+  : "";
 
 test("the embedded browser module parses after removing static imports", () => {
-  assert.ok(match, "index.html must contain its browser module");
-  const source = match[1].replace(/^\\s*import\\s+.*?;\\s*$/gm, "");
+  assert.ok(start >= 0 && end > start, "index.html must contain its browser module");
+  const source = moduleSource
+    .split("\n")
+    .filter((line) => !line.trimStart().startsWith("import "))
+    .join("\n");
   assert.doesNotThrow(() => new vm.Script(source, { filename: "index.html#module" }));
 });
 
