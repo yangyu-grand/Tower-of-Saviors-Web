@@ -26,6 +26,8 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Single and ten-pull summoning with 3★/4★/5★ rates, a guaranteed 4★+ result per ten-pull, duplicate-card quantities, and a 20-pull 5★ pity counter.
 - Card progression up to level 99, with battle EXP distributed to the active five-card team and gold-funded one-level training for any owned card.
 - Card HP and ATK grow by 2.5% per level; leveled team stats feed into party HP, elemental attack, leader-skill calculations, and save validation.
+- Duplicate copies can be consumed with gold to enhance a card's active skill up to skill level 5; damage boosts, rune conversion counts, shields, healing, and level-5 cooldowns improve with skill level.
+- Save version 2 persists skill levels and automatically migrates version-1 profiles with skill level 1 for every owned card.
 - Versioned local saves for inventory, team, campaign/wave, rune board, HP, score, shields, and active-skill cooldowns.
 - Automatic checkpoint saves after stable gameplay actions plus a manual save control; invalid saves fall back safely without deleting the stored data.
 - Team cost validation, team HP aggregation, element-specific attack totals, and a fire leader skill.
@@ -49,7 +51,7 @@ These are original prototype rules and are intentionally data-driven so they can
 
 ## Next priorities
 
-1. Add evolution materials, card evolution, and skill enhancement.
+1. Add evolution materials and card evolution; continue balancing and testing skill enhancement.
 2. Expand leader skills and balance active-skill and boss values.
 3. Improve animations, sound, and browser/mobile QA.
 
@@ -63,9 +65,11 @@ These are original prototype rules and are intentionally data-driven so they can
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
 - `progression.js` — card experience, level caps, team EXP distribution, stat growth, and gold-funded training.
+- `skillEnhancement.js` — duplicate-card consumption, gold costs, and active-skill enhancement validation.
 - `tests/combat.test.js` — deterministic combat unit tests.
 - `tests/team.test.js` — deterministic party and card validation tests.
 - `tests/skills.test.js` — deterministic active-skill and cooldown tests.
 - `tests/stages.test.js` — deterministic campaign, wave, enemy-turn, and boss tests.
 - `tests/inventory.test.js` — deterministic inventory, save validation, storage-failure, and currency tests.
 - `tests/summon.test.js` — deterministic summon rates, pity, ten-pull guarantee, and duplicate tests.
+- `tests/skill-enhancement.test.js` — deterministic duplicate consumption, gold costs, skill scaling, and enhanced activation tests.

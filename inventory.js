@@ -3,7 +3,7 @@ import { createCampaignState, getCurrentStage, getCurrentEncounter } from "./sta
 import { ACTIVE_SKILLS, createSkillStates } from "./skills.js";
 
 export const SAVE_KEY = "tower-of-saviors-web.save";
-export const SAVE_VERSION = 1;
+export const SAVE_VERSION = 2;
 export const SUMMON_EPIC_PITY_LIMIT = 20;
 export const RUNE_TYPES = Object.freeze(["fire", "water", "wood", "light", "dark", "heart"]);
 const CARD_IDS = new Set(CARD_CATALOG.map((card) => card.id));
@@ -22,7 +22,7 @@ export function createDefaultSave() {
   const team = buildTeam(DEFAULT_TEAM);
   return {
     version: SAVE_VERSION,
-    inventory: CARD_CATALOG.filter((card) => STARTER_CARD_IDS.includes(card.id)).map((card) => ({ cardId: card.id, quantity: 1, level: 1, exp: 0 })),
+    inventory: CARD_CATALOG.filter((card) => STARTER_CARD_IDS.includes(card.id)).map((card) => ({ cardId: card.id, quantity: 1, level: 1, exp: 0, skillLevel: 1 })),
     currencies: { gold: 1000, summonStones: 3 },
     summonState: { totalSummons: 0, epicPity: 0 },
     teamIds: [...DEFAULT_TEAM],
@@ -48,7 +48,7 @@ export function listOwnedCards(save) {
   return CARD_CATALOG.filter((card) => (entries.get(card.id)?.quantity ?? 0) > 0)
     .map((card) => {
       const entry = entries.get(card.id);
-      return { ...getCardStats(card.id, entry.level), quantity: entry.quantity, exp: entry.exp };
+      return { ...getCardStats(card.id, entry.level), quantity: entry.quantity, exp: entry.exp, skillLevel: entry.skillLevel ?? 1 };
     });
 }
 
@@ -61,7 +61,7 @@ export function addCard(save, cardId, quantity = 1) {
     assertSafeInteger(existing.quantity + quantity, "card quantity", 1, 999);
     existing.quantity += quantity;
   } else {
-    next.inventory.push({ cardId, quantity, level: 1, exp: 0 });
+    next.inventory.push({ cardId, quantity, level: 1, exp: 0, skillLevel: 1 });
   }
   return next;
 }
@@ -86,7 +86,7 @@ export function spendCurrency(save, currency, amount) {
 }
 
 export function normalizeSave(input) {
-  if (!isRecord(input) || input.version !== SAVE_VERSION) {
+  if (!isRecord(input) || ![1, SAVE_VERSION].includes(input.version)) {
     throw new RangeError("Unsupported or invalid save version");
   }
   if (!Array.isArray(input.inventory) || input.inventory.length > CARD_CATALOG.length) {
@@ -100,11 +100,13 @@ export function normalizeSave(input) {
     assertSafeInteger(entry.quantity, "card quantity", 1, 999);
     assertSafeInteger(entry.level, "card level", 1, 99);
     assertSafeInteger(entry.exp, "card experience", 0, 1000000);
+    const skillLevel = entry.skillLevel ?? 1;
+    assertSafeInteger(skillLevel, "skill level", 1, 5);
     const requiredExp = 100 + 25 * (entry.level - 1);
     if (entry.level === 99 ? entry.exp !== 0 : entry.exp >= requiredExp) {
       throw new RangeError("Card experience must be below the next-level threshold");
     }
-    return { cardId: entry.cardId, quantity: entry.quantity, level: entry.level, exp: entry.exp };
+    return { cardId: entry.cardId, quantity: entry.quantity, level: entry.level, exp: entry.exp, skillLevel };
   });
 
   if (!Array.isArray(input.teamIds) || input.teamIds.length !== 5) {

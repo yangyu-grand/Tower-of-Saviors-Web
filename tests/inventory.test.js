@@ -137,6 +137,15 @@ test("legacy saves without summon state migrate with zero summon history", () =>
   assert.deepEqual(migrated.summonState, { totalSummons: 0, epicPity: 0 });
 });
 
+test("version-1 saves migrate to version 2 with skill level one for every card", () => {
+  const legacy = createDefaultSave();
+  legacy.version = 1;
+  legacy.inventory.forEach((entry) => { delete entry.skillLevel; });
+  const migrated = normalizeSave(legacy);
+  assert.equal(migrated.version, 2);
+  assert.ok(migrated.inventory.every((entry) => entry.skillLevel === 1));
+});
+
 test("summon pity state is validated and bounded below the guaranteed pull", () => {
   const invalid = createDefaultSave();
   invalid.summonState.epicPity = SUMMON_EPIC_PITY_LIMIT;

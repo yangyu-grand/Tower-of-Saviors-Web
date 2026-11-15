@@ -82,7 +82,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
    <div class="currency-row"><span>金幣 <b id="gold">0</b></span><span>召喚石 <b id="summonStones">0</b></span><span>已持有 <b id="ownedCardCount">0</b> 種</span><span>最高解鎖 <b id="unlockedStage">1</b>/3</span></div>
   </div>
   <div class="summon-panel" aria-labelledby="summonHeading">
-   <div class="summon-head"><div><h3 id="summonHeading">星門召喚</h3><p class="summon-meta">召喚石可從關卡通關取得；重複角色會轉為持有數量。</p></div></div>
+   <div class="summon-head"><div><h3 id="summonHeading">星門召喚</h3><p class="summon-meta">召喚石可從關卡通關取得；重複角色可用於技能強化，也會累積持有數量。</p></div></div>
    <div class="summon-actions"><button id="summonSingle" type="button">單次召喚 · 1 石</button><button id="summonTen" type="button">十連召喚 · 10 石</button></div>
    <p id="summonRates" class="summon-meta">機率：★3 70% · ★4 25% · ★5 5%</p>
    <p id="summonPity" class="summon-meta">五星保底計數載入中…</p>
@@ -95,11 +95,12 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 <script type="module">
 import { calculateCombatResult } from "./combat.js";
 import { CARD_CATALOG, DEFAULT_TEAM, buildTeam } from "./team.js";
-import { ACTIVE_SKILLS, createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns } from "./skills.js";
+import { createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns, getActiveSkill } from "./skills.js";
 import { createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
 import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency, SUMMON_EPIC_PITY_LIMIT } from "./inventory.js";
 import { summonCards, SUMMON_RATES, SUMMON_COSTS } from "./summon.js";
 import { getCardLevels, grantTeamExperience, getTrainingQuote, trainCard, MAX_CARD_LEVEL, experienceToNextLevel } from "./progression.js";
+import { enhanceCardSkill, getSkillEnhancementQuote } from "./skillEnhancement.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
@@ -137,7 +138,7 @@ function renderInventory(){
   const entry=profile.inventory.find(item=>item.cardId===card.id),item=document.createElement('div');item.className='inventory-card';
   const portrait=document.createElement('div');portrait.className='portrait';portrait.textContent=card.emoji;
   const name=document.createElement('b');name.textContent=card.name;
-  const meta=document.createElement('p');meta.textContent=card.element+' 屬性 · '+'★'.repeat(card.rarity||3)+' · Lv.'+entry.level+' · ATK '+card.atk+' / HP '+card.hp+' · 持有 '+entry.quantity+' 張';
+  const meta=document.createElement('p');meta.textContent=card.element+' 屬性 · '+'★'.repeat(card.rarity||3)+' · Lv.'+entry.level+' · 技能 Lv.'+entry.skillLevel+' · ATK '+card.atk+' / HP '+card.hp+' · 持有 '+entry.quantity+' 張';
   const expRequired=entry.level>=MAX_CARD_LEVEL?0:experienceToNextLevel(entry.level);
   const expText=document.createElement('p');expText.textContent=entry.level>=MAX_CARD_LEVEL?'經驗值已達上限':'EXP '+entry.exp+' / '+expRequired;
   const track=document.createElement('div');track.className='xp-track';track.setAttribute('aria-label','角色經驗進度');
@@ -146,7 +147,11 @@ function renderInventory(){
   button.textContent=entry.level>=MAX_CARD_LEVEL?'已達最高等級':'特訓升級 · '+quote.goldCost+' 金幣';
   button.disabled=busy||entry.level>=MAX_CARD_LEVEL||profile.currencies.gold<quote.goldCost;
   button.addEventListener('click',()=>performTraining(card.id));
-  item.append(portrait,name,meta,expText,track,button);grid.appendChild(item);
+  const skillQuote=getSkillEnhancementQuote(entry),skillButton=document.createElement('button');skillButton.type='button';skillButton.className='skill-enhance';
+  skillButton.textContent=skillQuote.maxed?'技能已滿級':('技能強化 Lv.'+entry.skillLevel+' → Lv.'+skillQuote.nextSkillLevel+' · '+skillQuote.goldCost+' 金幣 + 重複卡 ×'+skillQuote.duplicateCost);
+  skillButton.disabled=busy||!skillQuote.available||profile.currencies.gold<skillQuote.goldCost;
+  skillButton.addEventListener('click',()=>performSkillEnhancement(card.id));
+  item.append(portrait,name,meta,expText,track,button,skillButton);grid.appendChild(item);
  });
  $('gold').textContent=profile.currencies.gold.toLocaleString('zh-TW');
  $('summonStones').textContent=profile.currencies.summonStones;
@@ -202,6 +207,17 @@ function performTraining(cardId){
   renderTeam();renderInventory();render();persist('角色特訓已儲存');
  }catch(error){$('log').textContent=error.message==='Not enough gold'?'金幣不足，無法進行特訓。':error.message;}
 }
+function performSkillEnhancement(cardId){
+ if(busy)return;
+ try{
+  const result=enhanceCardSkill(profile,cardId);profile=result.save;
+  const card=listOwnedCards(profile).find(item=>item.id===cardId);
+  $('log').textContent=card.name+' 技能強化完成：技能 Lv.'+result.skillLevel+'。消耗 1 張重複卡及 '+result.goldCost+' 金幣。';
+  renderTeam();renderInventory();stats();persist('角色技能強化已儲存');
+ }catch(error){
+  $('log').textContent=error.message==='Not enough gold'?'金幣不足，無法強化技能。':error.message==='A duplicate copy is required for skill enhancement'?'需要至少 1 張重複卡片才能強化技能。':error.message;
+ }
+}
 function renderTeam(){
  const slots=$('teamSlots');slots.innerHTML='';
  teamIds.forEach((cardId,index)=>{
@@ -234,10 +250,11 @@ function renderTeam(){
 function renderSkillControls(){
  const container=$('skillButtons');if(!container)return;container.innerHTML='';
  teamIds.forEach((cardId,index)=>{
-  const skill=ACTIVE_SKILLS[cardId],state=skillStates[cardId];if(!skill||!state)return;
+  const entry=profile.inventory.find(item=>item.cardId===cardId),skillLevel=entry?.skillLevel??1;
+  const skill=getActiveSkill(cardId,skillLevel),state=skillStates[cardId];if(!skill||!state)return;
   const card=currentTeam.cards[index],wrapper=document.createElement('div');wrapper.className='skill-card';
-  const title=document.createElement('b');title.textContent=card.emoji+' '+skill.name;
-  const description=document.createElement('p');description.textContent=skill.description;
+  const title=document.createElement('b');title.textContent=card.emoji+' '+skill.name+' · Lv.'+skillLevel;
+  const description=document.createElement('p');description.textContent=skill.description+' 冷卻 '+skill.cooldown+' 回合。';
   const button=document.createElement('button');button.type='button';
   button.textContent=state.remaining>0?'冷卻 '+state.remaining+' 回合':'發動技能';
   button.disabled=busy||hp<=0||campaign.completed||state.remaining>0||(skill.type==='heal'&&hp>=maxHp);
@@ -247,8 +264,10 @@ function renderSkillControls(){
 }
 function useSkill(cardId){
  if(busy||hp<=0||campaign.completed||!canActivateSkill(cardId,skillStates,busy))return;
- if(ACTIVE_SKILLS[cardId].type==='heal'&&hp>=maxHp)return;
- const result=activateSkill({cardId,skillStates,board:cells,hp,maxHp,shield,damageMultiplier:pendingDamageMultiplier,random:Math.random});
+ const entry=profile.inventory.find(item=>item.cardId===cardId),skillLevel=entry?.skillLevel??1;
+ const skill=getActiveSkill(cardId,skillLevel);
+ if(skill.type==='heal'&&hp>=maxHp)return;
+ const result=activateSkill({cardId,skillStates,board:cells,hp,maxHp,shield,damageMultiplier:pendingDamageMultiplier,random:Math.random,skillLevel});
  skillStates=result.skillStates;cells=result.board;hp=result.hp;shield=result.shield;pendingDamageMultiplier=result.damageMultiplier;
  render();$('log').textContent=result.summary;persist();
 }

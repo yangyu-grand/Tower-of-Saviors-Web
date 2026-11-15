@@ -26,3 +26,11 @@ test("the inventory UI exposes progression controls and the saved progression mo
   assert.match(html, /特訓升級/);
   assert.match(html, /隊伍全員獲得/);
 });
+
+test("the inventory UI exposes duplicate-card skill enhancement and displays effective skill levels", () => {
+  assert.match(html, /from "\.\/skillEnhancement\.js"/);
+  assert.match(html, /function performSkillEnhancement/);
+  assert.match(html, /skill-enhance/);
+  assert.match(html, /技能 Lv\./);
+  assert.match(html, /getActiveSkill\(cardId,skillLevel\)/);
+});
