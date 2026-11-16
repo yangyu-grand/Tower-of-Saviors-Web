@@ -103,3 +103,17 @@ test("battle stats reject invalid counters, stage ids, duplicate encounters and 
   assert.throws(() => recordEncounterDefeat(overflow, "lava-wyrmling", { gold: 1 }), /total reward gold/);
   assert.throws(() => recordBattleTurn(createBattleStats(0), { combo: 13, runesMatched: 3 }), /combo/);
 });
+
+
+test("fourth chapter battle results validate its new encounter roster and boss",()=>{
+  const ids=["mist-tail-fox","splitwind-tengu","sakura-moon-fox"];
+  let stats=createBattleStats(3);
+  for(const id of ids)stats=recordEncounterDefeat(stats,id,{gold:200,awakeningShards:2,score:200});
+  stats=completeBattleStats(stats);
+  const result=buildBattleResult(stats);
+  assert.equal(result.stageName,"霧櫻古境");
+  assert.equal(result.bossName,"櫻月天狐");
+  assert.equal(result.totalWaves,3);
+  assert.equal(result.wavesDefeated,3);
+  assert.equal(result.rewards.gold,600);
+});
