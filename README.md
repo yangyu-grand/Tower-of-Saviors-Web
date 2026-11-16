@@ -15,13 +15,13 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - 6 × 5 rune board with six rune types.
 - Adjacent swaps by click/tap and pointer drag (mouse and touch).
 - Horizontal/vertical match-3 clearing, gravity refill, and cascading combos.
-- Score, party HP, heart-rune healing, and a three-stage campaign with three waves per stage.
+- Score, party HP, heart-rune healing, and a four-stage campaign with three waves per stage.
 - Data-driven elemental matchups and a pure combat calculation module.
 - Five-slot party formation with an original starter card roster.
 - Ten original active skills: damage boosts, rune conversion, shields, and healing.
 - Per-card cooldowns advance only after successful rune-match turns; the skill used on a turn does not lose a cooldown count immediately.
 - Active skills are wired into the game UI and affect the next attack, board, incoming damage mitigation, or team HP.
-- Three original stages with nine encounters, named enemy attacks, telegraphed heavy strikes, multi-hit attacks with per-hit shield mitigation, a self-healing support enemy, boss multi-hit specials, enrage thresholds, and shield-piercing attacks.
+- Four original stages with twelve encounters, named enemy attacks, telegraphed heavy strikes, multi-hit attacks with per-hit shield mitigation, a self-healing support enemy, and a two-phase fourth-chapter boss with escalating specials and enrage thresholds.
 - Enemy intent previews, wave transitions, stage-clear rewards, and campaign completion.
 - A ten-card starter inventory plus five original summon-only characters across three rarity tiers; owned-card-only team selection.
 - Gold and summon-stone currencies with encounter and boss-clear rewards.
@@ -63,8 +63,8 @@ These are original prototype rules and are intentionally data-driven so they can
 ## Next priorities
 
 1. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium now covers desktop browser flows and mobile viewport/touch-event emulation in CI.
-2. Expand campaign content and balance leader, active-skill, and boss values.
-3. Extend campaign chapters with additional original enemies and bosses, then tune encounter difficulty using the per-stage battle statistics.
+2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers.
+3. Balance the four chapters, leader/active-skill values, and the two-phase fourth-chapter boss using per-stage battle statistics.
 
 ## Project structure
 
@@ -72,7 +72,7 @@ These are original prototype rules and are intentionally data-driven so they can
 - `combat.js` — pure elemental matchup and party-powered damage calculations.
 - `team.js` — original card catalog, team validation, and leader-skill aggregation.
 - `skills.js` — active-skill definitions, activation effects, and cooldown state transitions.
-- `stages.js` — campaign data, wave progression, data-driven single/heavy/multi-hit/support patterns, enemy intent previews, boss phases, and per-hit shield mitigation.
+- `stages.js` — campaign data, wave progression, data-driven single/heavy/multi-hit/support patterns, HP-threshold boss phases, enemy intent previews, and per-hit shield mitigation.
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
 - `progression.js` — card experience, level caps, team EXP distribution, stat growth, and gold-funded training.
