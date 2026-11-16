@@ -44,7 +44,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 @keyframes boardHeal{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:inset 0 0 0 3px #ff9dc8,0 0 22px #ff9dc866}}
 @keyframes boardSkill{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:inset 0 0 0 3px #8bc7ff,0 0 22px #8bc7ff66}}
 .stage-status{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;background:#080f20aa;border-radius:11px;margin-bottom:8px;font-size:13px}.stage-status strong{color:var(--gold)}.stage-difficulty{color:#aab6ce;font-size:11px;border:1px solid #65789a66;border-radius:20px;padding:3px 7px;margin-left:6px}
-#enemyIntent{padding:8px 10px;border-left:3px solid var(--gold);background:#080f2088;border-radius:6px}#nextStage{width:100%;margin-top:8px}#nextStage[hidden]{display:none}
+#enemyIntent{padding:8px 10px;border-left:3px solid var(--gold);background:#080f2088;border-radius:6px}#enemyIntent[data-type="heal"]{border-color:#83d5a0}#enemyIntent[data-type="heavy"],#enemyIntent[data-type="special"]{border-color:#f06a70}#enemyIntent[data-type="charging"]{border-color:#f6c96b}#nextStage{width:100%;margin-top:8px}#nextStage[hidden]{display:none}
 .team-panel{margin-top:14px}.team-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
 .team-head h2{margin:0;color:var(--gold);font-size:20px}.team-summary{display:flex;gap:12px;color:var(--muted);font-size:13px}
 .team-summary b{color:#fff}.team-slots{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}
@@ -104,7 +104,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   <div class="battle">
    <div><div id="board" class="board" aria-label="符石盤"></div><p class="hint">操作：點選兩顆相鄰符石交換，或用滑鼠／手指拖曳。橫向或直向連成 3 顆即可消除。</p></div>
    <aside class="side">
-    <div class="panel wide"><div class="stage-status"><div><strong id="stageName">灰燼山徑</strong><span class="stage-difficulty" id="stageDifficulty">初階</span></div><span id="stageProgress">第 1 / 3 波</span></div><div class="enemy" id="enemy">🐉</div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p><p class="hint" id="enemyIntent">敵人預告：普通攻擊</p><p class="hint" id="shieldStatus">護盾：0</p><p class="hint" id="skillEffectStatus">下一次攻擊增益：無</p><button id="nextStage" hidden>前往下一關</button></div>
+    <div class="panel wide"><div class="stage-status"><div><strong id="stageName">灰燼山徑</strong><span class="stage-difficulty" id="stageDifficulty">初階</span></div><span id="stageProgress">第 1 / 3 波</span></div><div class="enemy" id="enemy">🐉</div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p><p class="hint" id="enemyIntent" role="status" aria-live="polite">敵人預告：普通攻擊</p><p class="hint" id="shieldStatus">護盾：0</p><p class="hint" id="skillEffectStatus">下一次攻擊增益：無</p><button id="nextStage" hidden>前往下一關</button></div>
     <div class="panel"><b>隊伍屬性</b><p class="hint">火 🔥　水 💧　木 🌿<br>光 ✨　暗 🌙　心 💗</p><div class="actions"><button id="heal">隊伍回復技能</button></div></div>
     <div class="panel"><b>戰鬥紀錄</b><p class="log" id="log" aria-live="polite">拖曳或點選符石，開始你的第一場戰鬥！</p><p class="hint" id="combatBreakdown">傷害計算明細會顯示在這裡。</p></div>
    </aside>
@@ -249,7 +249,21 @@ function createBoard(){
  const hasMatch=(board)=>{for(let r=0;r<5;r++)for(let c=0;c<6;c++){const i=r*6+c,t=board[i];if(c<=3&&board[i+1]===t&&board[i+2]===t)return true;if(r<=2&&board[i+6]===t&&board[i+12]===t)return true;}return false;};
  let board=Array.from({length:30},rand);for(let tries=0;tries<30&&hasMatch(board);tries++)board=Array.from({length:30},rand);return board;
 }
-function renderEnemy(){ const stage=getCurrentStage(campaign),encounter=getCurrentEncounter(campaign)||stage.waves[stage.waves.length-1],intent=getEnemyIntent(campaign);$('stageName').textContent=stage.name;$('stageDifficulty').textContent=stage.difficulty;$('stageProgress').textContent=campaign.completed?'已通關':'第 '+(campaign.waveIndex+1)+' / '+stage.waves.length+' 波';$('enemy').textContent=encounter.emoji;$('enemyName').textContent=encounter.name+(encounter.boss?' · BOSS':'');$('enemyElement').textContent='敵人屬性：'+icons[encounter.element]+' '+elementNames[encounter.element];$('enemyHp').textContent=campaign.enemyHp+' / '+encounter.hp;$('enemyBar').style.width=Math.max(0,campaign.enemyHp/encounter.hp*100)+'%';$('enemyIntent').textContent=campaign.completed?'關卡已完成':('敵人預告：'+intent.label+(intent.damage?' · '+intent.damage+' 傷害':'')+(intent.enraged?' · 狂暴':''));$('nextStage').hidden=!campaign.completed;$('nextStage').textContent=campaign.campaignComplete?'重新挑戰全章':'前往下一關';}
+function renderEnemy(){
+ const stage=getCurrentStage(campaign),encounter=getCurrentEncounter(campaign)||stage.waves[stage.waves.length-1],intent=getEnemyIntent(campaign);
+ $('stageName').textContent=stage.name;$('stageDifficulty').textContent=stage.difficulty;$('stageProgress').textContent=campaign.completed?'已通關':'第 '+(campaign.waveIndex+1)+' / '+stage.waves.length+' 波';
+ $('enemy').textContent=encounter.emoji;$('enemyName').textContent=encounter.name+(encounter.boss?' · BOSS':'');$('enemyElement').textContent='敵人屬性：'+icons[encounter.element]+' '+elementNames[encounter.element];
+ $('enemyHp').textContent=campaign.enemyHp+' / '+encounter.hp;$('enemyBar').style.width=Math.max(0,campaign.enemyHp/encounter.hp*100)+'%';
+ const details=[];
+ if(intent.damage>0)details.push(intent.damage+' 傷害');
+ if(intent.hits>1)details.push(intent.hits+' 段連擊');
+ if(intent.healing>0)details.push((intent.type==="heal"?"最多回復 ":"回復 ")+intent.healing+" HP");
+ if(intent.previewDamage>0)details.push('下一擊 '+intent.previewDamage+' 傷害'+(intent.previewHits>1?' · '+intent.previewHits+' 段':''));
+ if(intent.enraged)details.push('狂暴');
+ const intentElement=$('enemyIntent');intentElement.dataset.type=intent.type;
+ intentElement.textContent=campaign.completed?'關卡已完成':'敵人預告：'+intent.label+(details.length?' · '+details.join(' · '):'');
+ $('nextStage').hidden=!campaign.completed;$('nextStage').textContent=campaign.campaignComplete?'重新挑戰全章':'前往下一關';
+}
 function renderBattleResult(){
  const panel=$('battleResult');if(!panel)return;
  const visible=campaign.completed&&battleStats.stageCompleted&&!battleStats.resultDismissed;
@@ -517,7 +531,7 @@ async function swapTry(a,b){
   if(enemyTurn.incomingDamage>0)feedback.playEnemyAttack();
   const leaderDamageReduction=currentTeam.leaderSkill?.damageReduction??0;
   const adjustedIncomingDamage=Math.ceil(enemyTurn.incomingDamage*(1-leaderDamageReduction));
-  const mitigation=mitigateIncomingDamage(adjustedIncomingDamage,shield,enemyTurn.intent.shieldPierce);
+  const mitigation=mitigateIncomingDamage(adjustedIncomingDamage,shield,enemyTurn.intent.shieldPierce,enemyTurn.intent.hits??1);
   hpDamageTaken=mitigation.hpDamage;shieldAbsorbed=mitigation.shieldDamage;shield=mitigation.remainingShield;hp=Math.max(0,hp-mitigation.hpDamage);
   const shieldText=mitigation.shieldDamage?'護盾吸收 '+mitigation.shieldDamage+' 點。':'';
   const pierceText=mitigation.piercingDamage?'其中 '+mitigation.piercingDamage+' 點穿透護盾。':'';
