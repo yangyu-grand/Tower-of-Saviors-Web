@@ -109,13 +109,16 @@ function assertTurnTrace(turn, expectedTurn) {
 
 export function createRuneBattleReplay(simulation) {
   if (!isRecord(simulation)) throw new TypeError("simulation must be an object");
-  assertSafeInteger(simulation.seed, "simulation seed");
+  if (!Number.isSafeInteger(simulation.seed)) throw new TypeError("simulation seed must be a safe integer");
   if (!isRecord(simulation.stage) || !isRecord(simulation.encounter) ||
       !isRecord(simulation.team) || !isRecord(simulation.policy)) {
     throw new TypeError("simulation metadata is incomplete");
   }
   if (!Array.isArray(simulation.turns) || simulation.turns.length < 1) {
     throw new TypeError("simulation must contain at least one battle turn");
+  }
+  if (simulation.turnsSimulated !== simulation.turns.length) {
+    throw new RangeError("turnsSimulated must match the recorded turn count");
   }
   if (!["victory", "party-defeated", "turn-limit"].includes(simulation.status)) {
     throw new RangeError("simulation has an unknown battle status");
@@ -216,7 +219,7 @@ export function validateRuneBattleReplay(replay) {
   if (!isRecord(replay) || replay.schemaVersion !== 1) {
     throw new RangeError("unsupported battle replay schema");
   }
-  assertSafeInteger(replay.seed, "replay seed");
+  if (!Number.isSafeInteger(replay.seed)) throw new TypeError("replay seed must be a safe integer");
   if (!isRecord(replay.stage) || !isRecord(replay.encounter) ||
       !isRecord(replay.team) || !isRecord(replay.policy)) {
     throw new TypeError("replay metadata is incomplete");

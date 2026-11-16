@@ -81,3 +81,17 @@ test("replay validator rejects non-adjacent swap events", () => {
   swap.data.from = 0;
   assert.throws(() => validateRuneBattleReplay(badSwap), /adjacent cells/);
 });
+
+
+test("replay preserves negative safe-integer seeds supported by the simulator", () => {
+  const simulation = simulateRuneEncounter({
+    stageIndex: 0,
+    waveIndex: 0,
+    seed: -123,
+    skillPolicy: "none",
+    maxTurns: 8
+  });
+  const replay = createRuneBattleReplay(simulation);
+  assert.equal(replay.seed, -123);
+  assert.equal(validateRuneBattleReplay(replay), true);
+});
