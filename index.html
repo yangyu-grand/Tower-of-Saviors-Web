@@ -257,7 +257,7 @@ function renderEnemy(){
  const details=[];
  if(intent.damage>0)details.push(intent.damage+' 傷害');
  if(intent.hits>1)details.push(intent.hits+' 段連擊');
- if(intent.healing>0)details.push('回復 '+intent.healing+' HP');
+ if(intent.healing>0)details.push((intent.type==="heal"?"最多回復 ":"回復 ")+intent.healing+" HP");
  if(intent.previewDamage>0)details.push('下一擊 '+intent.previewDamage+' 傷害'+(intent.previewHits>1?' · '+intent.previewHits+' 段':''));
  if(intent.enraged)details.push('狂暴');
  const intentElement=$('enemyIntent');intentElement.dataset.type=intent.type;

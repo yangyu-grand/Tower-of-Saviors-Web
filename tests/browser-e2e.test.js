@@ -330,5 +330,10 @@ test("Chromium displays distinct multi-hit and self-healing enemy intent preview
   assert.match(await healer.page.locator("#enemyIntent").innerText(), /回復 36 HP/);
   assert.equal(await healer.page.locator("#enemyIntent").getAttribute("data-type"), "heal");
   await healer.context.close();
+
+  const fullHealer = await openAtEncounter(1, 2, 390);
+  assert.match(await fullHealer.page.locator("#enemyIntent").innerText(), /最多回復 36 HP/);
+  assert.equal(await fullHealer.page.locator("#enemyIntent").getAttribute("data-type"), "heal");
+  await fullHealer.context.close();
   await browser.close();
 });

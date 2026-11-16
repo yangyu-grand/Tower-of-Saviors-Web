@@ -61,9 +61,8 @@ export function getEnemyIntent(state){
   const enraged=Number.isFinite(encounter.enrageAt)&&state.enemyHp<=encounter.hp*encounter.enrageAt;
   const multiplier=enraged?(encounter.enrageMultiplier??1):1;
   const support=encounter.support;
-  if(support&&nextTurn%support.every===0&&state.enemyHp<encounter.hp){
-    const healing=Math.min(support.amount,encounter.hp-state.enemyHp);
-    if(healing>0)return {type:"heal",label:support.name,damage:0,healing,hits:1,previewDamage:0,previewHits:1,shieldPierce:0,enraged};
+  if(support&&nextTurn%support.every===0){
+    return {type:"heal",label:support.name,damage:0,healing:support.amount,hits:1,previewDamage:0,previewHits:1,shieldPierce:0,enraged};
   }
 
   const special=encounter.special;
@@ -97,16 +96,21 @@ export function resolveEnemyTurn(state){
   const encounter=getCurrentEncounter(state);
   const intent=getEnemyIntent(state);
   const nextState={...state,turn:state.turn+1};
-  if(intent.type==="heal")nextState.enemyHp=Math.min(encounter.hp,state.enemyHp+intent.healing);
+  let resolvedIntent=intent;
+  if(intent.type==="heal"){
+    const actualHealing=Math.min(intent.healing,encounter.hp-state.enemyHp);
+    nextState.enemyHp=state.enemyHp+actualHealing;
+    resolvedIntent={...intent,healing:actualHealing};
+  }
 
   let message;
-  if(intent.type==="heal")message=intent.label+"！回復 "+intent.healing+" HP。";
-  else if(intent.type==="special"||intent.type==="multi")message=intent.label+"！"+(intent.hits>1?"分 "+intent.hits+" 段":"")+"造成 "+intent.damage+" 點傷害。";
-  else if(intent.type==="heavy")message=intent.label+"！造成 "+intent.damage+" 點重擊。";
-  else if(intent.type==="attack")message=intent.label+"，造成 "+intent.damage+" 點傷害。";
+  if(resolvedIntent.type==="heal")message=resolvedIntent.label+"！回復 "+resolvedIntent.healing+" HP。";
+  else if(resolvedIntent.type==="special"||resolvedIntent.type==="multi")message=resolvedIntent.label+"！"+(resolvedIntent.hits>1?"分 "+resolvedIntent.hits+" 段":"")+"造成 "+resolvedIntent.damage+" 點傷害。";
+  else if(resolvedIntent.type==="heavy")message=resolvedIntent.label+"！造成 "+resolvedIntent.damage+" 點重擊。";
+  else if(resolvedIntent.type==="attack")message=resolvedIntent.label+"，造成 "+resolvedIntent.damage+" 點傷害。";
   else message=intent.label+"。";
 
-  return {state:nextState,intent,incomingDamage:intent.damage,message};
+  return {state:nextState,intent:resolvedIntent,incomingDamage:resolvedIntent.damage,message};
 }
 
 export function mitigateIncomingDamage(incomingDamage,shield,shieldPierce=0,hitCount=1){

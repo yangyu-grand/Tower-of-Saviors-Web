@@ -115,10 +115,16 @@ test("coral sentinel heals on its support interval and cannot exceed maximum HP"
   assert.equal(resolved.state.turn,3);
 
   const nearFull={...damaged,enemyHp:380};
-  assert.equal(getEnemyIntent(nearFull).healing,10);
+  assert.equal(getEnemyIntent(nearFull).healing,36);
+  const nearFullResolved=resolveEnemyTurn(nearFull);
+  assert.equal(nearFullResolved.intent.healing,10);
+  assert.equal(nearFullResolved.state.enemyHp,390);
   const full={...damaged,enemyHp:390};
-  assert.equal(getEnemyIntent(full).type,"attack");
-  assert.equal(getEnemyIntent(full).label,"珊瑚脈衝");
+  assert.equal(getEnemyIntent(full).type,"heal");
+  assert.equal(getEnemyIntent(full).healing,36);
+  const fullResolved=resolveEnemyTurn(full);
+  assert.equal(fullResolved.intent.healing,0);
+  assert.equal(fullResolved.state.enemyHp,390);
 });
 
 test("boss special attacks can contain multiple independently shielded hits",()=>{
