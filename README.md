@@ -5,7 +5,9 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 ## Run locally
 
 - Requires Node.js 18 or newer.
-- Run deterministic unit tests with `npm test`.
+- Install test dependencies with `npm install`.
+- Install the Chromium browser used by end-to-end tests with `npx playwright install chromium`.
+- Run unit and real-browser tests with `npm test`.
 - Serve the project root with a static server because browser ES modules may not work from a `file://` URL. Example: `python3 -m http.server 8000`, then open `http://localhost:8000`.
 
 ## Implemented
@@ -27,13 +29,13 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Card progression up to level 99, with battle EXP distributed to the active five-card team and gold-funded one-level training for any owned card.
 - Card HP and ATK grow by 2.5% per level; leveled team stats feed into party HP, elemental attack, leader-skill calculations, and save validation.
 - Duplicate copies can be consumed with gold to enhance a card's active skill up to skill level 5; damage boosts, rune conversion counts, shields, healing, and level-5 cooldowns improve with skill level.
-- Save version 2 persists skill levels and automatically migrates version-1 profiles with skill level 1 for every owned card.
-- Versioned local saves for inventory, team, campaign/wave, rune board, HP, score, shields, and active-skill cooldowns.
+- Versioned local saves (version 3) persist skill levels, evolution, materials, inventory, team, campaign/wave, rune board, HP, score, shields, and active-skill cooldowns; older version-1/version-2 saves are migrated without discarding existing progression.
 - Automatic checkpoint saves after stable gameplay actions plus a manual save control; invalid saves fall back safely without deleting the stored data.
-- Team cost validation, team HP aggregation, element-specific attack totals, and a fire leader skill.
+- Team cost validation, team HP aggregation, element-specific attack totals, and data-driven leader skills for all 15 original cards.
 - Party attack stats are applied to matched-rune damage; extra runes beyond three add a small bonus.
 - Responsive layout for narrow screens.
-- Deterministic Node.js tests for combat rules, team validation, leader-stat aggregation, card progression, and embedded browser-module syntax.
+- Opt-in, synthesized Web Audio feedback and reduced-motion-aware battle animations; no external audio or art assets are required.
+- Deterministic Node.js unit tests plus Playwright Chromium end-to-end coverage for game boot, rune dragging and matching, codex filters, save/reload persistence, sound controls, mobile layout emulation, and reduced-motion preference.
 
 ## Original prototype combat rules
 
@@ -58,13 +60,13 @@ These are original prototype rules and are intentionally data-driven so they can
 
 ## Next priorities
 
-1. Complete real-browser and physical mobile QA for rune animations, opt-in sound, touch interaction, and reduced-motion behavior.
+1. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium now covers desktop browser flows and mobile viewport/touch-event emulation in CI.
 2. Expand campaign content and balance leader, active-skill, and boss values.
 3. Add an onboarding tutorial that explains rune matching, skills, and campaign progression.
 
 ## Project structure
 
-- `index.html` — game interface, party selection, and board interaction.
+- `index.html` — game interface, party selection, rune board, and browser interaction.
 - `combat.js` — pure elemental matchup and party-powered damage calculations.
 - `team.js` — original card catalog, team validation, and leader-skill aggregation.
 - `skills.js` — active-skill definitions, activation effects, and cooldown state transitions.
@@ -73,27 +75,10 @@ These are original prototype rules and are intentionally data-driven so they can
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
 - `progression.js` — card experience, level caps, team EXP distribution, stat growth, and gold-funded training.
 - `skillEnhancement.js` — duplicate-card consumption, gold costs, and active-skill enhancement validation.
-- `tests/combat.test.js` — deterministic combat unit tests.
-- `tests/team.test.js` — deterministic party and card validation tests.
-- `tests/skills.test.js` — deterministic active-skill and cooldown tests.
-- `tests/stages.test.js` — deterministic campaign, wave, enemy-turn, and boss tests.
-- `tests/inventory.test.js` — deterministic inventory, save validation, storage-failure, and currency tests.
-- `tests/summon.test.js` — deterministic summon rates, pity, ten-pull guarantee, and duplicate tests.
-- `tests/skill-enhancement.test.js` — deterministic duplicate consumption, gold costs, skill scaling, and enhanced activation tests.
-
-
-## Card evolution
-
-- Save version 3 persists card evolution levels and awakening materials, migrating version-1/version-2 profiles with base forms and zero materials while preserving existing progress.
-- Original 3★ cards can evolve through 4★ awakening to 5★ ascension; 4★ cards evolve to 5★ and 5★ cards to 6★.
-- Each evolution form increases card HP and ATK by 25%, updates its display name, emoji, and rarity, and preserves card level, EXP, skill level, and owned quantity.
-- Defeated encounters award awakening shards; stage bosses also award prism cores. Evolution consumes the required materials and gold.
-- `evolution.js` contains recipes, cost quotes, evolution validation, and evolved team-stat lookup.
-- `codex.js` builds the searchable original-card catalog and applies element, effective-rarity, ownership, and evolution filters.
-- `battleFeedback.js` provides reduced-motion-aware combat animations and opt-in, synthesized Web Audio effects; no external audio or art assets are required.
-- The browser UI triggers match, enemy-hit, enemy-attack, healing, skill, and victory feedback, with sound disabled by default until the player opts in.
-- `tests/codex.test.js` covers catalog completeness, skill/name search, combined filters, ownership, evolution, and invalid input.
-- `tests/battle-feedback.test.js` covers opt-in audio, unsupported audio fallback, animation hooks, and reduced-motion behavior.
-
-
-- `team.js` — all original cards, validated leader skill effects, team validation, and stat aggregation.
+- `evolution.js` — original evolution recipes, material costs, validation, and evolved team-stat lookup.
+- `codex.js` — searchable card catalog and element, rarity, ownership, and evolution filters.
+- `battleFeedback.js` — reduced-motion-aware visual feedback and opt-in synthesized audio.
+- `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, and responsive/touch behavior.
+- `tests/browser-script.test.js` — embedded browser-module syntax and UI integration checks.
+- `tests/battle-feedback.test.js` — opt-in audio, unsupported-audio fallback, animation hooks, and reduced-motion tests.
+- Other `tests/*.test.js` files — deterministic unit tests for combat, team, skills, campaign, inventory, summoning, progression, evolution, and the card codex.
