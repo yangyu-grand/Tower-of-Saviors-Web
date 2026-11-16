@@ -24,34 +24,64 @@ export const CARD_CATALOG = Object.freeze([
       attackMultipliers: { fire: 1.2 }, hpMultiplier: 1.05
     }
   }),
-  freezeCard({ id: "tide_monk", name: "潮紋僧侶", emoji: "💧", element: "water", hp: 1120, atk: 160, cost: 6, rarity: 3 }),
-  freezeCard({ id: "moss_guard", name: "苔甲守衛", emoji: "🌿", element: "wood", hp: 1450, atk: 135, cost: 5, rarity: 3 }),
-  freezeCard({ id: "dawn_archer", name: "晨星弓手", emoji: "✨", element: "light", hp: 900, atk: 190, cost: 6, rarity: 3 }),
-  freezeCard({ id: "heart_priest", name: "心燈祭司", emoji: "💗", element: "heart", hp: 1250, atk: 120, cost: 5, rarity: 3 }),
-  freezeCard({ id: "dusk_mage", name: "暮影術士", emoji: "🌙", element: "dark", hp: 880, atk: 205, cost: 6, rarity: 3 }),
-  freezeCard({ id: "cinder_knight", name: "燼火騎士", emoji: "🛡️", element: "fire", hp: 1200, atk: 165, cost: 6, rarity: 3 }),
-  freezeCard({ id: "river_oracle", name: "河灣預言者", emoji: "🔮", element: "water", hp: 1000, atk: 175, cost: 5, rarity: 3 }),
-  freezeCard({ id: "thorn_ranger", name: "荊棘遊俠", emoji: "🏹", element: "wood", hp: 950, atk: 180, cost: 5, rarity: 3 }),
-  freezeCard({ id: "moon_sentinel", name: "月影守望者", emoji: "🌘", element: "dark", hp: 1300, atk: 155, cost: 6, rarity: 3 }),
+  freezeCard({
+    id: "tide_monk", name: "潮紋僧侶", emoji: "💧", element: "water", hp: 1120, atk: 160, cost: 6, rarity: 3,
+    leaderSkill: { name: "潮汐韻律", description: "水屬性攻擊提升 20%，每層 Combo 額外增加 0.05 倍傷害。", attackMultipliers: { water: 1.2 }, hpMultiplier: 1.04, comboStepBonus: 0.05 }
+  }),
+  freezeCard({
+    id: "moss_guard", name: "苔甲守衛", emoji: "🌿", element: "wood", hp: 1450, atk: 135, cost: 5, rarity: 3,
+    leaderSkill: { name: "苔甲守勢", description: "木屬性攻擊提升 20%，隊伍生命提升 8%，受到傷害減少 8%。", attackMultipliers: { wood: 1.2 }, hpMultiplier: 1.08, damageReduction: 0.08 }
+  }),
+  freezeCard({
+    id: "dawn_archer", name: "晨星弓手", emoji: "✨", element: "light", hp: 900, atk: 190, cost: 6, rarity: 3,
+    leaderSkill: { name: "晨星連擊", description: "光屬性攻擊提升 20%，每層 Combo 額外增加 0.05 倍傷害。", attackMultipliers: { light: 1.2 }, hpMultiplier: 1.03, comboStepBonus: 0.05 }
+  }),
+  freezeCard({
+    id: "heart_priest", name: "心燈祭司", emoji: "💗", element: "heart", hp: 1250, atk: 120, cost: 5, rarity: 3,
+    leaderSkill: { name: "心燈庇佑", description: "隊伍生命提升 10%，心符石回復效果提升 35%。", hpMultiplier: 1.1, healingMultiplier: 1.35 }
+  }),
+  freezeCard({
+    id: "dusk_mage", name: "暮影術士", emoji: "🌙", element: "dark", hp: 880, atk: 205, cost: 6, rarity: 3,
+    leaderSkill: { name: "暮色連鎖", description: "暗屬性攻擊提升 20%，每層 Combo 額外增加 0.05 倍傷害。", attackMultipliers: { dark: 1.2 }, hpMultiplier: 1.03, comboStepBonus: 0.05 }
+  }),
+  freezeCard({
+    id: "cinder_knight", name: "燼火騎士", emoji: "🛡️", element: "fire", hp: 1200, atk: 165, cost: 6, rarity: 3,
+    leaderSkill: { name: "雙焰守誓", description: "火、水屬性攻擊提升 15% 與 10%，隊伍生命提升 6%，受到傷害減少 5%。", attackMultipliers: { fire: 1.15, water: 1.1 }, hpMultiplier: 1.06, damageReduction: 0.05 }
+  }),
+  freezeCard({
+    id: "river_oracle", name: "河灣預言者", emoji: "🔮", element: "water", hp: 1000, atk: 175, cost: 5, rarity: 3,
+    leaderSkill: { name: "河灣甘霖", description: "水屬性攻擊提升 15%，心符石回復效果提升 25%，隊伍生命提升 8%。", attackMultipliers: { water: 1.15 }, hpMultiplier: 1.08, healingMultiplier: 1.25 }
+  }),
+  freezeCard({
+    id: "thorn_ranger", name: "荊棘遊俠", emoji: "🏹", element: "wood", hp: 950, atk: 180, cost: 5, rarity: 3,
+    leaderSkill: { name: "荊棘追擊", description: "木屬性攻擊提升 15%，每層 Combo 額外增加 0.08 倍傷害。", attackMultipliers: { wood: 1.15 }, hpMultiplier: 1.03, comboStepBonus: 0.08 }
+  }),
+  freezeCard({
+    id: "moon_sentinel", name: "月影守望者", emoji: "🌘", element: "dark", hp: 1300, atk: 155, cost: 6, rarity: 3,
+    leaderSkill: { name: "月影壁壘", description: "暗屬性攻擊提升 15%，隊伍生命提升 10%，受到傷害減少 12%。", attackMultipliers: { dark: 1.15 }, hpMultiplier: 1.1, damageReduction: 0.12 }
+  }),
   freezeCard({
     id: "azure_minstrel", name: "蒼潮樂師", emoji: "🎼", element: "water",
-    hp: 1080, atk: 185, cost: 7, rarity: 4
+    hp: 1080, atk: 185, cost: 7, rarity: 4,
+    leaderSkill: { name: "蒼潮協奏", description: "水、光屬性攻擊各提升 12%，每層 Combo 額外增加 0.05 倍傷害。", attackMultipliers: { water: 1.12, light: 1.12 }, hpMultiplier: 1.06, comboStepBonus: 0.05 }
   }),
   freezeCard({
     id: "verdant_alchemist", name: "翠森鍊金師", emoji: "🧪", element: "wood",
-    hp: 1000, atk: 200, cost: 7, rarity: 4
+    hp: 1000, atk: 200, cost: 7, rarity: 4,
+    leaderSkill: { name: "翠森調和", description: "木屬性攻擊提升 18%，心符石回復效果提升 15%，隊伍生命提升 5%。", attackMultipliers: { wood: 1.18 }, hpMultiplier: 1.05, healingMultiplier: 1.15 }
   }),
   freezeCard({
     id: "astral_scribe", name: "星界書記官", emoji: "📜", element: "light",
-    hp: 980, atk: 215, cost: 7, rarity: 4
+    hp: 980, atk: 215, cost: 7, rarity: 4,
+    leaderSkill: { name: "星界雙曜", description: "光、暗屬性攻擊各提升 12%，每層 Combo 額外增加 0.05 倍傷害。", attackMultipliers: { light: 1.12, dark: 1.12 }, hpMultiplier: 1.05, comboStepBonus: 0.05 }
   }),
   freezeCard({
     id: "abyss_weaver", name: "深淵織夢者", emoji: "🕷️", element: "dark",
     hp: 920, atk: 240, cost: 8, rarity: 5,
     leaderSkill: {
       name: "深淵共鳴",
-      description: "隊伍暗屬性攻擊提升 25%，隊伍生命提升 4%。",
-      attackMultipliers: { dark: 1.25 }, hpMultiplier: 1.04
+      description: "隊伍暗屬性攻擊提升 25%，隊伍生命提升 4%，受到傷害減少 3%。",
+      attackMultipliers: { dark: 1.25 }, hpMultiplier: 1.04, damageReduction: 0.03
     }
   }),
   freezeCard({
@@ -59,8 +89,8 @@ export const CARD_CATALOG = Object.freeze([
     hp: 1250, atk: 230, cost: 8, rarity: 5,
     leaderSkill: {
       name: "日輪裁決",
-      description: "隊伍火屬性攻擊提升 25%，隊伍生命提升 3%。",
-      attackMultipliers: { fire: 1.25 }, hpMultiplier: 1.03
+      description: "隊伍火屬性攻擊提升 25%，隊伍生命提升 3%，每層 Combo 額外增加 0.05 倍傷害。",
+      attackMultipliers: { fire: 1.25 }, hpMultiplier: 1.03, comboStepBonus: 0.05
     }
   })
 ]);
@@ -145,12 +175,24 @@ export function buildTeam(cardIds, options = {}) {
 
   const leaderSkill = cards[0].leaderSkill ?? null;
   if (leaderSkill) {
-    for (const [element, multiplier] of Object.entries(leaderSkill.attackMultipliers ?? {})) {
-      if (!ATTACK_ELEMENTS.includes(element) || !Number.isFinite(multiplier) || multiplier < 0) {
+    const attackMultipliers = leaderSkill.attackMultipliers ?? {};
+    if (!attackMultipliers || typeof attackMultipliers !== "object" || Array.isArray(attackMultipliers)) {
+      throw new TypeError("Leader skill attackMultipliers must be an object");
+    }
+    for (const [element, multiplier] of Object.entries(attackMultipliers)) {
+      if (!ATTACK_ELEMENTS.includes(element) || !Number.isFinite(multiplier) || multiplier < 0 || multiplier > 3) {
         throw new RangeError("Invalid leader skill attack multiplier");
       }
       attackByElement[element] = Math.round(attackByElement[element] * multiplier);
     }
+    const hpMultiplier = leaderSkill.hpMultiplier ?? 1;
+    const comboStepBonus = leaderSkill.comboStepBonus ?? 0;
+    const healingMultiplier = leaderSkill.healingMultiplier ?? 1;
+    const damageReduction = leaderSkill.damageReduction ?? 0;
+    if (!Number.isFinite(hpMultiplier) || hpMultiplier <= 0 || hpMultiplier > 3) throw new RangeError("Invalid leader skill HP multiplier");
+    if (!Number.isFinite(comboStepBonus) || comboStepBonus < 0 || comboStepBonus > 0.25) throw new RangeError("Invalid leader skill Combo bonus");
+    if (!Number.isFinite(healingMultiplier) || healingMultiplier < 0.5 || healingMultiplier > 3) throw new RangeError("Invalid leader skill healing multiplier");
+    if (!Number.isFinite(damageReduction) || damageReduction < 0 || damageReduction > 0.5) throw new RangeError("Invalid leader skill damage reduction");
   }
 
   return {
