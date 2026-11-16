@@ -120,5 +120,5 @@ test("the enemy codex exposes searchable chapter, element, role, and boss-phase 
   assert.match(html, /function renderEnemyCodex/);
   assert.match(html, /initializeEnemyCodex\(\)/);
   assert.match(html, /unlockedStageTotal/);
-  assert.match(html, /天狐焚月/);
+  assert.match(html, /phase\.special/);
 });
