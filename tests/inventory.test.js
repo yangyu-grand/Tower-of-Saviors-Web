@@ -208,3 +208,12 @@ test("legacy completed-stage saves migrate without inventing a result or losing 
   assert.equal(migrated.battleStats.resultDismissed, true);
   assert.deepEqual(migrated.battleStats.defeatedEncounterIds, []);
 });
+
+
+test("save validation accepts the fourth chapter unlock and rejects values beyond the campaign",()=>{
+  const save=createDefaultSave();
+  save.unlockedStageIndex=3;
+  assert.equal(normalizeSave(save).unlockedStageIndex,3);
+  save.unlockedStageIndex=4;
+  assert.throws(()=>normalizeSave(save),/unlockedStageIndex/);
+});
