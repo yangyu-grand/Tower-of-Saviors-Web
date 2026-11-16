@@ -36,7 +36,7 @@ test("enemy codex filters by boss role, chapter, and element without changing so
   assert.equal(filterEnemyCodex(ENEMY_CODEX, { role: "boss" }).length, 4);
   assert.equal(filterEnemyCodex(ENEMY_CODEX, { role: "normal" }).length, 8);
   assert.equal(filterEnemyCodex(ENEMY_CODEX, { stageId: "mist-sakura-ancient" }).length, 3);
-  assert.equal(filterEnemyCodex(ENEMY_CODEX, { element: "dark" }).length, 2);
+  assert.equal(filterEnemyCodex(ENEMY_CODEX, { element: "dark" }).length, 3);
   assert.equal(JSON.stringify(ENEMY_CODEX), source);
 });
 
