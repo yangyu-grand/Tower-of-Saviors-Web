@@ -73,3 +73,12 @@ These are original prototype rules and are intentionally data-driven so they can
 - `tests/inventory.test.js` — deterministic inventory, save validation, storage-failure, and currency tests.
 - `tests/summon.test.js` — deterministic summon rates, pity, ten-pull guarantee, and duplicate tests.
 - `tests/skill-enhancement.test.js` — deterministic duplicate consumption, gold costs, skill scaling, and enhanced activation tests.
+
+
+## Card evolution
+
+- Save version 3 persists card evolution levels and awakening materials, migrating version-1/version-2 profiles with base forms and zero materials while preserving existing progress.
+- Original 3★ cards can evolve through 4★ awakening to 5★ ascension; 4★ cards evolve to 5★ and 5★ cards to 6★.
+- Each evolution form increases card HP and ATK by 25%, updates its display name, emoji, and rarity, and preserves card level, EXP, skill level, and owned quantity.
+- Defeated encounters award awakening shards; stage bosses also award prism cores. Evolution consumes the required materials and gold.
+- `evolution.js` contains recipes, cost quotes, evolution validation, and evolved team-stat lookup.
