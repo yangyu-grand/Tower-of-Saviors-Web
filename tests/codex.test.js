@@ -5,9 +5,9 @@ import { createDefaultSave, addCard } from "../inventory.js";
 import { buildCardCodex, filterCardCatalog } from "../codex.js";
 
 function saveWithEvolution(cardId, level) {
-  const save = createDefaultSave();
+  let save = createDefaultSave();
+  if (!save.inventory.some((item) => item.cardId === cardId)) save = addCard(save, cardId);
   const entry = save.inventory.find((item) => item.cardId === cardId);
-  if (!entry) throw new Error("Card is not in the starter save");
   entry.evolutionLevel = level;
   return save;
 }
@@ -31,6 +31,11 @@ test("element and rarity filters use effective evolved rarity", () => {
   assert.deepEqual(filterCardCatalog(CARD_CATALOG, save.inventory, {element:"heart"}).map(x=>x.baseCard.id), ["heart_priest"]);
   assert.ok(filterCardCatalog(CARD_CATALOG, save.inventory, {rarity:5}).some(x=>x.baseCard.id==="ember_scout"&&x.card.rarity===5));
   assert.equal(filterCardCatalog(CARD_CATALOG, save.inventory, {rarity:6}).length, 0);
+  const ascendedFiveStar = saveWithEvolution("abyss_weaver", 1);
+  assert.deepEqual(
+    filterCardCatalog(CARD_CATALOG, ascendedFiveStar.inventory, {rarity:6}).map(x=>x.baseCard.id),
+    ["abyss_weaver"]
+  );
 });
 
 test("ownership filters update when a summon-only card is acquired", () => {
