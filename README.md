@@ -155,3 +155,12 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `tests/battle-feedback.test.js` — opt-in audio, unsupported-audio fallback, animation hooks, and reduced-motion tests.
 - `tests/tutorial.test.js` — tutorial progression, event gates, skip behavior, and storage validation tests.
 - Other `tests/*.test.js` files — deterministic unit tests for combat, team, skills, campaign, inventory, summoning, progression, evolution, and the card codex.
+
+
+## 玩家實戰錄製與重播
+
+- `liveBattleRecorder.js` 將瀏覽器中的真實玩家回合記錄為既有 Replay Schema v1 事件：回合開始、技能、相鄰交換、每次 Cascade 補珠盤面、玩家攻擊、敵人反擊、回合結束及戰鬥結算。
+- 戰鬥重播面板新增「載入最近實戰」；成功擊敗一個敵人或隊伍戰敗後，最近一場實戰會保存至瀏覽器 localStorage（`tower_of_saviors_live_replay_v1`），重新載入頁面仍可在重播檢視器中開啟。
+- 示範模擬與玩家實戰使用相同的事件檢視器及 JSON 格式；匯出檔名以 `tower-live-replay-seed-` 區分玩家實戰。
+- 實戰紀錄以玩家當下實際盤面與行動為準，不會用 Greedy 模擬結果冒充玩家操作；每個新敵人波次獨立建立一份最近戰鬥紀錄。
+- 驗證：`npm test` 包含 live recorder 單元測試與 Chromium 實際轉珠、勝利後重播、重新載入後恢復紀錄的端對端測試。
