@@ -30,3 +30,5 @@ jobs:
         run: npm run balance:scenarios
       - name: Run full party composition balance sweep
         run: npm run balance:parties
+      - name: Run seeded rune move quality analysis
+        run: npm run balance:moves
