@@ -393,8 +393,14 @@ test("Chromium plays, pauses, seeks, imports, and exports deterministic battle r
     input.value = "0";
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
+  assert.equal(await page.locator("#replaySpeed").inputValue(), "1");
+  assert.equal(await page.locator("#replaySpeed option").count(), 6);
+  await page.locator("#replaySpeed").selectOption("2");
   await page.locator("#replayPlay").click();
   await page.waitForFunction(() => Number(document.querySelector("#replaySeek").value) > 0, null, { timeout: 5000 });
+  assert.equal(await page.locator("#replayPlay").innerText(), "暫停");
+  await page.locator("#replaySpeed").selectOption("0.5");
+  assert.equal(await page.locator("#replayPlay").innerText(), "暫停", "changing speed should keep playback active");
   await page.locator("#replayPlay").click();
   assert.equal(await page.locator("#replayPlay").innerText(), "播放");
 

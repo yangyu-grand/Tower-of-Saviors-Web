@@ -164,3 +164,10 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - 示範模擬與玩家實戰使用相同的事件檢視器及 JSON 格式；匯出檔名以 `tower-live-replay-seed-` 區分玩家實戰。
 - 實戰紀錄以玩家當下實際盤面與行動為準，不會用 Greedy 模擬結果冒充玩家操作；每個新敵人波次獨立建立一份最近戰鬥紀錄。
 - 驗證：`npm test` 包含 live recorder 單元測試與 Chromium 實際轉珠、勝利後重播、重新載入後恢復紀錄的端對端測試。
+
+## Replay playback speed
+
+- The replay toolbar provides 0.5×, 1×, 1.5×, 2×, 3×, and 4× playback speeds.
+- Changing the speed while playback is active restarts the timer at the selected interval without changing the current event index or pausing the replay.
+- `replayPlayback.js` validates supported multipliers and calculates the interval from the 650 ms default, with a 50 ms minimum interval to keep fast playback readable.
+- Validation: `tests/replay-playback.test.js` covers supported speeds, interval scaling, invalid values, and the minimum interval; Chromium end-to-end coverage verifies the speed selector and live speed changes.
