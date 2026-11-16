@@ -1,4 +1,4 @@
-name: Node.js tests
+name: Node.js and Chromium tests
 
 on:
   push:
@@ -18,5 +18,9 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: 22
-      - name: Run deterministic tests
+      - name: Install dependencies
+        run: npm install --no-audit --no-fund
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+      - name: Run unit and real-browser tests
         run: npm test
