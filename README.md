@@ -9,6 +9,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Install the Chromium browser used by end-to-end tests with `npx playwright install chromium`.
 - Run unit and real-browser tests with `npm test`.
 - Generate a deterministic chapter/encounter balance baseline with `npm run balance:report`.
+- Compare active-skill cooldowns and three representative match distributions with `npm run balance:scenarios`.
 - Serve the project root with a static server because browser ES modules may not work from a `file://` URL. Example: `python3 -m http.server 8000`, then open `http://localhost:8000`.
 
 ## Implemented
@@ -24,6 +25,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Active skills are wired into the game UI and affect the next attack, board, incoming damage mitigation, or team HP.
 - Four original stages with twelve encounters, named enemy attacks, telegraphed heavy strikes, multi-hit attacks with per-hit shield mitigation, a self-healing support enemy, and a two-phase fourth-chapter boss with escalating specials and enrage thresholds.
 - A deterministic campaign balance simulator that reuses live team, leader-skill, elemental, Combo, enemy-phase, support-healing, shield, and damage-reduction rules across all twelve encounters.
+- A representative scenario simulator for steady, balanced, and high-Combo rune matches, including active-skill effects, per-card cooldown timing, healing, conversion, shields, and damage boosts.
 - Searchable enemy codex for all twelve encounters, with chapter/element/role filters and data-driven attack, support, special-skill, and boss-phase details.
 - Enemy intent previews, wave transitions, stage-clear rewards, and campaign completion.
 - A ten-card starter inventory plus five original summon-only characters across three rarity tiers; owned-card-only team selection.
@@ -67,12 +69,14 @@ These are original prototype rules and are intentionally data-driven so they can
 
 Run `npm run balance:report` to print a deterministic baseline for every encounter. The default scenario repeatedly matches three runes of the current leader element, applies the active leader skill, and simulates enemy attack cadence, Boss phase thresholds, support healing, leader damage reduction, and a configurable initial shield. Tests can supply additional matched elements, heart runes, extra cascades, card levels, evolution levels, and starting HP.
 
-This is a repeatable balancing aid, not a player win-rate prediction: it does not simulate random board generation, movement choices, active-skill cooldowns, or skill timing. Compare scenarios before changing encounter values.
+This baseline is a repeatable balancing aid, not a player win-rate prediction: it does not simulate random board generation, movement choices, or active-skill timing.
+
+Run `npm run balance:scenarios` to compare three deterministic match profiles across all twelve encounters. The steady profile uses a single three-rune match without active skills; balanced and high-Combo profiles include heart matches, cascades, and a round-robin skill schedule. Skill cooldowns use the live `advanceSkillCooldowns()` rule, including the rule that a newly activated skill does not tick down on that same turn. Conversion scenarios assume the player matches the converted target group; they are not a physics or random-board simulation.
 
 ## Next priorities
 
 1. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium now covers desktop browser flows and mobile viewport/touch-event emulation in CI.
-2. Extend balance scenarios with active-skill cooldown timing and representative player match distributions before adjusting encounter values.
+2. Use the new scenario matrix to compare team/skill combinations before tuning encounter values; complete physical-device QA remains outstanding.
 
 ## Project structure
 
@@ -83,7 +87,10 @@ This is a repeatable balancing aid, not a player win-rate prediction: it does no
 - `stages.js` — campaign data, wave progression, data-driven single/heavy/multi-hit/support patterns, HP-threshold boss phases, enemy intent previews, and per-hit shield mitigation.
 - `enemyCodex.js` — searchable/filterable enemy catalog derived directly from the campaign source of truth.
 - `balance.js` — deterministic per-encounter and full-campaign balance simulation using the same combat, team, and enemy-turn modules.
+- `balanceScenarios.js` — active-skill cooldown-aware simulations and representative match-distribution reports.
 - `scripts/balance-report.js` — command-line campaign balance report.
+- `scripts/balance-scenarios.js` — command-line representative scenario matrix.
+- `tests/balance-scenarios.test.js` — active-skill timing, cooldown, conversion, shield, healing, and match-distribution tests.
 - `tests/balance.test.js` — deterministic baseline, elemental matchup, support-healing, Boss-phase, shield, and campaign-report tests.
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.

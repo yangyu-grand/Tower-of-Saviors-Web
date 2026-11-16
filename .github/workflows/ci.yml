@@ -26,3 +26,5 @@ jobs:
         run: npm test
       - name: Run deterministic campaign balance report
         run: npm run balance:report
+      - name: Run representative active-skill scenarios
+        run: npm run balance:scenarios
