@@ -424,3 +424,70 @@ test("Chromium plays, pauses, seeks, imports, and exports deterministic battle r
   assert.equal(Number(await page.locator("#replaySeek").getAttribute("max")) + 1, imported.eventCount);
   assert.deepEqual(pageErrors, [], "replay controls and file handling should not raise browser errors");
 });
+
+
+test("Chromium records a real player-controlled encounter and restores its replay after reload", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+
+  const save = createDefaultSave();
+  save.campaign = {
+    stageIndex: 0, waveIndex: 0, turn: 0,
+    enemyHp: 1, completed: false, campaignComplete: false
+  };
+  save.unlockedStageIndex = 0;
+  save.board = Array.from({ length: 30 }, (_, index) =>
+    Math.floor(index / 6) % 2 === index % 6 % 2 ? "fire" : "water"
+  );
+  save.battleStats = createBattleStats(0);
+  const serializedSave = JSON.stringify(normalizeSave(save));
+
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.addInitScript(({ key, value }) => {
+    if (!localStorage.getItem(key)) localStorage.setItem(key, value);
+  }, { key: SAVE_KEY, value: serializedSave });
+  await page.goto(url, { waitUntil: "networkidle" });
+  await page.waitForFunction(() => document.querySelectorAll("#board .orb").length === 30);
+
+  assert.equal(await page.locator("#replayLoadLive").isDisabled(), true);
+  await page.locator('#board .orb[data-i="1"]').click();
+  await page.locator('#board .orb[data-i="7"]').click();
+  await page.waitForFunction(() => {
+    const button = document.querySelector("#replayLoadLive");
+    return button && !button.disabled;
+  }, null, { timeout: 10000 });
+
+  const stored = await page.evaluate(() => JSON.parse(localStorage.getItem("tower_of_saviors_live_replay_v1")));
+  assert.equal(stored.source, "live-player");
+  assert.equal(stored.status, "victory");
+  assert.ok(stored.eventCount >= 6);
+  assert.ok(stored.events.some((event) => event.type === "swap"));
+  assert.ok(stored.events.some((event) => event.type === "cascade"));
+  assert.ok(stored.events.some((event) => event.type === "battle-end"));
+
+  await page.locator("#replayLoadLive").click();
+  assert.match(await page.locator("#replayStatus").innerText(), /最近一場實戰重播已載入/);
+  assert.equal(await page.locator("#replayBoard .replay-orb").count(), 30);
+  await page.locator("#replayNext").click();
+  assert.match(await page.locator("#replayEventTitle").innerText(), /符石交換/);
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#replayExport").click();
+  const download = await downloadPromise;
+  assert.match(download.suggestedFilename(), /^tower-live-replay-seed-\d+\.json$/);
+
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.locator("#replayLoadLive").isDisabled(), false);
+  await page.locator("#replayLoadLive").click();
+  assert.match(await page.locator("#replayStatus").innerText(), /最近一場實戰重播已載入/);
+  assert.deepEqual(pageErrors, [], "live replay recording and restoration should not raise browser errors");
+  await context.close();
+});
