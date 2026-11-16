@@ -76,3 +76,16 @@ test("the browser UI wires opt-in sound and battle feedback animations", () => {
   assert.match(html, /feedback\.playEnemyAttack/);
   assert.match(html, /prefers-reduced-motion:reduce/);
 });
+
+
+test("the browser exposes a first-run tutorial with gameplay event hooks and persistent skip controls", () => {
+  assert.match(html, /from "\.\/tutorial\.js"/);
+  assert.match(html, /id="tutorialPanel"/);
+  assert.match(html, /id="tutorialAdvance"/);
+  assert.match(html, /id="tutorialSkip"/);
+  assert.match(html, /updateTutorial\("match"\)/);
+  assert.match(html, /updateTutorial\("skill"\)/);
+  assert.match(html, /loadTutorialProgress\(storage\)/);
+  assert.match(html, /saveTutorialProgress\(tutorialProgress,storage\)/);
+  assert.match(html, /tutorial-target/);
+});
