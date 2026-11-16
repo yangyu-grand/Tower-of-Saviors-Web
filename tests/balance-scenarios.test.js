@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { DEFAULT_TEAM } from "../team.js";
+import { DEFAULT_TEAM, buildTeam } from "../team.js";
 import {
   analyzeEncounterScenario,
   buildCooldownAwareSkillPlan,
@@ -68,7 +68,7 @@ test("shield skills are applied before the enemy action and use the shared mitig
 });
 
 test("healing skills apply immediately and cap at the party HP maximum", () => {
-  const team = (await import("../team.js")).buildTeam(DEFAULT_TEAM);
+  const team = buildTeam(DEFAULT_TEAM);
   const result = analyzeEncounterScenario({
     stageIndex: 0,
     waveIndex: 0,
