@@ -56,15 +56,15 @@ test("a conversion skill contributes its converted attack group to the selected 
 
 test("shield skills are applied before the enemy action and use the shared mitigation rules", () => {
   const result = analyzeEncounterScenario({
-    stageIndex: 0,
-    waveIndex: 2,
+    stageIndex: 1,
+    waveIndex: 0,
     matchProfiles: [{ matchedElements: ["fire"], runesPerElement: 3 }],
     skillPlan: [{ turn: 1, cardId: "moss_guard" }]
   });
   assert.equal(result.turns[0].skillEvents[0].shieldAdded, 20);
-  assert.equal(result.turns[1].shieldAbsorbed, 16);
-  assert.equal(result.turns[1].hpDamageTaken, 0);
-  assert.equal(result.turns[1].shieldAfterTurn, 4);
+  assert.equal(result.turns[0].shieldAbsorbed, 14);
+  assert.equal(result.turns[0].hpDamageTaken, 0);
+  assert.equal(result.turns[0].shieldAfterTurn, 6);
 });
 
 test("healing skills apply immediately and cap at the party HP maximum", () => {
