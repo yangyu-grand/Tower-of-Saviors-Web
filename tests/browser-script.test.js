@@ -122,3 +122,18 @@ test("the enemy codex exposes searchable chapter, element, role, and boss-phase 
   assert.match(html, /unlockedStageTotal/);
   assert.match(html, /phase\.special/);
 });
+
+
+test("the browser exposes an importable, seekable battle replay viewer", () => {
+  assert.match(html, /from "\.\/replayViewer\.js"/);
+  assert.match(html, /from "\.\/runeBattleSimulation\.js"/);
+  assert.match(html, /id="replayGenerate"/);
+  assert.match(html, /id="replayImport"/);
+  assert.match(html, /id="replayExport"/);
+  assert.match(html, /id="replayPrevious"/);
+  assert.match(html, /id="replayPlay"/);
+  assert.match(html, /id="replayNext"/);
+  assert.match(html, /id="replaySeek"/);
+  assert.match(html, /getReplayViewerFrame\(state\)/);
+  assert.match(html, /createReplayViewerState/);
+});

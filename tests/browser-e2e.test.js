@@ -7,6 +7,8 @@ import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
 import { createDefaultSave, normalizeSave, SAVE_KEY } from "../inventory.js";
 import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBattleStats } from "../battleResults.js";
+import { simulateRuneEncounter } from "../runeBattleSimulation.js";
+import { createRuneBattleReplay } from "../runeBattleReplay.js";
 
 const ROOT = resolve(fileURLToPath(new URL("../", import.meta.url)));
 const MIME_TYPES = {
@@ -351,4 +353,74 @@ test("Chromium displays distinct multi-hit and self-healing enemy intent preview
   assert.equal(await fullHealer.page.locator("#enemyIntent").getAttribute("data-type"), "heal");
   await fullHealer.context.close();
   await browser.close();
+});
+
+
+test("Chromium plays, pauses, seeks, imports, and exports deterministic battle replays", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.goto(url, { waitUntil: "networkidle" });
+
+  await page.locator("#replayGenerate").click();
+  await page.waitForFunction(() => Number(document.querySelector("#replaySeek").max) > 0);
+  const eventCount = Number(await page.locator("#replaySeek").getAttribute("max")) + 1;
+  assert.ok(eventCount > 1);
+  assert.equal(await page.locator("#replayBoard .replay-orb").count(), 30);
+  assert.match(await page.locator("#replayStatus").innerText(), /示範重播已載入/);
+
+  await page.locator("#replayNext").click();
+  assert.equal(await page.locator("#replaySeek").inputValue(), "1");
+  await page.locator("#replayPrevious").click();
+  assert.equal(await page.locator("#replaySeek").inputValue(), "0");
+
+  const lastIndex = eventCount - 1;
+  await page.locator("#replaySeek").evaluate((input, value) => {
+    input.value = String(value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, lastIndex);
+  assert.equal(await page.locator("#replaySeek").inputValue(), String(lastIndex));
+  assert.equal(await page.locator("#replayNext").isDisabled(), true);
+
+  await page.locator("#replaySeek").evaluate((input) => {
+    input.value = "0";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.locator("#replayPlay").click();
+  await page.waitForFunction(() => Number(document.querySelector("#replaySeek").value) > 0, null, { timeout: 5000 });
+  await page.locator("#replayPlay").click();
+  assert.equal(await page.locator("#replayPlay").innerText(), "播放");
+
+  const downloadPromise = page.waitForEvent("download");
+  await page.locator("#replayExport").click();
+  const download = await downloadPromise;
+  assert.equal(download.suggestedFilename(), "tower-replay-seed-20261117.json");
+
+  const imported = createRuneBattleReplay(simulateRuneEncounter({
+    stageIndex: 0, waveIndex: 0, seed: 81, skillPolicy: "greedy", maxTurns: 8
+  }));
+  await page.locator("#replayImport").setInputFiles({
+    name: "sample-replay.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(imported))
+  });
+  await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入成功"));
+  assert.equal(Number(await page.locator("#replaySeek").getAttribute("max")) + 1, imported.eventCount);
+  assert.equal(await page.locator("#replayBoard .replay-orb").count(), 30);
+
+  await page.locator("#replayImport").setInputFiles({
+    name: "broken-replay.json",
+    mimeType: "application/json",
+    buffer: Buffer.from("{invalid")
+  });
+  await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入失敗"));
+  assert.equal(Number(await page.locator("#replaySeek").getAttribute("max")) + 1, imported.eventCount);
+  assert.deepEqual(pageErrors, [], "replay controls and file handling should not raise browser errors");
 });
