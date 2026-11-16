@@ -46,6 +46,24 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .skill-panel{margin-top:14px}.skill-grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;margin-top:12px}.skill-card{min-width:0;background:#080f20aa;border:1px solid #52658b55;border-radius:12px;padding:9px}.skill-card b{display:block;color:var(--gold);font-size:13px}.skill-card p{font-size:11px;color:var(--muted);line-height:1.45;min-height:42px;margin:6px 0}.skill-card button{width:100%;padding:9px 6px;font-size:12px}.skill-card button:disabled{filter:grayscale(.5)}
 @media(max-width:680px){.team-slots{grid-template-columns:repeat(2,minmax(0,1fr))}.team-slot:last-child{grid-column:1/-1}.team-summary{width:100%;justify-content:space-between}.skill-grid,.inventory-grid,.summon-results{grid-template-columns:repeat(2,minmax(0,1fr))}.skill-card:last-child{grid-column:1/-1}.currency-row{width:100%;justify-content:space-between}}@media(max-width:420px){.top-actions{width:100%}.save-status{flex-basis:100%}.top-actions button{flex:1}}
 @media(max-width:680px){.battle{grid-template-columns:1fr}.side{grid-template-columns:1fr 1fr}.side .wide{grid-column:1/-1}.stats{grid-template-columns:repeat(2,1fr)}main{padding:14px 10px 28px}.panel{padding:12px}}
+
+.codex-panel{margin-top:14px}.codex-filters{display:grid;grid-template-columns:minmax(220px,2fr) repeat(4,minmax(120px,1fr));gap:8px;margin-top:12px}
+.codex-filters label{display:grid;gap:5px;color:var(--muted);font-size:12px}
+.codex-filters input,.codex-filters select{width:100%;min-width:0;background:#202d48;color:#fff;border:1px solid #65789a;border-radius:8px;padding:9px;font:inherit;font-size:13px}
+.codex-count{color:var(--muted);font-size:12px;margin-top:10px}
+.codex-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}
+.codex-card{min-width:0;padding:12px;background:#080f20aa;border:1px solid #52658b55;border-radius:13px}
+.codex-card-head{display:flex;align-items:center;gap:10px}.codex-portrait{font-size:30px;flex:0 0 auto}
+.codex-title{min-width:0}.codex-title b{display:block;color:var(--gold);font-size:14px;overflow-wrap:anywhere}
+.codex-title small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.codex-state{margin-left:auto;align-self:flex-start;white-space:nowrap;border:1px solid #65789a66;border-radius:20px;padding:3px 7px;color:#d9e5fa;font-size:10px}
+.codex-meta,.codex-stats{color:var(--muted);font-size:11px;line-height:1.6;margin:8px 0 0}.codex-stats{color:#f3dca6}
+.codex-skill{border-top:1px solid #52658b44;margin-top:9px;padding-top:8px}
+.codex-skill b{display:block;color:#a9c8f3;font-size:11px}.codex-skill p{margin:4px 0 0;color:var(--muted);font-size:11px;line-height:1.5}
+.codex-empty{padding:18px;text-align:center;color:var(--muted)}
+@media(max-width:680px){.codex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.codex-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.codex-filters label:first-child{grid-column:1/-1}}
+@media(max-width:420px){.codex-grid{grid-template-columns:1fr}}
+
 </style>
 </head>
 <body>
@@ -90,6 +108,19 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   </div>
   <div id="inventoryGrid" class="inventory-grid"></div>
  </section>
+ <section class="panel codex-panel" aria-labelledby="codexHeading">
+  <div class="inventory-head"><div><h2 id="codexHeading">卡片圖鑑</h2><p class="hint">收錄全部原創角色；可依屬性、星級、持有狀態與進化階段篩選，也能搜尋角色與技能。</p></div></div>
+  <div class="codex-filters">
+   <label>搜尋角色／技能<input id="codexSearch" type="search" placeholder="輸入角色名稱、卡片 ID 或技能名稱…" autocomplete="off"></label>
+   <label>屬性<select id="codexElementFilter"><option value="all">全部屬性</option><option value="fire">火</option><option value="water">水</option><option value="wood">木</option><option value="light">光</option><option value="dark">暗</option><option value="heart">心</option></select></label>
+   <label>星級<select id="codexRarityFilter"><option value="all">全部星級</option><option value="3">★ 3</option><option value="4">★ 4</option><option value="5">★ 5</option><option value="6">★ 6</option></select></label>
+   <label>持有狀態<select id="codexOwnershipFilter"><option value="all">全部角色</option><option value="owned">已持有</option><option value="unowned">未持有</option></select></label>
+   <label>進化階段<select id="codexEvolutionFilter"><option value="all">全部階段</option><option value="base">原始形態</option><option value="evolved">已進化</option><option value="maxed">已達上限</option></select></label>
+  </div>
+  <p id="codexCount" class="codex-count" aria-live="polite">符合 15 / 15 張</p>
+  <div id="codexGrid" class="codex-grid"></div>
+  <p id="codexEmpty" class="codex-empty" hidden>找不到符合條件的角色，請調整搜尋或篩選條件。</p>
+ </section>
  <footer>獨立原創原型；角色、圖像與名稱皆為暫用原創素材。</footer>
 </main>
 <script type="module">
@@ -102,6 +133,7 @@ import { summonCards, SUMMON_RATES, SUMMON_COSTS } from "./summon.js";
 import { getCardLevels, grantTeamExperience, getTrainingQuote, trainCard, MAX_CARD_LEVEL, experienceToNextLevel } from "./progression.js";
 import { enhanceCardSkill, getSkillEnhancementQuote } from "./skillEnhancement.js";
 import { getCardEvolutionLevels, getEvolutionQuote, evolveCard } from "./evolution.js";
+import { filterCardCatalog } from "./codex.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
@@ -132,6 +164,40 @@ function createBoard(){
 }
 function renderEnemy(){ const stage=getCurrentStage(campaign),encounter=getCurrentEncounter(campaign)||stage.waves[stage.waves.length-1],intent=getEnemyIntent(campaign);$('stageName').textContent=stage.name;$('stageDifficulty').textContent=stage.difficulty;$('stageProgress').textContent=campaign.completed?'已通關':'第 '+(campaign.waveIndex+1)+' / '+stage.waves.length+' 波';$('enemy').textContent=encounter.emoji;$('enemyName').textContent=encounter.name+(encounter.boss?' · BOSS':'');$('enemyElement').textContent='敵人屬性：'+icons[encounter.element]+' '+elementNames[encounter.element];$('enemyHp').textContent=campaign.enemyHp+' / '+encounter.hp;$('enemyBar').style.width=Math.max(0,campaign.enemyHp/encounter.hp*100)+'%';$('enemyIntent').textContent=campaign.completed?'關卡已完成':('敵人預告：'+intent.label+(intent.damage?' · '+intent.damage+' 傷害':'')+(intent.enraged?' · 狂暴':''));$('nextStage').hidden=!campaign.completed;$('nextStage').textContent=campaign.campaignComplete?'重新挑戰全章':'前往下一關';}
 function stats(){ $('hp').textContent=hp+' / '+maxHp;$('atk').textContent=Object.values(currentTeam.attackByElement).reduce((sum,value)=>sum+value,0);$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||campaign.completed||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();renderSummonPanel();}
+function renderCodex(){
+ const grid=$('codexGrid');if(!grid)return;
+ const entries=filterCardCatalog(CARD_CATALOG,profile.inventory,{
+  query:$('codexSearch').value,element:$('codexElementFilter').value,rarity:$('codexRarityFilter').value,
+  ownership:$('codexOwnershipFilter').value,evolution:$('codexEvolutionFilter').value
+ });
+ grid.replaceChildren();
+ entries.forEach(entry=>{
+  const card=entry.card,tile=document.createElement('article');tile.className='codex-card';tile.dataset.element=entry.baseCard.element;
+  const head=document.createElement('div');head.className='codex-card-head';
+  const portrait=document.createElement('span');portrait.className='codex-portrait';portrait.textContent=card.emoji;
+  const identity=document.createElement('div');identity.className='codex-title';
+  const name=document.createElement('b');name.textContent=card.name;
+  const rarity=document.createElement('small');rarity.textContent='★'.repeat(card.rarity)+' · '+icons[card.element]+' '+elementNames[card.element];
+  identity.append(name,rarity);
+  const state=document.createElement('span');state.className='codex-state';state.textContent=entry.owned?'已持有 ×'+entry.quantity:'尚未持有';
+  head.append(portrait,identity,state);
+  const evolutionText=!entry.owned?'未持有':entry.evolutionLevel>=entry.maxEvolutionLevel?'已達進化上限':entry.evolutionLevel>0?'進化 '+entry.evolutionLevel+' / '+entry.maxEvolutionLevel:'原始形態';
+  const meta=document.createElement('p');meta.className='codex-meta';
+  meta.textContent='Cost '+entry.baseCard.cost+' · '+(entry.owned?'Lv.'+entry.level+' · 技能 Lv.'+entry.skillLevel:'基礎能力')+' · '+evolutionText;
+  const stats=document.createElement('p');stats.className='codex-stats';stats.textContent='ATK '+card.atk.toLocaleString('zh-TW')+' · HP '+card.hp.toLocaleString('zh-TW');
+  const active=document.createElement('div');active.className='codex-skill';
+  const activeTitle=document.createElement('b');activeTitle.textContent='主動技能 · '+entry.activeSkill.name;
+  const activeDescription=document.createElement('p');activeDescription.textContent=entry.activeSkill.description+' 冷卻 '+entry.activeSkill.cooldown+' 回合。';
+  active.append(activeTitle,activeDescription);
+  const leader=document.createElement('div');leader.className='codex-skill';
+  const leaderTitle=document.createElement('b');leaderTitle.textContent='隊長技能 · '+(entry.leaderSkill?.name??'無');
+  const leaderDescription=document.createElement('p');leaderDescription.textContent=entry.leaderSkill?.description??'此角色沒有隊長技能。';
+  leader.append(leaderTitle,leaderDescription);
+  tile.append(head,meta,stats,active,leader);grid.appendChild(tile);
+ });
+ $('codexCount').textContent='符合 '+entries.length+' / '+CARD_CATALOG.length+' 張';
+ $('codexEmpty').hidden=entries.length!==0;
+}
 function renderInventory(){
  const grid=$('inventoryGrid');grid.innerHTML='';
  const owned=listOwnedCards(profile);
@@ -164,7 +230,7 @@ function renderInventory(){
  $('prismCores').textContent=profile.materials.prismCores;
  $('ownedCardCount').textContent=owned.length;
  $('unlockedStage').textContent=unlockedStageIndex+1;
- renderSummonPanel();
+ renderSummonPanel();renderCodex();
 }
 function renderSummonPanel(){
  const state=profile.summonState||{totalSummons:0,epicPity:0},stones=profile.currencies.summonStones;
@@ -377,7 +443,9 @@ function nextStage(){
 }
 $('newGame').addEventListener('click',reset);$('nextStage').addEventListener('click',nextStage);$('saveNow').addEventListener('click',()=>persist("已手動儲存"));$('summonSingle').addEventListener('click',()=>performSummon(1));$('summonTen').addEventListener('click',()=>performSummon(10));
 $('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
-renderTeam();renderInventory();render();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
+$('codexSearch').addEventListener('input',renderCodex);
+ ['codexElementFilter','codexRarityFilter','codexOwnershipFilter','codexEvolutionFilter'].forEach(id=>$(id).addEventListener('change',renderCodex));
+ renderTeam();renderInventory();render();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
 })();
 </script>
 </body>
