@@ -265,3 +265,61 @@ export function formatRuneMoveQualityReport(report) {
   ];
   return lines.join("\n");
 }
+
+
+/**
+ * Re-run one selected legal swap with the exact seeded refill stream used by
+ * analyzeRuneMoves(), retaining cell indices and every post-refill board for
+ * deterministic battle replay.
+ */
+export function traceRuneMove(board, move, options = {}) {
+  if (!Array.isArray(board) || board.length !== RUNE_BOARD_SIZE) {
+    throw new TypeError("board must contain exactly 30 rune cells");
+  }
+  if (!move || typeof move !== "object" || Array.isArray(move)) {
+    throw new TypeError("move must be an object");
+  }
+  const from = move.from;
+  const to = move.to;
+  if (!Number.isInteger(from) || !Number.isInteger(to) ||
+      from < 0 || from >= RUNE_BOARD_SIZE || to < 0 || to >= RUNE_BOARD_SIZE) {
+    throw new RangeError("move indices must be valid rune-board cells");
+  }
+  const seed = options.seed ?? 1;
+  assertSafeSeed(seed);
+  const maxCascades = options.maxCascades ?? 12;
+  if (!Number.isInteger(maxCascades) || maxCascades < 1 || maxCascades > 30) {
+    throw new RangeError("maxCascades must be an integer between 1 and 30");
+  }
+  const resolved = resolveRuneSwap(board, from, to, {
+    random: createSeededRandom(deriveMoveSeed(seed, from, to)),
+    maxCascades
+  });
+  if (!resolved.valid) throw new RangeError("move is not a legal matching swap");
+
+  const swappedBoard = [...board];
+  [swappedBoard[from], swappedBoard[to]] = [swappedBoard[to], swappedBoard[from]];
+  const cascades = resolved.cascades.map((cascade, index) => ({
+    combo: cascade.combo,
+    indices: [...cascade.indices],
+    runes: [...cascade.runes],
+    counts: { ...cascade.counts },
+    boardAfterRefill: [...cascade.board],
+    damage: move.cascades?.[index]?.damage ?? 0,
+    healing: move.cascades?.[index]?.healing ?? 0
+  }));
+  if (Array.isArray(move.finalBoard) &&
+      move.finalBoard.some((rune, index) => rune !== resolved.board[index])) {
+    throw new Error("replayed move does not match the analyzed final board");
+  }
+  return {
+    from,
+    to,
+    direction: move.direction,
+    initialBoard: [...board],
+    swappedBoard,
+    cascades,
+    finalBoard: [...resolved.board],
+    chainCapped: resolved.chainCapped
+  };
+}
