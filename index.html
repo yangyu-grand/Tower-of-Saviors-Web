@@ -79,7 +79,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
  <section class="panel inventory-panel" aria-labelledby="inventoryHeading">
   <div class="inventory-head">
    <div><h2 id="inventoryHeading">冒險背包</h2><p class="hint">持有卡片與資源會自動保存於目前瀏覽器；不同裝置的存檔不會自動同步。</p></div>
-   <div class="currency-row"><span>金幣 <b id="gold">0</b></span><span>召喚石 <b id="summonStones">0</b></span><span>已持有 <b id="ownedCardCount">0</b> 種</span><span>最高解鎖 <b id="unlockedStage">1</b>/3</span></div>
+   <div class="currency-row"><span>金幣 <b id="gold">0</b></span><span>召喚石 <b id="summonStones">0</b></span><span>覺醒碎片 <b id="awakeningShards">0</b></span><span>稜鏡核心 <b id="prismCores">0</b></span><span>已持有 <b id="ownedCardCount">0</b> 種</span><span>最高解鎖 <b id="unlockedStage">1</b>/3</span></div>
   </div>
   <div class="summon-panel" aria-labelledby="summonHeading">
    <div class="summon-head"><div><h3 id="summonHeading">星門召喚</h3><p class="summon-meta">召喚石可從關卡通關取得；重複角色可用於技能強化，也會累積持有數量。</p></div></div>
@@ -97,10 +97,11 @@ import { calculateCombatResult } from "./combat.js";
 import { CARD_CATALOG, DEFAULT_TEAM, buildTeam } from "./team.js";
 import { createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns, getActiveSkill } from "./skills.js";
 import { createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
-import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency, SUMMON_EPIC_PITY_LIMIT } from "./inventory.js";
+import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency, addMaterials, SUMMON_EPIC_PITY_LIMIT } from "./inventory.js";
 import { summonCards, SUMMON_RATES, SUMMON_COSTS } from "./summon.js";
 import { getCardLevels, grantTeamExperience, getTrainingQuote, trainCard, MAX_CARD_LEVEL, experienceToNextLevel } from "./progression.js";
 import { enhanceCardSkill, getSkillEnhancementQuote } from "./skillEnhancement.js";
+import { getCardEvolutionLevels, getEvolutionQuote, evolveCard } from "./evolution.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
@@ -109,7 +110,7 @@ const loaded=loadSave(storage);
 let profile=loaded.save;
 let campaign={...profile.campaign};
 const boardEl=document.querySelector('#board');
-let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory)}),maxHp=currentTeam.totalHp;
+let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)}),maxHp=currentTeam.totalHp;
 let skillStates=profile.skillStates,shield=profile.shield,pendingDamageMultiplier=profile.pendingDamageMultiplier;
 let cells=profile.board?[...profile.board]:createBoard(),selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex;
 function makeSaveSnapshot(){return {...profile,teamIds:[...teamIds],campaign:{...campaign},unlockedStageIndex,hp,score,maxCombo,board:[...cells],skillStates:Object.fromEntries(Object.entries(skillStates).map(([id,state])=>[id,{...state}])),shield,pendingDamageMultiplier,updatedAt:Date.now()};}
@@ -151,10 +152,16 @@ function renderInventory(){
   skillButton.textContent=skillQuote.maxed?'技能已滿級':('技能強化 Lv.'+entry.skillLevel+' → Lv.'+skillQuote.nextSkillLevel+' · '+skillQuote.goldCost+' 金幣 + 重複卡 ×'+skillQuote.duplicateCost);
   skillButton.disabled=busy||!skillQuote.available||profile.currencies.gold<skillQuote.goldCost;
   skillButton.addEventListener('click',()=>performSkillEnhancement(card.id));
-  item.append(portrait,name,meta,expText,track,button,skillButton);grid.appendChild(item);
+  const evolutionQuote=getEvolutionQuote(profile,card.id),evolutionButton=document.createElement('button');evolutionButton.type='button';evolutionButton.className='evolution-button';
+  evolutionButton.textContent=evolutionQuote.maxed?'已達最高進化':('進化 ★'+evolutionQuote.currentRarity+' → ★'+evolutionQuote.targetRarity+' · '+evolutionQuote.goldCost+' 金幣 · 碎片 '+evolutionQuote.awakeningShards+' · 核心 '+evolutionQuote.prismCores);
+  evolutionButton.disabled=busy||!evolutionQuote.available;
+  evolutionButton.addEventListener('click',()=>performEvolution(card.id));
+  item.append(portrait,name,meta,expText,track,button,skillButton,evolutionButton);grid.appendChild(item);
  });
  $('gold').textContent=profile.currencies.gold.toLocaleString('zh-TW');
  $('summonStones').textContent=profile.currencies.summonStones;
+ $('awakeningShards').textContent=profile.materials.awakeningShards;
+ $('prismCores').textContent=profile.materials.prismCores;
  $('ownedCardCount').textContent=owned.length;
  $('unlockedStage').textContent=unlockedStageIndex+1;
  renderSummonPanel();
@@ -198,7 +205,7 @@ function performTraining(cardId){
   const result=trainCard(profile,cardId);
   profile=result.save;
   if(teamIds.includes(cardId)){
-   currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory)});
+   currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)});
    maxHp=currentTeam.totalHp;
    if(hp>0)hp=Math.min(maxHp,hp+Math.max(0,maxHp-previousMaxHp));
   }
@@ -218,6 +225,22 @@ function performSkillEnhancement(cardId){
   $('log').textContent=error.message==='Not enough gold'?'金幣不足，無法強化技能。':error.message==='A duplicate copy is required for skill enhancement'?'需要至少 1 張重複卡片才能強化技能。':error.message;
  }
 }
+function performEvolution(cardId){
+ if(busy)return;
+ try{
+  const previousMaxHp=maxHp,result=evolveCard(profile,cardId);profile=result.save;
+  if(teamIds.includes(cardId)){
+   currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)});
+   maxHp=currentTeam.totalHp;
+   if(hp>0)hp=Math.min(maxHp,hp+Math.max(0,maxHp-previousMaxHp));
+  }
+  const card=listOwnedCards(profile).find(item=>item.id===cardId);
+  $('log').textContent=card.name+' 進化成功！成為 ★'+result.targetRarity+' 形態，ATK '+card.atk+'、HP '+card.hp+'。消耗 '+result.goldCost+' 金幣、'+result.materialsSpent.awakeningShards+' 枚覺醒碎片及 '+result.materialsSpent.prismCores+' 顆稜鏡核心。';
+  renderTeam();renderInventory();render();persist('角色進化已儲存');
+ }catch(error){
+  $('log').textContent=error.message==='Not enough gold'?'金幣不足，無法進化。':error.message==='Not enough evolution materials'?'進化素材不足，請先通關關卡取得素材。':error.message;
+ }
+}
 function renderTeam(){
  const slots=$('teamSlots');slots.innerHTML='';
  teamIds.forEach((cardId,index)=>{
@@ -233,7 +256,7 @@ function renderTeam(){
   select.addEventListener('change',()=>{
    const candidate=[...teamIds];candidate[index]=select.value;
    try{
-    const nextTeam=buildTeam(candidate,{levels:getCardLevels(profile.inventory)});teamIds=candidate;currentTeam=nextTeam;skillStates=createSkillStates(teamIds,skillStates);maxHp=currentTeam.totalHp;hp=Math.min(hp,maxHp);
+    const nextTeam=buildTeam(candidate,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)});teamIds=candidate;currentTeam=nextTeam;skillStates=createSkillStates(teamIds,skillStates);maxHp=currentTeam.totalHp;hp=Math.min(hp,maxHp);
     renderTeam();stats();persist();$('log').textContent='隊伍編組已更新。新的隊長技能與屬性攻擊已生效。';
    }catch(error){select.value=teamIds[index];$('log').textContent=error.message;}
   });
@@ -305,14 +328,16 @@ async function swapTry(a,b){
  if(outcome.defeated){
   score+=outcome.stageCompleted?150:100;
   profile=addCurrency(profile,"gold",outcome.stageCompleted?500:100);
+  profile=addMaterials(profile,"awakeningShards",outcome.defeatedEnemy.boss?3:1);
+  if(outcome.defeatedEnemy.boss)profile=addMaterials(profile,"prismCores",1);
   if(outcome.stageCompleted){
    unlockedStageIndex=Math.max(unlockedStageIndex,Math.min(2,campaign.stageIndex+1));
    profile=addCurrency(profile,"summonStones",1);renderInventory();
    const restored=Math.min(maxHp-hp,Math.ceil(maxHp*.15));hp+=restored;
    $('log').textContent=outcome.campaignCompleted
-    ?'擊敗 '+outcome.defeatedEnemy.name+'！全章通關！獲得 150 分、500 金幣、1 顆召喚石並回復 '+restored+' HP。'
-    :'擊敗 '+outcome.defeatedEnemy.name+'！關卡完成，獲得 150 分、500 金幣、1 顆召喚石並回復 '+restored+' HP。';
-  }else{$('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！獲得 100 分與 100 金幣，下一波 '+outcome.nextEncounter.name+' 出現。';renderInventory();}
+    ?'擊敗 '+outcome.defeatedEnemy.name+'！全章通關！獲得 150 分、500 金幣、1 顆召喚石、3 枚覺醒碎片及 1 顆稜鏡核心並回復 '+restored+' HP。'
+    :'擊敗 '+outcome.defeatedEnemy.name+'！關卡完成，獲得 150 分、500 金幣、1 顆召喚石、3 枚覺醒碎片及 1 顆稜鏡核心並回復 '+restored+' HP。';
+  }else{$('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！獲得 100 分、100 金幣及 1 枚覺醒碎片，下一波 '+outcome.nextEncounter.name+' 出現。';renderInventory();}
  }else{
   const enemyTurn=resolveEnemyTurn(campaign);campaign=enemyTurn.state;
   const mitigation=mitigateIncomingDamage(enemyTurn.incomingDamage,shield,enemyTurn.intent.shieldPierce);
@@ -324,7 +349,7 @@ async function swapTry(a,b){
  if(hp<=0)$('log').textContent+=' 生命值歸零，請重新開始。';
  const expReward=20+(outcome.defeated?(outcome.stageCompleted?120:50):0),previousMaxHp=maxHp;
  const expResult=grantTeamExperience(profile,teamIds,expReward);profile=expResult.save;
- currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory)});maxHp=currentTeam.totalHp;
+ currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)});maxHp=currentTeam.totalHp;
  if(hp>0)hp=Math.min(maxHp,hp+Math.max(0,maxHp-previousMaxHp));
  const levelUps=expResult.results.filter(item=>item.levelsGained>0);
  if(levelUps.length){
