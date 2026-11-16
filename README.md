@@ -21,7 +21,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Ten original active skills: damage boosts, rune conversion, shields, and healing.
 - Per-card cooldowns advance only after successful rune-match turns; the skill used on a turn does not lose a cooldown count immediately.
 - Active skills are wired into the game UI and affect the next attack, board, incoming damage mitigation, or team HP.
-- Three original stages with nine encounters, boss telegraphs, enrage thresholds, and shield-piercing special attacks.
+- Three original stages with nine encounters, named enemy attacks, telegraphed heavy strikes, multi-hit attacks with per-hit shield mitigation, a self-healing support enemy, boss multi-hit specials, enrage thresholds, and shield-piercing attacks.
 - Enemy intent previews, wave transitions, stage-clear rewards, and campaign completion.
 - A ten-card starter inventory plus five original summon-only characters across three rarity tiers; owned-card-only team selection.
 - Gold and summon-stone currencies with encounter and boss-clear rewards.
@@ -37,7 +37,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Opt-in, synthesized Web Audio feedback and reduced-motion-aware battle animations; no external audio or art assets are required.
 - First-run onboarding tutorial covering rune matching, cascading Combo, active skills, five-card party formation, inventory progression, and summoning; tutorial completion/skip is stored separately from the game save, and existing saved profiles are not interrupted.
 - Persistent stage-clear result screen with per-stage turn, Combo, damage, healing, mitigation, EXP, score, and cumulative reward summaries; rewards are credited during combat and are never claimed again from the result screen.
-- Deterministic Node.js unit tests plus Playwright Chromium end-to-end coverage for game boot, onboarding progression, rune dragging and matching, codex filters, save/reload persistence, sound controls, mobile layout emulation, and reduced-motion preference.
+- Deterministic Node.js unit tests plus Playwright Chromium end-to-end coverage for game boot, onboarding progression, rune dragging and matching, codex filters, save/reload persistence, sound controls, distinct enemy intent previews, mobile layout emulation, and reduced-motion preference.
 
 ## Original prototype combat rules
 
@@ -64,7 +64,7 @@ These are original prototype rules and are intentionally data-driven so they can
 
 1. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium now covers desktop browser flows and mobile viewport/touch-event emulation in CI.
 2. Expand campaign content and balance leader, active-skill, and boss values.
-3. Add more enemy attack patterns, extend campaign chapters, and tune encounter difficulty using the new per-stage battle statistics.
+3. Extend campaign chapters with additional original enemies and bosses, then tune encounter difficulty using the per-stage battle statistics.
 
 ## Project structure
 
@@ -72,7 +72,7 @@ These are original prototype rules and are intentionally data-driven so they can
 - `combat.js` — pure elemental matchup and party-powered damage calculations.
 - `team.js` — original card catalog, team validation, and leader-skill aggregation.
 - `skills.js` — active-skill definitions, activation effects, and cooldown state transitions.
-- `stages.js` — campaign data, wave progression, enemy intents, boss phases, and shield mitigation.
+- `stages.js` — campaign data, wave progression, data-driven single/heavy/multi-hit/support patterns, enemy intent previews, boss phases, and per-hit shield mitigation.
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
 - `progression.js` — card experience, level caps, team EXP distribution, stat growth, and gold-funded training.

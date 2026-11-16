@@ -101,3 +101,12 @@ test("the browser renders a persistent stage-clear result with a non-claiming re
   assert.match(html, /completeBattleStats\(battleStats\)/);
   assert.match(html, /獎勵已自動加入背包，不需要再次領取/);
 });
+
+
+test("the browser previews enemy attack patterns, multi-hit counts, and support healing", () => {
+  assert.match(html, /intent\.hits>1/);
+  assert.match(html, /intent\.healing>0/);
+  assert.match(html, /intent\.previewDamage>0/);
+  assert.match(html, /enemyTurn\.intent\.hits\?\?1/);
+  assert.match(html, /aria-live="polite">敵人預告/);
+});

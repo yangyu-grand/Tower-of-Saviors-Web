@@ -295,3 +295,40 @@ test("Chromium restores a completed-stage result, prevents duplicate claiming, a
   assert.deepEqual(pageErrors, [], "result restoration and stage progression should not raise browser errors");
   await context.close();
 });
+
+
+test("Chromium displays distinct multi-hit and self-healing enemy intent previews", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+
+  async function openAtEncounter(waveIndex, turn, enemyHp) {
+    const context = await browser.newContext({ viewport: { width: 390, height: 844 } });
+    const page = await context.newPage();
+    const save = createDefaultSave();
+    save.campaign = { stageIndex: 1, waveIndex, turn, enemyHp, completed: false, campaignComplete: false };
+    save.battleStats = createBattleStats(1);
+    save.unlockedStageIndex = 1;
+    const serializedSave = JSON.stringify(normalizeSave(save));
+    await page.addInitScript(({ key, value }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, value); }, { key: SAVE_KEY, value: serializedSave });
+    await page.goto(url, { waitUntil: "networkidle" });
+    return { context, page };
+  }
+
+  const multiHit = await openAtEncounter(0, 0, 300);
+  assert.match(await multiHit.page.locator("#enemyIntent").innerText(), /雙重撕咬/);
+  assert.match(await multiHit.page.locator("#enemyIntent").innerText(), /2 段連擊/);
+  assert.equal(await multiHit.page.locator("#enemyIntent").getAttribute("data-type"), "attack");
+  await multiHit.context.close();
+
+  const healer = await openAtEncounter(1, 2, 300);
+  assert.match(await healer.page.locator("#enemyIntent").innerText(), /珊瑚再生/);
+  assert.match(await healer.page.locator("#enemyIntent").innerText(), /回復 36 HP/);
+  assert.equal(await healer.page.locator("#enemyIntent").getAttribute("data-type"), "heal");
+  await healer.context.close();
+  await browser.close();
+});
