@@ -3,9 +3,14 @@ import { createCampaignState, getCurrentStage, getCurrentEncounter } from "./sta
 import { ACTIVE_SKILLS, createSkillStates } from "./skills.js";
 
 export const SAVE_KEY = "tower-of-saviors-web.save";
-export const SAVE_VERSION = 2;
+export const SAVE_VERSION = 3;
 export const SUMMON_EPIC_PITY_LIMIT = 20;
 export const RUNE_TYPES = Object.freeze(["fire", "water", "wood", "light", "dark", "heart"]);
+export const EVOLUTION_MATERIALS = Object.freeze({
+  awakeningShards: Object.freeze({ name: "覺醒碎片", emoji: "✧" }),
+  prismCores: Object.freeze({ name: "稜鏡核心", emoji: "🔷" })
+});
+const MATERIAL_IDS = new Set(Object.keys(EVOLUTION_MATERIALS));
 const CARD_IDS = new Set(CARD_CATALOG.map((card) => card.id));
 
 function isRecord(value) {
@@ -22,8 +27,9 @@ export function createDefaultSave() {
   const team = buildTeam(DEFAULT_TEAM);
   return {
     version: SAVE_VERSION,
-    inventory: CARD_CATALOG.filter((card) => STARTER_CARD_IDS.includes(card.id)).map((card) => ({ cardId: card.id, quantity: 1, level: 1, exp: 0, skillLevel: 1 })),
+    inventory: CARD_CATALOG.filter((card) => STARTER_CARD_IDS.includes(card.id)).map((card) => ({ cardId: card.id, quantity: 1, level: 1, exp: 0, skillLevel: 1, evolutionLevel: 0 })),
     currencies: { gold: 1000, summonStones: 3 },
+    materials: { awakeningShards: 0, prismCores: 0 },
     summonState: { totalSummons: 0, epicPity: 0 },
     teamIds: [...DEFAULT_TEAM],
     campaign: createCampaignState(),
@@ -48,7 +54,7 @@ export function listOwnedCards(save) {
   return CARD_CATALOG.filter((card) => (entries.get(card.id)?.quantity ?? 0) > 0)
     .map((card) => {
       const entry = entries.get(card.id);
-      return { ...getCardStats(card.id, entry.level), quantity: entry.quantity, exp: entry.exp, skillLevel: entry.skillLevel ?? 1 };
+      return { ...getCardStats(card.id, entry.level, entry.evolutionLevel ?? 0), quantity: entry.quantity, exp: entry.exp, skillLevel: entry.skillLevel ?? 1, evolutionLevel: entry.evolutionLevel ?? 0 };
     });
 }
 
@@ -61,7 +67,7 @@ export function addCard(save, cardId, quantity = 1) {
     assertSafeInteger(existing.quantity + quantity, "card quantity", 1, 999);
     existing.quantity += quantity;
   } else {
-    next.inventory.push({ cardId, quantity, level: 1, exp: 0, skillLevel: 1 });
+    next.inventory.push({ cardId, quantity, level: 1, exp: 0, skillLevel: 1, evolutionLevel: 0 });
   }
   return next;
 }
@@ -85,8 +91,30 @@ export function spendCurrency(save, currency, amount) {
   return next;
 }
 
+export function addMaterials(save, materialId, amount) {
+  if (!MATERIAL_IDS.has(materialId)) throw new RangeError("Unknown evolution material: " + String(materialId));
+  assertSafeInteger(amount, "amount", 1, 99999);
+  const next = structuredClone(save);
+  const updated = next.materials[materialId] + amount;
+  assertSafeInteger(updated, materialId, 0, 99999);
+  next.materials[materialId] = updated;
+  return next;
+}
+
+export function spendMaterials(save, costs) {
+  if (!isRecord(costs) || Object.keys(costs).length === 0) throw new TypeError("Material costs must be a non-empty object");
+  const next = structuredClone(save);
+  for (const [materialId, amount] of Object.entries(costs)) {
+    if (!MATERIAL_IDS.has(materialId)) throw new RangeError("Unknown evolution material: " + materialId);
+    assertSafeInteger(amount, materialId, 1, 99999);
+    if (next.materials[materialId] < amount) throw new Error("Not enough evolution materials");
+  }
+  for (const [materialId, amount] of Object.entries(costs)) next.materials[materialId] -= amount;
+  return next;
+}
+
 export function normalizeSave(input) {
-  if (!isRecord(input) || ![1, SAVE_VERSION].includes(input.version)) {
+  if (!isRecord(input) || ![1, 2, SAVE_VERSION].includes(input.version)) {
     throw new RangeError("Unsupported or invalid save version");
   }
   if (!Array.isArray(input.inventory) || input.inventory.length > CARD_CATALOG.length) {
@@ -101,12 +129,15 @@ export function normalizeSave(input) {
     assertSafeInteger(entry.level, "card level", 1, 99);
     assertSafeInteger(entry.exp, "card experience", 0, 1000000);
     const skillLevel = entry.skillLevel ?? 1;
+    const evolutionLevel = entry.evolutionLevel ?? 0;
     assertSafeInteger(skillLevel, "skill level", 1, 5);
+    assertSafeInteger(evolutionLevel, "evolution level", 0, 2);
+    getCardStats(entry.cardId, entry.level, evolutionLevel);
     const requiredExp = 100 + 25 * (entry.level - 1);
     if (entry.level === 99 ? entry.exp !== 0 : entry.exp >= requiredExp) {
       throw new RangeError("Card experience must be below the next-level threshold");
     }
-    return { cardId: entry.cardId, quantity: entry.quantity, level: entry.level, exp: entry.exp, skillLevel };
+    return { cardId: entry.cardId, quantity: entry.quantity, level: entry.level, exp: entry.exp, skillLevel, evolutionLevel };
   });
 
   if (!Array.isArray(input.teamIds) || input.teamIds.length !== 5) {
@@ -117,11 +148,22 @@ export function normalizeSave(input) {
   const owned = new Set(inventory.filter((entry) => entry.quantity > 0).map((entry) => entry.cardId));
   if (teamIds.some((cardId) => !owned.has(cardId))) throw new RangeError("Saved team contains a card not owned in inventory");
   const levels = Object.fromEntries(inventory.map((entry) => [entry.cardId, entry.level]));
-  const team = buildTeam(teamIds, { levels });
+  const evolutionLevels = Object.fromEntries(inventory.map((entry) => [entry.cardId, entry.evolutionLevel]));
+  const team = buildTeam(teamIds, { levels, evolutionLevels });
 
   if (!isRecord(input.currencies)) throw new TypeError("currencies must be an object");
   assertSafeInteger(input.currencies.gold, "gold");
   assertSafeInteger(input.currencies.summonStones, "summonStones");
+
+  const materialInput = input.materials ?? {};
+  if (!isRecord(materialInput) || Object.keys(materialInput).some((key) => !MATERIAL_IDS.has(key))) {
+    throw new TypeError("materials must contain only known evolution materials");
+  }
+  const materials = {
+    awakeningShards: materialInput.awakeningShards ?? 0,
+    prismCores: materialInput.prismCores ?? 0
+  };
+  for (const [materialId, amount] of Object.entries(materials)) assertSafeInteger(amount, materialId, 0, 99999);
 
   const summonInput = input.summonState ?? {};
   if (!isRecord(summonInput)) throw new TypeError("summonState must be an object");
@@ -172,6 +214,7 @@ export function normalizeSave(input) {
     version: SAVE_VERSION,
     inventory,
     currencies: { gold: input.currencies.gold, summonStones: input.currencies.summonStones },
+    materials,
     summonState,
     teamIds,
     campaign,
