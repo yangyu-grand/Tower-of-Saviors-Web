@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "node --test --test-concurrency=1"
+    "test": "node --test --test-concurrency=1",
+    "balance:report": "node scripts/balance-report.js"
   },
   "devDependencies": {
     "playwright": "1.56.1"
