@@ -218,9 +218,10 @@ import { ENEMY_CODEX, filterEnemyCodex } from "./enemyCodex.js";
 import { createBattleFeedback } from "./battleFeedback.js";
 import { TUTORIAL_STEPS, loadTutorialProgress, saveTutorialProgress, getTutorialStep, advanceTutorial, skipTutorial } from "./tutorial.js";
 import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBattleStats, dismissBattleResult as markBattleResultDismissed, buildBattleResult } from "./battleResults.js";
+import { createRuneBoard, findRuneMatches, isAdjacentRuneCells, collapseRuneBoard, hasLegalRuneSwap } from "./runeBoard.js";
 (()=>{
-const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
-const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
+const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
+const $=id=>document.getElementById(id);
 const storage=(()=>{try{return window.localStorage}catch{return null}})();
 const loaded=loadSave(storage);
 const tutorialLoaded=loadTutorialProgress(storage);
@@ -281,8 +282,7 @@ function setLoadStatus(){
  status.dataset.state=loaded.status==="loaded"||loaded.status==="new"?"saved":"warning";
 }
 function createBoard(){
- const hasMatch=(board)=>{for(let r=0;r<5;r++)for(let c=0;c<6;c++){const i=r*6+c,t=board[i];if(c<=3&&board[i+1]===t&&board[i+2]===t)return true;if(r<=2&&board[i+6]===t&&board[i+12]===t)return true;}return false;};
- let board=Array.from({length:30},rand);for(let tries=0;tries<30&&hasMatch(board);tries++)board=Array.from({length:30},rand);return board;
+ return createRuneBoard({random:Math.random});
 }
 function renderEnemy(){
  const stage=getCurrentStage(campaign),encounter=getCurrentEncounter(campaign)||stage.waves[stage.waves.length-1],intent=getEnemyIntent(campaign);
@@ -585,9 +585,9 @@ function onWindowPointerCancel(event){if(dragPointerId!==null&&event.pointerId==
 boardEl.addEventListener('pointerdown',onBoardPointerDown);
 window.addEventListener('pointerup',onWindowPointerUp);
 window.addEventListener('pointercancel',onWindowPointerCancel);
-function adjacent(a,b){return Math.abs(a-b)===6||Math.floor(a/6)===Math.floor(b/6)&&Math.abs(a-b)===1}
+function adjacent(a,b){return isAdjacentRuneCells(a,b)}
 function tap(i){if(busy||hp<=0||campaign.completed)return;if(selected<0){selected=i;render();return}if(selected===i){selected=-1;render();return}const a=selected;selected=-1;if(adjacent(a,i))swapTry(a,i);else{selected=i;render()}}
-function findMatches(){const found=new Set();for(let r=0;r<5;r++)for(let c=0;c<6;c++){const i=r*6+c,t=cells[i];if(c<=3&&cells[i+1]===t&&cells[i+2]===t){let k=c;while(k<6&&cells[r*6+k]===t)found.add(r*6+k++);}if(r<=2&&cells[i+6]===t&&cells[i+12]===t){let k=r;while(k<5&&cells[k*6+c]===t)found.add(k++*6+c);}}return found}
+function findMatches(){return findRuneMatches(cells)}
 async function swapTry(a,b){
  if(busy||hp<=0||campaign.completed||!adjacent(a,b))return;
  let totalRunesMatched=0,runeScoreEarned=0,hpDamageTaken=0,shieldAbsorbed=0;
@@ -595,7 +595,7 @@ async function swapTry(a,b){
  let matches=findMatches();
  if(!matches.size){await wait(140);[cells[a],cells[b]]=[cells[b],cells[a]];busy=false;render();$('log').textContent='沒有形成消除，符石已換回。';return}
  updateTutorial("match");
- let combo=0,totalDamage=0,totalHeal=0;const damageLines=[];
+ let combo=0,totalDamage=0,totalHeal=0;const damageLines=[];let reshuffled=false;
  while(matches.size&&combo<12){
   combo++;totalRunesMatched+=matches.size;const removed=[...matches].map(i=>cells[i]),counts={};removed.forEach(t=>counts[t]=(counts[t]||0)+1);
   const target=getCurrentEncounter(campaign)||getCurrentStage(campaign).waves.at(-1);
@@ -606,9 +606,10 @@ async function swapTry(a,b){
   damageLines.push('Combo '+combo+'：'+detail);const matchScore=matches.size*10*combo;score+=matchScore;runeScoreEarned+=matchScore;
   feedback.playMatch([...matches],combo);await wait(190);
   matches.forEach(i=>cells[i]=null);render();await wait(40);
-  for(let c=0;c<6;c++){let stack=[];for(let r=4;r>=0;r--){const value=cells[r*6+c];if(value)stack.push(value)}while(stack.length<5)stack.push(rand());for(let r=4;r>=0;r--)cells[r*6+c]=stack[4-r]}
+  cells=collapseRuneBoard(cells,matches,Math.random);
   render();await wait(120);matches=findMatches();
  }
+ if(!findMatches().size&&!hasLegalRuneSwap(cells)){cells=createBoard();reshuffled=true;}
  maxCombo=Math.max(maxCombo,combo);hp=Math.min(maxHp,hp+totalHeal);$('combatBreakdown').textContent=damageLines.join('｜');
  const outcome=damageCurrentEnemy(campaign,totalDamage);campaign=outcome.state;
  if(totalDamage>0){if(outcome.defeated)feedback.playVictory();else feedback.playHit();}
@@ -641,6 +642,7 @@ async function swapTry(a,b){
   $('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。'+enemyTurn.message+leaderReductionText+shieldText+pierceText;
  }
  if(hp<=0)$('log').textContent+=' 生命值歸零，請重新開始。';
+ if(reshuffled)$('log').textContent+=' 盤面沒有可行交換，已自動重排。';
  const expReward=20+(outcome.defeated?(outcome.stageCompleted?120:50):0),previousMaxHp=maxHp;
  battleStats=recordBattleTurn(battleStats,{combo,runesMatched:totalRunesMatched,damageDealt:Math.round(totalDamage),healingDone:Math.round(totalHeal),hpDamageTaken,shieldAbsorbed,expEarned:expReward,scoreEarned:runeScoreEarned});
  if(outcome.stageCompleted)battleStats=completeBattleStats(battleStats);
