@@ -79,7 +79,7 @@ function normalizeMatchProfile(profile, team, index) {
   };
 }
 
-function normalizeSkillPlan(skillPlan, team, maxTurns) {
+function normalizeSkillPlan(skillPlan, team, maxTurns, skillLevels = {}) {
   if (!Array.isArray(skillPlan)) throw new TypeError("skillPlan must be an array");
   const seen = new Set();
   return skillPlan.map((entry, index) => {
@@ -91,7 +91,7 @@ function normalizeSkillPlan(skillPlan, team, maxTurns) {
     const key = entry.turn + ":" + entry.cardId;
     if (seen.has(key)) throw new RangeError("A card skill can only be scheduled once per turn");
     seen.add(key);
-    const skillLevel = entry.skillLevel ?? 1;
+    const skillLevel = entry.skillLevel ?? skillLevels[entry.cardId] ?? 1;
     getActiveSkill(entry.cardId, skillLevel);
     return { turn: entry.turn, cardId: entry.cardId, skillLevel, order: index };
   }).sort((a, b) => a.turn - b.turn || a.order - b.order);
@@ -117,7 +117,7 @@ function applyConversionToMatchProfile(profile, skillEvents, team) {
       next.matchedElements.push(skill.target);
     }
   }
-  next.combo = next.matchedElements.length + (next.heartRunes >= 3 ? 1 : 0) + next.extraCascadeCombos;
+  next.combo = Math.min(12, next.matchedElements.length + (next.heartRunes >= 3 ? 1 : 0) + next.extraCascadeCombos);
   assertInteger(next.combo, 1, 12, "resulting combo after conversion");
   return next;
 }
@@ -129,6 +129,7 @@ function applyConversionToMatchProfile(profile, skillEvents, team) {
  */
 export function buildCooldownAwareSkillPlan(cardIds = DEFAULT_TEAM, maxTurns = 60, skillLevels = {}) {
   if (!Array.isArray(cardIds) || cardIds.length < 1) throw new TypeError("cardIds must be a non-empty array");
+  if (new Set(cardIds).size !== cardIds.length) throw new RangeError("cardIds cannot contain duplicates");
   assertInteger(maxTurns, 1, 200, "maxTurns");
   assertRecord(skillLevels, "skillLevels");
   const nextReadyTurn = new Map(cardIds.map((cardId) => {
@@ -217,7 +218,7 @@ export function analyzeEncounterScenario(options = {}) {
     throw new RangeError("matchProfiles must contain one to twelve profiles");
   }
   const profiles = rawProfiles.map((profile, index) => normalizeMatchProfile(profile, team, index));
-  const skillPlan = normalizeSkillPlan(options.skillPlan ?? [], team, maxTurns);
+  const skillPlan = normalizeSkillPlan(options.skillPlan ?? [], team, maxTurns, skillLevels);
   let skillStates = createSkillStates(team.cardIds, options.initialSkillStates ?? {});
 
   const initialShield = options.initialShield ?? 0;
