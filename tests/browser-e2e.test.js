@@ -31,7 +31,7 @@ function startStaticServer() {
       return;
     }
 
-    const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\\/+/, "");
+    const relativePath = pathname === "/" ? "index.html" : pathname.replace(/^\/+/, "");
     const filePath = resolve(ROOT, relativePath);
     if (filePath !== ROOT && !filePath.startsWith(ROOT + sep)) {
       response.writeHead(403);
@@ -119,8 +119,6 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   const desktopContext = await browser.newContext({
     viewport: { width: 1280, height: 900 }
   });
-  t.after(async () => desktopContext.close());
-
   const page = await desktopContext.newPage();
   const pageErrors = [];
   const consoleErrors = [];
@@ -159,6 +157,10 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   await page.mouse.move(endBox.x + endBox.width / 2, endBox.y + endBox.height / 2, { steps: 8 });
   await page.mouse.up();
   await page.waitForFunction(() => Number(document.querySelector("#score").textContent) > 0, null, { timeout: 10000 });
+  await page.waitForFunction(() => {
+    const slot = document.querySelector("#teamSlots select");
+    return slot && !slot.disabled;
+  }, null, { timeout: 10000 });
   const scoreAfterMatch = Number(await page.locator("#score").innerText());
   assert.ok(scoreAfterMatch > 0, "a real pointer drag should resolve a rune match and award score");
 
@@ -176,12 +178,16 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   });
   const mobilePage = await mobileContext.newPage();
   const mobileErrors = [];
+  const mobileConsoleErrors = [];
   mobilePage.on("pageerror", (error) => mobileErrors.push(error.message));
+  mobilePage.on("console", (message) => {
+    if (message.type() === "error") mobileConsoleErrors.push(message.text());
+  });
   await mobilePage.goto(url, { waitUntil: "networkidle" });
 
   const mobileLayout = await mobilePage.evaluate(() => ({
-    battleColumns: getComputedStyle(document.querySelector(".battle")).gridTemplateColumns.trim().split(/\\s+/).length,
-    boardColumns: getComputedStyle(document.querySelector("#board")).gridTemplateColumns.trim().split(/\\s+/).length,
+    battleColumns: getComputedStyle(document.querySelector(".battle")).gridTemplateColumns.trim().split(/\s+/).length,
+    boardColumns: getComputedStyle(document.querySelector("#board")).gridTemplateColumns.trim().split(/\s+/).length,
     viewportWidth: window.innerWidth,
     documentWidth: document.documentElement.scrollWidth,
     reducedMotion: matchMedia("(prefers-reduced-motion: reduce)").matches
@@ -207,10 +213,16 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
     button: 0
   });
   await mobilePage.waitForFunction(() => Number(document.querySelector("#score").textContent) > 0, null, { timeout: 10000 });
+  await mobilePage.waitForFunction(() => {
+    const slot = document.querySelector("#teamSlots select");
+    return slot && !slot.disabled;
+  }, null, { timeout: 10000 });
   assert.ok(Number(await mobilePage.locator("#score").innerText()) > 0, "touch pointer events should resolve a match on mobile");
 
   assert.deepEqual(pageErrors, [], "desktop page should not raise uncaught JavaScript errors");
   assert.deepEqual(consoleErrors, [], "desktop page should not log browser console errors");
   assert.deepEqual(mobileErrors, [], "mobile page should not raise uncaught JavaScript errors");
+  assert.deepEqual(mobileConsoleErrors, [], "mobile page should not log browser console errors");
   await mobileContext.close();
+  await desktopContext.close();
 });
