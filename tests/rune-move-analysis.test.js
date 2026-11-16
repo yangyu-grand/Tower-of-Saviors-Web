@@ -7,6 +7,15 @@ function playableBoard() {
   return createRuneBoard({ random: () => 0, maxAttempts: 1 });
 }
 
+function heartMatchBoard() {
+  const board = playableBoard();
+  board[0] = "heart";
+  board[1] = "fire";
+  board[2] = "heart";
+  board[7] = "heart";
+  return board;
+}
+
 test("move analysis enumerates only legal adjacent swaps and ranks deterministically", () => {
   const board = playableBoard();
   const first = analyzeRuneMoves(board, { seed: 77, enemyElement: "wood" });
@@ -40,14 +49,17 @@ test("move analysis uses the selected team leader and elemental matchup", () => 
 });
 
 test("heart matches contribute healing to move utility", () => {
-  const board = playableBoard();
+  const board = heartMatchBoard();
+  assert.equal(findRuneMatches(board).size, 0);
   const analysis = analyzeRuneMoves(board, {
     seed: 2026,
     enemyElement: "fire",
     healingWeight: 1
   });
-  assert.ok(analysis.moves.some((move) => move.healing > 0));
-  assert.ok(analysis.moves.every((move) => move.utility === move.damage + move.healing));
+  const heartMove = analysis.moves.find((move) => move.from === 1 && move.to === 7);
+  assert.ok(heartMove);
+  assert.ok(heartMove.healing >= 21);
+  assert.equal(heartMove.utility, heartMove.damage + heartMove.healing);
 });
 
 test("seeded move quality report is repeatable and samples playable boards", () => {
@@ -64,10 +76,14 @@ test("seeded move quality report is repeatable and samples playable boards", () 
 
 test("move analysis rejects unresolved matches, invalid teams, and invalid options", () => {
   const board = playableBoard();
-  assert.throws(() => analyzeRuneMoves([...board.slice(0, 29), "fire"]), /unresolved matches|30 rune cells/);
+  const matchedBoard = [...board];
+  matchedBoard[0] = "fire"; matchedBoard[1] = "fire"; matchedBoard[2] = "fire";
+  assert.throws(() => analyzeRuneMoves(matchedBoard), /unresolved matches/);
   assert.throws(() => analyzeRuneMoves(board, { seed: 1.5 }), /safe integer/);
   assert.throws(() => analyzeRuneMoves(board, { teamCardIds: ["ember_scout"] }), /exactly 5 cards/);
   assert.throws(() => analyzeRuneMoves(board, { healingWeight: 6 }), /healingWeight/);
+  assert.throws(() => analyzeRuneMoves(board, { enemyElement: "ice" }), /Unknown enemy element/);
+  assert.throws(() => analyzeRuneMoves(board, { maxCascades: 0 }), /maxCascades/);
   assert.throws(() => buildRuneMoveQualityReport({ samples: 0 }), /samples/);
 });
 
