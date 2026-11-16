@@ -52,3 +52,16 @@ test("the browser applies leader combo, heart-healing, and incoming-damage reduc
   assert.match(html, /currentTeam\.leaderSkill\?\.damageReduction/);
   assert.match(html, /adjustedIncomingDamage/);
 });
+
+test("the card codex exposes searchable element, rarity, ownership, and evolution filters", () => {
+  assert.match(html, /from "\.\/codex\.js"/);
+  assert.match(html, /id="codexSearch"/);
+  assert.match(html, /id="codexElementFilter"/);
+  assert.match(html, /id="codexRarityFilter"/);
+  assert.match(html, /id="codexOwnershipFilter"/);
+  assert.match(html, /id="codexEvolutionFilter"/);
+  assert.match(html, /function renderCodex/);
+  assert.match(html, /filterCardCatalog\(CARD_CATALOG,profile\.inventory/);
+  assert.match(html, /主動技能 · /);
+  assert.match(html, /隊長技能 · /);
+});

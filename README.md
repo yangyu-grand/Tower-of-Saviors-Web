@@ -58,9 +58,9 @@ These are original prototype rules and are intentionally data-driven so they can
 
 ## Next priorities
 
-1. Add a searchable card codex with element, rarity, ownership, and evolution filters.
-2. Improve animations, sound, and browser/mobile QA.
-3. Expand campaign content and balance leader, active-skill, and boss values.
+1. Improve animations, sound, and browser/mobile QA.
+2. Expand campaign content and balance leader, active-skill, and boss values.
+3. Add an onboarding tutorial that explains rune matching, skills, and campaign progression.
 
 ## Project structure
 
@@ -89,6 +89,8 @@ These are original prototype rules and are intentionally data-driven so they can
 - Each evolution form increases card HP and ATK by 25%, updates its display name, emoji, and rarity, and preserves card level, EXP, skill level, and owned quantity.
 - Defeated encounters award awakening shards; stage bosses also award prism cores. Evolution consumes the required materials and gold.
 - `evolution.js` contains recipes, cost quotes, evolution validation, and evolved team-stat lookup.
+- `codex.js` builds the searchable original-card catalog and applies element, effective-rarity, ownership, and evolution filters.
+- `tests/codex.test.js` covers catalog completeness, skill/name search, combined filters, ownership, evolution, and invalid input.
 
 
 - `team.js` — all original cards, validated leader skill effects, team validation, and stat aggregation.
