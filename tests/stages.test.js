@@ -87,6 +87,7 @@ test("heavy attacks are telegraphed one turn before they land",()=>{
 test("multi-hit enemies report hit count and shields are consumed hit by hit",()=>{
   const state=createCampaignState(1);
   const intent=getEnemyIntent(state);
+  assert.equal(intent.type,"multi");
   assert.equal(intent.label,"雙重撕咬");
   assert.equal(intent.hits,2);
   assert.equal(intent.damage,14);

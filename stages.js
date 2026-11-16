@@ -75,7 +75,7 @@ export function getEnemyIntent(state){
   const damage=Math.ceil(encounter.attack*multiplier);
   const hits=pattern.hits??1;
   if(nextTurn%encounter.attackEvery===0){
-    return {type:pattern.type==="heavy"?"heavy":"attack",label:pattern.name??(enraged?"狂暴攻擊":"普通攻擊"),damage,healing:0,hits,previewDamage:0,previewHits:1,shieldPierce:0,enraged};
+    return {type:pattern.type==="heavy"?"heavy":pattern.type==="multi"?"multi":"attack",label:pattern.name??(enraged?"狂暴攻擊":"普通攻擊"),damage,healing:0,hits,previewDamage:0,previewHits:1,shieldPierce:0,enraged};
   }
 
   return {
@@ -101,7 +101,7 @@ export function resolveEnemyTurn(state){
 
   let message;
   if(intent.type==="heal")message=intent.label+"！回復 "+intent.healing+" HP。";
-  else if(intent.type==="special")message=intent.label+"！"+(intent.hits>1?"分 "+intent.hits+" 段":"")+"造成 "+intent.damage+" 點傷害。";
+  else if(intent.type==="special"||intent.type==="multi")message=intent.label+"！"+(intent.hits>1?"分 "+intent.hits+" 段":"")+"造成 "+intent.damage+" 點傷害。";
   else if(intent.type==="heavy")message=intent.label+"！造成 "+intent.damage+" 點重擊。";
   else if(intent.type==="attack")message=intent.label+"，造成 "+intent.damage+" 點傷害。";
   else message=intent.label+"。";

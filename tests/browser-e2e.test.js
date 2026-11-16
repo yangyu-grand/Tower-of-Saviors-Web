@@ -322,7 +322,7 @@ test("Chromium displays distinct multi-hit and self-healing enemy intent preview
   const multiHit = await openAtEncounter(0, 0, 300);
   assert.match(await multiHit.page.locator("#enemyIntent").innerText(), /雙重撕咬/);
   assert.match(await multiHit.page.locator("#enemyIntent").innerText(), /2 段連擊/);
-  assert.equal(await multiHit.page.locator("#enemyIntent").getAttribute("data-type"), "attack");
+  assert.equal(await multiHit.page.locator("#enemyIntent").getAttribute("data-type"), "multi");
   await multiHit.context.close();
 
   const healer = await openAtEncounter(1, 2, 300);
