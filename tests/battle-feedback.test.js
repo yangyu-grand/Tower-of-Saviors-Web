@@ -103,7 +103,7 @@ test("hit, attack, healing, skill, and victory hooks target the intended element
   feedback.playSkill();
   assert.equal(board.classList.contains("board-skill"), true);
   feedback.playVictory();
-  assert.equal(enemy.classList.contains("enemy-victory"), true);
+  assert.equal(board.classList.contains("board-victory"), true);
 });
 
 test("reduced-motion preference disables decorative animation hooks", () => {
@@ -127,7 +127,7 @@ test("reduced-motion preference disables decorative animation hooks", () => {
   assert.equal(board.classList.contains("board-heal"), false);
   assert.equal(board.classList.contains("board-skill"), false);
   assert.equal(enemy.classList.contains("enemy-hit"), false);
-  assert.equal(enemy.classList.contains("enemy-victory"), false);
+  assert.equal(board.classList.contains("board-victory"), false);
 });
 
 test("unsupported audio keeps the control safely muted", () => {

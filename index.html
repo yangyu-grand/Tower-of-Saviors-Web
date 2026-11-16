@@ -35,11 +35,11 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .summon-result[data-rarity="4"]{border-color:#62b6e8}.summon-result[data-rarity="5"]{border-color:#e6bd62;box-shadow:inset 0 0 18px #e6bd6218}
 @keyframes summonReveal{from{opacity:0;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .orb.match-pop{position:relative;z-index:2;animation:runeMatch .14s ease-in both;animation-delay:var(--match-delay,0ms)}
-#enemy.enemy-hit{animation:enemyHit .4s ease-out}#enemy.enemy-victory{animation:enemyVictory .68s ease-out}
-#board.board-hit{animation:boardHit .4s ease-out}#board.board-heal{animation:boardHeal .48s ease-out}#board.board-skill{animation:boardSkill .4s ease-out}
+#enemy.enemy-hit{animation:enemyHit .4s ease-out}
+#board.board-hit{animation:boardHit .4s ease-out}#board.board-heal{animation:boardHeal .48s ease-out}#board.board-skill{animation:boardSkill .4s ease-out}#board.board-victory{animation:boardVictory .68s ease-out}
 @keyframes runeMatch{0%{transform:scale(1);filter:brightness(1)}55%{transform:scale(1.16);filter:brightness(1.7) drop-shadow(0 0 10px #fff8)}100%{transform:scale(.52);opacity:.18}}
 @keyframes enemyHit{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px) rotate(-3deg);filter:brightness(1.8)}45%{transform:translateX(5px) rotate(3deg)}70%{transform:translateX(-3px)}}
-@keyframes enemyVictory{0%{transform:scale(1);filter:brightness(1)}45%{transform:scale(1.22);filter:brightness(1.8) drop-shadow(0 0 18px #f6c96b)}100%{transform:scale(.88);filter:brightness(1.2)}}
+@keyframes boardVictory{0%,100%{box-shadow:0 0 0 transparent}45%{box-shadow:inset 0 0 0 3px #f6c96b,0 0 28px #f6c96b88}}
 @keyframes boardHit{0%,100%{box-shadow:0 0 0 transparent}45%{box-shadow:inset 0 0 0 3px #f06a70,0 0 20px #f06a7066}}
 @keyframes boardHeal{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:inset 0 0 0 3px #ff9dc8,0 0 22px #ff9dc866}}
 @keyframes boardSkill{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:inset 0 0 0 3px #8bc7ff,0 0 22px #8bc7ff66}}
@@ -157,7 +157,7 @@ const feedback=createBattleFeedback({boardElement:boardEl,enemyElement:document.
 const soundToggle=$('soundToggle');
 function syncSoundToggle(){const muted=feedback.isMuted();soundToggle.textContent=muted?'音效：關':'音效：開';soundToggle.setAttribute('aria-pressed',String(!muted));soundToggle.setAttribute('aria-label',muted?'開啟音效':'關閉音效');}
 soundToggle.addEventListener('click',()=>{feedback.setMuted(!feedback.isMuted());syncSoundToggle();if(!feedback.isMuted())feedback.playSkill();});
-window.addEventListener('pagehide',()=>feedback.destroy(),{once:true});
+window.addEventListener('pagehide',event=>{if(!event.persisted)feedback.destroy();});
 syncSoundToggle();
 let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)}),maxHp=currentTeam.totalHp;
 let skillStates=profile.skillStates,shield=profile.shield,pendingDamageMultiplier=profile.pendingDamageMultiplier;

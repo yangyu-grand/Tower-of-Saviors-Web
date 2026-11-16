@@ -107,7 +107,7 @@ export function createBattleFeedback({
   }
 
   function playVictory() {
-    pulse(enemyElement, "enemy-victory");
+    pulse(boardElement, "board-victory");
     [523.25, 659.25, 783.99].forEach((frequency, index) => {
       playTone(frequency, 0.22, "triangle", index * 0.12, 0.03);
     });
