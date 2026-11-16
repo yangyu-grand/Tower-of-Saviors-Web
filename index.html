@@ -863,7 +863,7 @@ $('tutorialAdvance').addEventListener('click',()=>updateTutorial("next",true));$
  $('resultContinue').addEventListener('click',nextStage);
  $('resultDismiss').addEventListener('click',()=>{if(!battleStats.stageCompleted)return;battleStats=markBattleResultDismissed(battleStats);persist("結算狀態已儲存");renderBattleResult();$('nextStage').focus();});
  $('newGame').addEventListener('click',reset);$('nextStage').addEventListener('click',nextStage);$('saveNow').addEventListener('click',()=>persist("已手動儲存"));$('summonSingle').addEventListener('click',()=>performSummon(1));$('summonTen').addEventListener('click',()=>performSummon(10));
-$('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);feedback.playHeal();$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
+$('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);pendingReplaySkills.push({name:'隊伍回復',cardId:'party-heal',summary:'回復 '+restored+' HP',boardAfterSkill:[...cells]});pendingReplaySkillHealing+=restored;feedback.playHeal();$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
 $('codexSearch').addEventListener('input',renderCodex);
  ['codexElementFilter','codexRarityFilter','codexOwnershipFilter','codexEvolutionFilter'].forEach(id=>$(id).addEventListener('change',renderCodex));
  startNewLiveEncounter();initializeReplayViewer();initializeEnemyCodex();renderTeam();renderInventory();render();renderTutorial();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
