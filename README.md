@@ -11,6 +11,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Generate a deterministic chapter/encounter balance baseline with `npm run balance:report`.
 - Compare active-skill cooldowns and three representative match distributions with `npm run balance:scenarios`.
 - Sweep every cost-valid leader/four-member lineup across all twelve encounters with `npm run balance:parties`.
+- Analyze legal adjacent swaps, cascade outcomes, team damage, and heart healing over seeded random boards with `npm run balance:moves`.
 - Serve the project root with a static server because browser ES modules may not work from a `file://` URL. Example: `python3 -m http.server 8000`, then open `http://localhost:8000`.
 
 ## Implemented
@@ -29,6 +30,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - A representative scenario simulator for steady, balanced, and high-Combo rune matches, including active-skill effects, per-card cooldown timing, healing, conversion, shields, and damage boosts.
 - A party-composition balance sweep that enumerates every cost-valid leader/four-member lineup from the 15-card catalog and evaluates all twelve encounters using shared team, combat, enemy-turn, and skill-cooldown rules.
 - A shared 6 × 5 rune-board engine with seeded board generation, horizontal/vertical run detection, legal-swap validation, stable gravity/refill, cascade resolution, and automatic reshuffling when no legal move remains.
+- A seeded move-quality analyzer that enumerates all 49 adjacent swaps, resolves each legal move with deterministic refill, and scores real team damage/healing against a selected enemy element.
 - Searchable enemy codex for all twelve encounters, with chapter/element/role filters and data-driven attack, support, special-skill, and boss-phase details.
 - Enemy intent previews, wave transitions, stage-clear rewards, and campaign completion.
 - A ten-card starter inventory plus five original summon-only characters across three rarity tiers; owned-card-only team selection.
@@ -86,10 +88,14 @@ This is a deterministic roster-comparison tool, not a random-board simulation or
 
 The browser game and automated tests share the pure functions in `runeBoard.js`. New boards are generated without an immediate match and with at least one legal adjacent swap; a deterministic fallback keeps generation bounded if a supplied random source stalls. The module also provides seeded random generation, deduplicated horizontal/vertical run detection, row-wrap-safe adjacency checks, stable bottom-up gravity/refill, and a deterministic swap/cascade resolver for tests and future balance simulations. After a live cascade, the game automatically reshuffles a stable board if no legal match-producing swap remains.
 
+## Rune move quality report
+
+Run `npm run balance:moves` to generate 100 reproducible 6 × 5 boards and evaluate every possible adjacent swap. Each candidate uses an isolated seeded refill stream, the selected five-card team's actual leader-adjusted elemental attack, the target enemy element, the shared Combo damage formula, and heart-rune healing. The report summarizes legal-move availability and the average best-move damage, healing, and Combo. It is a deterministic move-quality benchmark, not a human-play or win-rate prediction: it does not model drag-path choices, player reaction time, active-skill decisions, or physical-device input.
+
 ## Next priorities
 
-1. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium now covers desktop browser flows and mobile viewport/touch-event emulation in CI.
-2. Add seeded random-board move sampling and legal-move quality metrics to the balance simulator before changing encounter values; complete physical-device mobile QA remains outstanding.
+1. Connect sampled legal moves to full encounter-turn simulations, including enemy responses and active-skill timing, before changing enemy balance values.
+2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
 
 ## Project structure
 
@@ -103,12 +109,15 @@ The browser game and automated tests share the pure functions in `runeBoard.js`.
 - `balanceScenarios.js` — active-skill cooldown-aware simulations and representative match-distribution reports.
 - `partyBalance.js` — exhaustive cost-valid party enumeration and twelve-encounter composition ranking.
 - `runeBoard.js` — seeded 6 × 5 board generation, match detection, legal swaps, gravity/refill, and cascade resolution.
+- `runeMoveAnalysis.js` — deterministic evaluation of all legal adjacent swaps using the shared team and combat rules.
 - `scripts/balance-report.js` — command-line campaign balance report.
 - `scripts/balance-scenarios.js` — command-line representative scenario matrix.
 - `scripts/party-balance-report.js` — command-line full party-composition sweep.
+- `scripts/rune-move-quality-report.js` — command-line seeded move-quality report.
 - `tests/balance-scenarios.test.js` — active-skill timing, cooldown, conversion, shield, healing, and match-distribution tests.
 - `tests/party-balance.test.js` — lineup enumeration, cost filtering, leader-slot coverage, deterministic encounter reports, and progression-stat tests.
 - `tests/rune-board.test.js` — seeded generation, match detection, adjacency, gravity, valid/invalid swaps, and cascade snapshots.
+- `tests/rune-move-analysis.test.js` — deterministic move ranking, team/element modifiers, heart healing, and board-sample reports.
 - `tests/balance.test.js` — deterministic baseline, elemental matchup, support-healing, Boss-phase, shield, and campaign-report tests.
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
