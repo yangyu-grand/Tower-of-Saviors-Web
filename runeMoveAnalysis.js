@@ -1,15 +1,16 @@
 import {
+  RUNE_BOARD_HEIGHT,
   RUNE_BOARD_SIZE,
+  RUNE_BOARD_WIDTH,
   createRuneBoard,
   createSeededRandom,
   findRuneMatches,
   resolveRuneSwap
 } from "./runeBoard.js";
-import { calculateCombatResult } from "./combat.js";
+import { ELEMENTS, calculateCombatResult } from "./combat.js";
 import { buildTeam, DEFAULT_TEAM } from "./team.js";
 
-const ADJACENT_SWAP_COUNT = 49;
-const ATTACK_ELEMENTS = Object.freeze(["fire", "water", "wood", "light", "dark"]);
+const ADJACENT_SWAP_COUNT = RUNE_BOARD_HEIGHT * (RUNE_BOARD_WIDTH - 1) + (RUNE_BOARD_HEIGHT - 1) * RUNE_BOARD_WIDTH;
 
 function assertSafeSeed(seed) {
   if (!Number.isSafeInteger(seed)) {
@@ -55,6 +56,9 @@ export function analyzeRuneMoves(board, options = {}) {
   if (!Array.isArray(board) || board.length !== RUNE_BOARD_SIZE) {
     throw new TypeError("board must contain exactly 30 rune cells");
   }
+  if (board.some((rune) => rune !== "fire" && rune !== "water" && rune !== "wood" && rune !== "light" && rune !== "dark" && rune !== "heart")) {
+    throw new TypeError("board contains an unknown rune type");
+  }
   if (findRuneMatches(board).size > 0) {
     throw new RangeError("board must not contain unresolved matches");
   }
@@ -62,6 +66,7 @@ export function analyzeRuneMoves(board, options = {}) {
   const seed = options.seed ?? 1;
   assertSafeSeed(seed);
   const enemyElement = options.enemyElement ?? "fire";
+  if (!ELEMENTS.includes(enemyElement)) throw new RangeError("Unknown enemy element: " + String(enemyElement));
   const teamCardIds = options.teamCardIds ?? DEFAULT_TEAM;
   const levels = options.levels ?? {};
   const evolutionLevels = options.evolutionLevels ?? {};
@@ -69,6 +74,9 @@ export function analyzeRuneMoves(board, options = {}) {
   const skillMultiplier = options.skillMultiplier ?? 1;
   const healingWeight = options.healingWeight ?? 0.5;
   const maxCascades = options.maxCascades ?? 12;
+  if (!Number.isInteger(maxCascades) || maxCascades < 1 || maxCascades > 30) {
+    throw new RangeError("maxCascades must be an integer between 1 and 30");
+  }
 
   if (typeof skillMultiplier !== "number" || !Number.isFinite(skillMultiplier) || skillMultiplier < 1 || skillMultiplier > 10) {
     throw new RangeError("skillMultiplier must be between 1 and 10");
@@ -135,10 +143,10 @@ export function analyzeRuneMoves(board, options = {}) {
   }
 
   for (let index = 0; index < RUNE_BOARD_SIZE; index += 1) {
-    const column = index % 6;
-    const row = Math.floor(index / 6);
-    if (column < 5) evaluateMove(index, index + 1, "horizontal");
-    if (row < 4) evaluateMove(index, index + 6, "vertical");
+    const column = index % RUNE_BOARD_WIDTH;
+    const row = Math.floor(index / RUNE_BOARD_WIDTH);
+    if (column < RUNE_BOARD_WIDTH - 1) evaluateMove(index, index + 1, "horizontal");
+    if (row < RUNE_BOARD_HEIGHT - 1) evaluateMove(index, index + RUNE_BOARD_WIDTH, "vertical");
   }
 
   moves.sort((left, right) =>
@@ -192,7 +200,7 @@ export function buildRuneMoveQualityReport(options = {}) {
 
   const results = [];
   for (let index = 0; index < samples; index += 1) {
-    const sampleSeed = (seed + index) % 0x100000000;
+    const sampleSeed = ((seed % 0x100000000) + index) % 0x100000000;
     const board = createRuneBoard({ random: createSeededRandom(sampleSeed) });
     const analysis = analyzeRuneMoves(board, {
       ...analysisOptions,
