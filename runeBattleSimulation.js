@@ -194,6 +194,7 @@ export function simulateRuneEncounter(options = {}) {
   const evolutionLevels = options.evolutionLevels ?? {};
   const costLimit = options.costLimit ?? 30;
   const team = buildTeam(teamIds, { levels, evolutionLevels, costLimit });
+  for (const cardId of team.cardIds) getActiveSkill(cardId, options.skillLevels?.[cardId] ?? 1);
 
   const seed = options.seed ?? 1;
   assertSafeSeed(seed);
@@ -305,6 +306,7 @@ export function simulateRuneEncounter(options = {}) {
         analysisContext
       });
       if (choice) {
+        const previousShield = shield;
         skillStates = choice.activation.skillStates;
         partyHp = choice.activation.hp;
         shield = choice.activation.shield;
@@ -321,7 +323,7 @@ export function simulateRuneEncounter(options = {}) {
           skillLevel: choice.skillLevel,
           changed: choice.activation.changed,
           restored: choice.activation.restored,
-          shieldAdded: choice.activation.shield - (shield - (choice.activation.shield - shield)),
+          shieldAdded: choice.activation.shield - previousShield,
           damageMultiplier
         };
         if (choice.analysis) {
@@ -430,7 +432,7 @@ export function simulateRuneEncounter(options = {}) {
       },
       skillEvents: skillEvent ? [skillEvent] : [],
       enemyHpBeforeAttack,
-      enemyHpAfterTurn: state.enemyHp,
+      enemyHpAfterTurn: damageResult.defeated ? 0 : state.enemyHp,
       damageDealt,
       healingApplied: runeHealing,
       skillHealingApplied: skillEvent?.restored ?? 0,
@@ -486,7 +488,7 @@ export function simulateRuneEncounter(options = {}) {
     totalHpDamageTaken,
     totalShieldAbsorbed,
     totalActiveSkillUses,
-    enemyHpRemaining: state.enemyHp,
+    enemyHpRemaining: victory ? 0 : state.enemyHp,
     remainingPartyHp: partyHp,
     remainingShield: shield,
     reshuffleCount,
