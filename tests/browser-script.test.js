@@ -110,3 +110,15 @@ test("the browser previews enemy attack patterns, multi-hit counts, and support 
   assert.match(html, /enemyTurn\.intent\.hits\?\?1/);
   assert.match(html, /aria-live="polite">敵人預告/);
 });
+
+test("the enemy codex exposes searchable chapter, element, role, and boss-phase information", () => {
+  assert.match(html, /from "\.\/enemyCodex\.js"/);
+  assert.match(html, /id="enemyCodexSearch"/);
+  assert.match(html, /id="enemyCodexStageFilter"/);
+  assert.match(html, /id="enemyCodexElementFilter"/);
+  assert.match(html, /id="enemyCodexRoleFilter"/);
+  assert.match(html, /function renderEnemyCodex/);
+  assert.match(html, /initializeEnemyCodex\(\)/);
+  assert.match(html, /unlockedStageTotal/);
+  assert.match(html, /phase\.special/);
+});

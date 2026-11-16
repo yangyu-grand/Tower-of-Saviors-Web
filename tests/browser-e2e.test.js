@@ -137,6 +137,21 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   assert.ok((await page.locator("#board").getAttribute("class")).includes("tutorial-target"), "the rune board should be highlighted during the match lesson");
   assert.equal(await page.locator("#board .orb").count(), 30, "the 6 × 5 rune board should render");
   assert.equal(await page.locator("#codexGrid .codex-card").count(), 15, "all original cards should appear in the codex");
+  assert.equal(await page.locator("#unlockedStageTotal").innerText(), "4", "the unlocked-stage counter should reflect all four chapters");
+  assert.equal(await page.locator("#enemyCodexGrid .enemy-codex-card").count(), 12, "all twelve campaign encounters should appear in the enemy codex");
+  await page.locator("#enemyCodexRoleFilter").selectOption("boss");
+  assert.equal(await page.locator("#enemyCodexGrid .enemy-codex-card").count(), 4, "the boss filter should show all four chapter bosses");
+  await page.locator("#enemyCodexRoleFilter").selectOption("normal");
+  assert.equal(await page.locator("#enemyCodexGrid .enemy-codex-card").count(), 8, "the normal-enemy filter should exclude bosses");
+  await page.locator("#enemyCodexRoleFilter").selectOption("all");
+  await page.locator("#enemyCodexStageFilter").selectOption("mist-sakura-ancient");
+  assert.equal(await page.locator("#enemyCodexGrid .enemy-codex-card").count(), 3, "the chapter filter should show its three encounters");
+  await page.locator("#enemyCodexStageFilter").selectOption("all");
+  await page.locator("#enemyCodexSearch").fill("天狐焚月");
+  assert.equal(await page.locator("#enemyCodexGrid .enemy-codex-card").count(), 1, "search should find a special attack in a boss phase");
+  assert.match(await page.locator("#enemyCodexGrid").innerText(), /月蝕姿態/);
+  await page.locator("#enemyCodexSearch").fill("");
+
 
   await page.locator("#soundToggle").click();
   assert.equal(await page.locator("#soundToggle").getAttribute("aria-pressed"), "true");

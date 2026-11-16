@@ -72,6 +72,28 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .codex-empty{padding:18px;text-align:center;color:var(--muted)}
 @media(max-width:680px){.codex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.codex-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.codex-filters label:first-child{grid-column:1/-1}}
 @media(max-width:420px){.codex-grid{grid-template-columns:1fr}}
+.enemy-codex-panel{margin-top:14px}
+.enemy-codex-filters{display:grid;grid-template-columns:minmax(220px,2fr) repeat(3,minmax(120px,1fr));gap:8px;margin-top:12px}
+.enemy-codex-filters label{display:grid;gap:5px;color:var(--muted);font-size:12px}
+.enemy-codex-filters input,.enemy-codex-filters select{width:100%;min-width:0;background:#202d48;color:#fff;border:1px solid #65789a;border-radius:8px;padding:9px;font:inherit;font-size:13px}
+.enemy-codex-count{color:var(--muted);font-size:12px;margin-top:10px}
+.enemy-codex-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:9px;margin-top:10px}
+.enemy-codex-card{min-width:0;padding:12px;background:#080f20aa;border:1px solid #52658b55;border-radius:13px}
+.enemy-codex-head{display:flex;align-items:center;gap:9px}
+.enemy-codex-portrait{font-size:30px;flex:0 0 auto}
+.enemy-codex-title{min-width:0;flex:1}
+.enemy-codex-title b{display:block;color:var(--gold);font-size:14px;overflow-wrap:anywhere}
+.enemy-codex-title small{display:block;color:var(--muted);font-size:11px;margin-top:3px}
+.enemy-codex-role{white-space:nowrap;border:1px solid #65789a66;border-radius:20px;padding:3px 7px;color:#d9e5fa;font-size:10px}
+.enemy-codex-role[data-boss="true"]{border-color:#e5a16b;color:#ffd39c}
+.enemy-codex-stage,.enemy-codex-stats,.enemy-codex-detail{color:var(--muted);font-size:11px;line-height:1.6;margin:8px 0 0}
+.enemy-codex-stats{color:#f3dca6}
+.enemy-codex-detail{border-top:1px solid #52658b44;padding-top:8px}
+.enemy-codex-detail b{display:block;color:#a9c8f3;font-size:11px;margin-bottom:3px}
+.enemy-codex-phase{border-left:2px solid #d5ad61;padding-left:8px;margin-top:7px;color:#cbd6e8;font-size:11px;line-height:1.55}
+.enemy-codex-empty{padding:18px;text-align:center;color:var(--muted)}
+@media(max-width:680px){.enemy-codex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.enemy-codex-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.enemy-codex-filters label:first-child{grid-column:1/-1}}
+@media(max-width:420px){.enemy-codex-grid{grid-template-columns:1fr}}
 .tutorial-panel{margin:0 0 14px;border-color:#d5ad61;background:linear-gradient(145deg,#263657,#141e34);box-shadow:0 10px 28px #0005}
 .tutorial-panel[hidden]{display:none}
 .tutorial-head,.tutorial-actions{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
@@ -125,7 +147,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
  <section class="panel inventory-panel" aria-labelledby="inventoryHeading">
   <div class="inventory-head">
    <div><h2 id="inventoryHeading">冒險背包</h2><p class="hint">持有卡片與資源會自動保存於目前瀏覽器；不同裝置的存檔不會自動同步。</p></div>
-   <div class="currency-row"><span>金幣 <b id="gold">0</b></span><span>召喚石 <b id="summonStones">0</b></span><span>覺醒碎片 <b id="awakeningShards">0</b></span><span>稜鏡核心 <b id="prismCores">0</b></span><span>已持有 <b id="ownedCardCount">0</b> 種</span><span>最高解鎖 <b id="unlockedStage">1</b>/3</span></div>
+   <div class="currency-row"><span>金幣 <b id="gold">0</b></span><span>召喚石 <b id="summonStones">0</b></span><span>覺醒碎片 <b id="awakeningShards">0</b></span><span>稜鏡核心 <b id="prismCores">0</b></span><span>已持有 <b id="ownedCardCount">0</b> 種</span><span>最高解鎖 <b id="unlockedStage">1</b>/<b id="unlockedStageTotal">4</b></span></div>
   </div>
   <div class="summon-panel" aria-labelledby="summonHeading">
    <div class="summon-head"><div><h3 id="summonHeading">星門召喚</h3><p class="summon-meta">召喚石可從關卡通關取得；重複角色可用於技能強化，也會累積持有數量。</p></div></div>
@@ -148,6 +170,18 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   <p id="codexCount" class="codex-count" aria-live="polite">符合 15 / 15 張</p>
   <div id="codexGrid" class="codex-grid"></div>
   <p id="codexEmpty" class="codex-empty" hidden>找不到符合條件的角色，請調整搜尋或篩選條件。</p>
+ </section>
+ <section class="panel enemy-codex-panel" aria-labelledby="enemyCodexHeading">
+  <div class="inventory-head"><div><h2 id="enemyCodexHeading">敵人圖鑑</h2><p class="hint">收錄四章全部敵人、攻擊節奏、特殊技能與 Boss 階段；資料直接取自戰役設定。</p></div></div>
+  <div class="enemy-codex-filters">
+   <label>搜尋敵人／攻擊<input id="enemyCodexSearch" type="search" placeholder="輸入敵人、章節或技能名稱…" autocomplete="off"></label>
+   <label>章節<select id="enemyCodexStageFilter"><option value="all">全部章節</option></select></label>
+   <label>屬性<select id="enemyCodexElementFilter"><option value="all">全部屬性</option><option value="fire">火</option><option value="water">水</option><option value="wood">木</option><option value="light">光</option><option value="dark">暗</option><option value="heart">心</option></select></label>
+   <label>類型<select id="enemyCodexRoleFilter"><option value="all">全部敵人</option><option value="normal">一般敵人</option><option value="boss">Boss</option></select></label>
+  </div>
+  <p id="enemyCodexCount" class="enemy-codex-count" aria-live="polite">符合 12 / 12 名</p>
+  <div id="enemyCodexGrid" class="enemy-codex-grid"></div>
+  <p id="enemyCodexEmpty" class="enemy-codex-empty" hidden>找不到符合條件的敵人，請調整搜尋或篩選條件。</p>
  </section>
  <section id="battleResult" class="result-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="resultTitle" tabindex="-1">
   <div class="result-card">
@@ -180,6 +214,7 @@ import { getCardLevels, grantTeamExperience, getTrainingQuote, trainCard, MAX_CA
 import { enhanceCardSkill, getSkillEnhancementQuote } from "./skillEnhancement.js";
 import { getCardEvolutionLevels, getEvolutionQuote, evolveCard } from "./evolution.js";
 import { filterCardCatalog } from "./codex.js";
+import { ENEMY_CODEX, filterEnemyCodex } from "./enemyCodex.js";
 import { createBattleFeedback } from "./battleFeedback.js";
 import { TUTORIAL_STEPS, loadTutorialProgress, saveTutorialProgress, getTutorialStep, advanceTutorial, skipTutorial } from "./tutorial.js";
 import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBattleStats, dismissBattleResult as markBattleResultDismissed, buildBattleResult } from "./battleResults.js";
@@ -314,6 +349,72 @@ function renderCodex(){
  $('codexCount').textContent='符合 '+entries.length+' / '+CARD_CATALOG.length+' 張';
  $('codexEmpty').hidden=entries.length!==0;
 }
+function renderEnemyCodex(){
+ const grid=$('enemyCodexGrid');if(!grid)return;
+ const entries=filterEnemyCodex(ENEMY_CODEX,{
+  query:$('enemyCodexSearch').value,stageId:$('enemyCodexStageFilter').value,
+  element:$('enemyCodexElementFilter').value,role:$('enemyCodexRoleFilter').value
+ });
+ grid.replaceChildren();
+ entries.forEach(entry=>{
+  const tile=document.createElement('article');tile.className='enemy-codex-card';tile.dataset.element=entry.element;
+  const head=document.createElement('div');head.className='enemy-codex-head';
+  const portrait=document.createElement('span');portrait.className='enemy-codex-portrait';portrait.textContent=entry.emoji;
+  const identity=document.createElement('div');identity.className='enemy-codex-title';
+  const name=document.createElement('b');name.textContent=entry.name;
+  const subtitle=document.createElement('small');subtitle.textContent=entry.stageName+' · 第 '+entry.waveNumber+' / '+entry.waveCount+' 波';
+  identity.append(name,subtitle);
+  const role=document.createElement('span');role.className='enemy-codex-role';role.dataset.boss=String(entry.isBoss);role.textContent=entry.isBoss?'BOSS':'一般';
+  head.append(portrait,identity,role);
+  const stage=document.createElement('p');stage.className='enemy-codex-stage';stage.textContent=entry.stageDifficulty+' · '+icons[entry.element]+' '+entry.elementName+' 屬性';
+  const stats=document.createElement('p');stats.className='enemy-codex-stats';stats.textContent='HP '+entry.hp.toLocaleString('zh-TW')+' · 基礎攻擊 '+entry.attack+' · 攻擊週期 '+entry.attackEvery+' 回合';
+  const attack=document.createElement('div');attack.className='enemy-codex-detail';
+  const attackTitle=document.createElement('b');attackTitle.textContent='基本攻擊 · '+({single:'一般攻擊',heavy:'蓄力重擊',multi:'多段攻擊'}[entry.attackPattern.type]||'攻擊');
+  const attackDescription=document.createElement('p');attackDescription.textContent=entry.attackPattern.name+' · '+(entry.attackEvery>1?'每 '+entry.attackEvery+' 回合（重擊會提前預告）':'每回合')+' · '+entry.attack+' 傷害'+(entry.attackPattern.hits>1?' · '+entry.attackPattern.hits+' 段':'');
+  attack.append(attackTitle,attackDescription);tile.append(head,stage,stats,attack);
+  if(entry.special&&!entry.phases.length){
+   const special=document.createElement('div');special.className='enemy-codex-detail';
+   const title=document.createElement('b');title.textContent='特殊技能 · '+entry.special.name;
+   const description=document.createElement('p');description.textContent='每 '+entry.special.every+' 回合 · '+entry.special.damage+' 傷害 · '+(entry.special.hits??1)+' 段 · 護盾穿透 '+Math.round((entry.special.shieldPierce??0)*100)+'%';
+   special.append(title,description);tile.appendChild(special);
+  }
+  if(entry.support){
+   const support=document.createElement('div');support.className='enemy-codex-detail';
+   const title=document.createElement('b');title.textContent='支援技能 · '+entry.support.name;
+   const description=document.createElement('p');description.textContent='每 '+entry.support.every+' 回合最多回復 '+entry.support.amount+' HP，實際回復不超過最大 HP。';
+   support.append(title,description);tile.appendChild(support);
+  }
+  if(entry.phases.length){
+   const phases=document.createElement('div');phases.className='enemy-codex-detail';
+   const title=document.createElement('b');title.textContent='Boss 階段';
+   phases.appendChild(title);
+   entry.phases.forEach((phase,index)=>{
+    const next=entry.phases[index+1],threshold=index===0&&next?'HP > '+Math.round(next.at*100)+'%':'HP ≤ '+Math.round(phase.at*100)+'%';
+    const parts=[phase.attackPattern.name+' · 每 '+phase.attackEvery+' 回合'];
+    if(phase.special)parts.push(phase.special.name+'：'+phase.special.damage+' 傷害 · '+(phase.special.hits??1)+' 段 · 護盾穿透 '+Math.round((phase.special.shieldPierce??0)*100)+'%');
+    if(Number.isFinite(phase.enrageAt)&&(!next||phase.enrageAt>next.at))parts.push('狂暴 HP ≤ '+Math.round(phase.enrageAt*100)+'% · '+phase.enrageMultiplier+'×');
+    const line=document.createElement('p');line.className='enemy-codex-phase';line.textContent=phase.name+'（'+threshold+'）· '+parts.join('；');
+    phases.appendChild(line);
+   });
+   tile.appendChild(phases);
+  }else if(Number.isFinite(entry.enrageAt)){
+   const enrage=document.createElement('p');enrage.className='enemy-codex-detail';enrage.textContent='狂暴：HP ≤ '+Math.round(entry.enrageAt*100)+'% · 傷害 '+entry.enrageMultiplier+'×';
+   tile.appendChild(enrage);
+  }
+  grid.appendChild(tile);
+ });
+ $('enemyCodexCount').textContent='符合 '+entries.length+' / '+ENEMY_CODEX.length+' 名';
+ $('enemyCodexEmpty').hidden=entries.length!==0;
+}
+function initializeEnemyCodex(){
+ const stageFilter=$('enemyCodexStageFilter');
+ STAGES.forEach((stage,index)=>{
+  const option=document.createElement('option');option.value=stage.id;option.textContent='第 '+(index+1)+' 章 · '+stage.name;stageFilter.appendChild(option);
+ });
+ $('enemyCodexSearch').addEventListener('input',renderEnemyCodex);
+ ['enemyCodexStageFilter','enemyCodexElementFilter','enemyCodexRoleFilter'].forEach(id=>$(id).addEventListener('change',renderEnemyCodex));
+ renderEnemyCodex();
+}
 function renderInventory(){
  const grid=$('inventoryGrid');grid.innerHTML='';
  const owned=listOwnedCards(profile);
@@ -345,7 +446,7 @@ function renderInventory(){
  $('awakeningShards').textContent=profile.materials.awakeningShards;
  $('prismCores').textContent=profile.materials.prismCores;
  $('ownedCardCount').textContent=owned.length;
- $('unlockedStage').textContent=unlockedStageIndex+1;
+ $('unlockedStage').textContent=unlockedStageIndex+1;$('unlockedStageTotal').textContent=STAGES.length;
  renderSummonPanel();renderCodex();
 }
 function renderSummonPanel(){
@@ -574,7 +675,7 @@ $('tutorialAdvance').addEventListener('click',()=>updateTutorial("next",true));$
 $('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);feedback.playHeal();$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
 $('codexSearch').addEventListener('input',renderCodex);
  ['codexElementFilter','codexRarityFilter','codexOwnershipFilter','codexEvolutionFilter'].forEach(id=>$(id).addEventListener('change',renderCodex));
- renderTeam();renderInventory();render();renderTutorial();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
+ initializeEnemyCodex();renderTeam();renderInventory();render();renderTutorial();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
 })();
 </script>
 </body>
