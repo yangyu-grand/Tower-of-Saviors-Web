@@ -230,9 +230,10 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
  
  <section class="panel replay-panel" aria-labelledby="replayHeading">
   <div class="replay-head">
-   <div><h2 id="replayHeading">戰鬥重播</h2><p class="hint">載入固定種子的示範戰鬥，或匯入先前匯出的 JSON；可逐事件播放、暫停及跳轉。</p></div>
+   <div><h2 id="replayHeading">戰鬥重播</h2><p class="hint">載入固定種子的示範戰鬥、最近一場實戰，或匯入先前匯出的 JSON；可逐事件播放、暫停及跳轉。</p></div>
    <div class="replay-actions">
     <button id="replayGenerate" type="button">載入示範重播</button>
+    <button id="replayLoadLive" type="button" disabled>載入最近實戰</button>
     <label class="replay-import" for="replayImport">匯入 JSON</label>
     <input id="replayImport" class="replay-file" type="file" accept=".json,application/json">
     <button id="replayExport" type="button" disabled>匯出 JSON</button>
@@ -272,16 +273,18 @@ import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBat
 import { createRuneBoard, findRuneMatches, isAdjacentRuneCells, collapseRuneBoard, hasLegalRuneSwap } from "./runeBoard.js";
 import { simulateRuneEncounter } from "./runeBattleSimulation.js";
 import { createRuneBattleReplay } from "./runeBattleReplay.js";
+import { createLiveBattleRecorder } from "./liveBattleRecorder.js";
 import { createReplayViewerState, seekReplayViewer, stepReplayViewer, setReplayViewerPlaying, advanceReplayViewer, getReplayViewerFrame, describeReplayEvent } from "./replayViewer.js";
 (()=>{
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
 
-let replayViewerState=null,replayTimer=null;
+let replayViewerState=null,replayTimer=null,lastLiveReplay=null;
 function stopReplayTimer(){if(replayTimer!==null){window.clearInterval(replayTimer);replayTimer=null;}}
 function renderReplay(){
  const state=replayViewerState,range=$('replaySeek');
  const controls=['replayPrevious','replayPlay','replayNext','replayExport','replaySeek'];
+ $('replayLoadLive').disabled=!lastLiveReplay;
  if(!state){controls.forEach(id=>$(id).disabled=true);$('replayPosition').textContent='尚未載入';return;}
  const frame=getReplayViewerFrame(state),event=frame.event,description=describeReplayEvent(event);
  const last=state.replay.eventCount-1;
@@ -309,6 +312,9 @@ function toggleReplayPlayback(){
  replayTimer=window.setInterval(()=>{replayViewerState=advanceReplayViewer(replayViewerState);renderReplay();if(!replayViewerState.playing)stopReplayTimer();},650);
 }
 function initializeReplayViewer(){
+ restoreLastLiveReplay();
+ $('replayLoadLive').disabled=!lastLiveReplay;
+ $('replayLoadLive').addEventListener('click',()=>{if(lastLiveReplay)loadReplayData(lastLiveReplay,'最近一場實戰重播已載入');});
  $('replayGenerate').addEventListener('click',()=>{
   try{
    const simulation=simulateRuneEncounter({stageIndex:3,waveIndex:2,seed:20261117,skillPolicy:'greedy',maxTurns:60});
@@ -329,7 +335,7 @@ function initializeReplayViewer(){
   if(!replayViewerState)return;
   const blob=new Blob([JSON.stringify(replayViewerState.replay,null,2)],{type:'application/json'});
   const url=URL.createObjectURL(blob),anchor=document.createElement('a');
-  anchor.href=url;anchor.download='tower-replay-seed-'+replayViewerState.replay.seed+'.json';
+  anchor.href=url;anchor.download=(replayViewerState.replay.source==='live-player'?'tower-live-replay-seed-':'tower-replay-seed-')+replayViewerState.replay.seed+'.json';
   document.body.appendChild(anchor);anchor.click();anchor.remove();window.setTimeout(()=>URL.revokeObjectURL(url),0);
  });
  renderReplay();
@@ -381,6 +387,53 @@ syncSoundToggle();
 let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)}),maxHp=currentTeam.totalHp;
 let skillStates=profile.skillStates,shield=profile.shield,pendingDamageMultiplier=profile.pendingDamageMultiplier;
 let cells=profile.board?[...profile.board]:createBoard(),selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex,battleStats=profile.battleStats;
+
+const LIVE_REPLAY_KEY="tower_of_saviors_live_replay_v1";
+let liveBattleRecorder=null,liveTurnBoardAtStart=null,liveTurnReshuffled=false;
+let pendingReplaySkills=[],pendingReplaySkillHealing=0;
+let liveReplayTotals={totalDamageDealt:0,totalHealingApplied:0,totalHpDamageTaken:0,totalShieldAbsorbed:0};
+function startNewLiveEncounter(){
+ const stage=getCurrentStage(campaign);
+ const encounter=getCurrentEncounter(campaign)||stage.waves[Math.min(campaign.waveIndex,stage.waves.length-1)];
+ liveBattleRecorder=createLiveBattleRecorder({
+  seed:Date.now(),
+  stage:{id:stage.id??String(campaign.stageIndex),name:stage.name,difficulty:stage.difficulty,stageIndex:campaign.stageIndex},
+  encounter:{id:encounter.id,name:encounter.name,emoji:encounter.emoji,element:encounter.element,boss:Boolean(encounter.boss),hp:encounter.hp},
+  team:{
+   cards:currentTeam.cards.map(card=>({id:card.id??card.cardId??card.name,name:card.name,element:card.element,atk:card.atk,hp:card.hp})),
+   attackByElement:{...currentTeam.attackByElement},
+   leaderSkill:currentTeam.leaderSkill??null,
+   totalHp:currentTeam.totalHp
+  }
+ });
+ liveTurnBoardAtStart=[...cells];liveTurnReshuffled=false;
+ pendingReplaySkills=[];pendingReplaySkillHealing=0;
+ liveReplayTotals={totalDamageDealt:0,totalHealingApplied:0,totalHpDamageTaken:0,totalShieldAbsorbed:0};
+}
+function restoreLastLiveReplay(){
+ if(!storage)return;
+ try{
+  const raw=storage.getItem(LIVE_REPLAY_KEY);if(!raw)return;
+  const replay=JSON.parse(raw);createReplayViewerState(replay);lastLiveReplay=replay;
+ }catch(error){console.warn("最近一場實戰重播無法載入：",error);}
+}
+function finishLiveEncounter(status){
+ if(!liveBattleRecorder||liveBattleRecorder.turnsSimulated<1)return;
+ try{
+  lastLiveReplay=liveBattleRecorder.finish(status,{
+   ...liveReplayTotals,
+   enemyHpRemaining:status==="victory"?0:campaign.enemyHp,
+   remainingPartyHp:hp,
+   remainingShield:shield
+  });
+  $("replayLoadLive").disabled=false;
+  if(storage)storage.setItem(LIVE_REPLAY_KEY,JSON.stringify(lastLiveReplay));
+  $("replayStatus").textContent="最近一場實戰已完成，可載入重播。";
+ }catch(error){
+  $("log").textContent+="（實戰重播保存失敗："+error.message+"）";
+ }
+}
+
 function makeSaveSnapshot(){return {...profile,teamIds:[...teamIds],campaign:{...campaign},battleStats:{...battleStats,defeatedEncounterIds:[...battleStats.defeatedEncounterIds],rewards:{...battleStats.rewards}},unlockedStageIndex,hp,score,maxCombo,board:[...cells],skillStates:Object.fromEntries(Object.entries(skillStates).map(([id,state])=>[id,{...state}])),shield,pendingDamageMultiplier,updatedAt:Date.now()};}
 function persist(message="已自動儲存"){
  const snapshot=makeSaveSnapshot(),result=saveGame(snapshot,storage),status=$('saveStatus');
@@ -686,8 +739,12 @@ function useSkill(cardId){
  const entry=profile.inventory.find(item=>item.cardId===cardId),skillLevel=entry?.skillLevel??1;
  const skill=getActiveSkill(cardId,skillLevel);
  if(skill.type==='heal'&&hp>=maxHp)return;
+ const previousHp=hp;
  const result=activateSkill({cardId,skillStates,board:cells,hp,maxHp,shield,damageMultiplier:pendingDamageMultiplier,random:Math.random,skillLevel});
- skillStates=result.skillStates;cells=result.board;hp=result.hp;shield=result.shield;pendingDamageMultiplier=result.damageMultiplier;feedback.playSkill();updateTutorial("skill");
+ skillStates=result.skillStates;cells=result.board;hp=result.hp;shield=result.shield;pendingDamageMultiplier=result.damageMultiplier;
+ pendingReplaySkills.push({name:skill.name,cardId,summary:result.summary,boardAfterSkill:[...cells]});
+ pendingReplaySkillHealing+=Math.max(0,result.hp-previousHp);
+ feedback.playSkill();updateTutorial("skill");
  render();$('log').textContent=result.summary;persist();
 }
 function render(){boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label',t);b.dataset.i=i;b.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return}tap(i)});boardEl.appendChild(b)});stats()}
@@ -704,13 +761,19 @@ function findMatches(){return findRuneMatches(cells)}
 async function swapTry(a,b){
  if(busy||hp<=0||campaign.completed||!adjacent(a,b))return;
  let totalRunesMatched=0,runeScoreEarned=0,hpDamageTaken=0,shieldAbsorbed=0;
+ const boardBeforeMove=[...cells];
  busy=true;[cells[a],cells[b]]=[cells[b],cells[a]];render();
  let matches=findMatches();
  if(!matches.size){await wait(140);[cells[a],cells[b]]=[cells[b],cells[a]];busy=false;render();$('log').textContent='沒有形成消除，符石已換回。';return}
  updateTutorial("match");
- let combo=0,totalDamage=0,totalHeal=0;const damageLines=[];let reshuffled=false;
+ const replayTurn=liveBattleRecorder.turnsSimulated+1;
+ liveBattleRecorder.startTurn({turn:replayTurn,board:liveTurnBoardAtStart??boardBeforeMove,reshuffledBeforeMove:liveTurnReshuffled});
+ pendingReplaySkills.forEach(skill=>liveBattleRecorder.recordSkill(skill));pendingReplaySkills=[];
+ const swappedBoard=[...cells],direction=b-a===1?"right":b-a===-1?"left":b-a===6?"down":"up";
+ liveBattleRecorder.recordSwap({from:a,to:b,direction,boardBeforeMove,swappedBoard});
+ let combo=0,totalDamage=0,totalHeal=0;const damageLines=[],totalRuneCounts={};let reshuffled=false;
  while(matches.size&&combo<12){
-  combo++;totalRunesMatched+=matches.size;const removed=[...matches].map(i=>cells[i]),counts={};removed.forEach(t=>counts[t]=(counts[t]||0)+1);
+  combo++;totalRunesMatched+=matches.size;const cascadeIndices=[...matches],removed=cascadeIndices.map(i=>cells[i]),counts={};removed.forEach(t=>{counts[t]=(counts[t]||0)+1;totalRuneCounts[t]=(totalRuneCounts[t]||0)+1;});
   const target=getCurrentEncounter(campaign)||getCurrentStage(campaign).waves.at(-1);
   const result=calculateCombatResult({counts,combo,enemyElement:target.element,teamAttackByElement:currentTeam.attackByElement,skillMultiplier:pendingDamageMultiplier,comboStepBonus:currentTeam.leaderSkill?.comboStepBonus??0,healingMultiplier:currentTeam.leaderSkill?.healingMultiplier??1});
   totalDamage+=result.damage;totalHeal+=result.healing;
@@ -720,11 +783,17 @@ async function swapTry(a,b){
   feedback.playMatch([...matches],combo);await wait(190);
   matches.forEach(i=>cells[i]=null);render();await wait(40);
   cells=collapseRuneBoard(cells,matches,Math.random);
+  liveBattleRecorder.recordCascade({combo,indices:cascadeIndices,runes:removed,counts,boardAfterRefill:[...cells]});
   render();await wait(120);matches=findMatches();
  }
+ const boardAfterMove=[...cells];
  if(!findMatches().size&&!hasLegalRuneSwap(cells)){cells=createBoard();reshuffled=true;}
  maxCombo=Math.max(maxCombo,combo);hp=Math.min(maxHp,hp+totalHeal);$('combatBreakdown').textContent=damageLines.join('｜');
+ const enemyHpBeforeAttack=campaign.enemyHp;
  const outcome=damageCurrentEnemy(campaign,totalDamage);campaign=outcome.state;
+ liveReplayTotals.totalDamageDealt+=Math.round(totalDamage);
+ liveReplayTotals.totalHealingApplied+=Math.round(totalHeal+pendingReplaySkillHealing);
+ liveBattleRecorder.recordPlayerAction({combo,matchedRuneCount:totalRunesMatched,runeCounts:{...totalRuneCounts},damage:Math.round(totalDamage),healing:Math.round(totalHeal),skillHealing:Math.round(pendingReplaySkillHealing),enemyHpBeforeAttack,enemyHpAfterTurn:outcome.defeated?0:campaign.enemyHp});
  if(totalDamage>0){if(outcome.defeated)feedback.playVictory();else feedback.playHit();}
  if(totalHeal>0)feedback.playHeal();
  if(outcome.defeated){
@@ -749,6 +818,7 @@ async function swapTry(a,b){
   const adjustedIncomingDamage=Math.ceil(enemyTurn.incomingDamage*(1-leaderDamageReduction));
   const mitigation=mitigateIncomingDamage(adjustedIncomingDamage,shield,enemyTurn.intent.shieldPierce,enemyTurn.intent.hits??1);
   hpDamageTaken=mitigation.hpDamage;shieldAbsorbed=mitigation.shieldDamage;shield=mitigation.remainingShield;hp=Math.max(0,hp-mitigation.hpDamage);
+  liveBattleRecorder.recordEnemyAction({action:enemyTurn.intent,adjustedIncomingDamage,hpDamageTaken,shieldAbsorbed,partyHpAfterTurn:hp});
   const shieldText=mitigation.shieldDamage?'護盾吸收 '+mitigation.shieldDamage+' 點。':'';
   const pierceText=mitigation.piercingDamage?'其中 '+mitigation.piercingDamage+' 點穿透護盾。':'';
   const leaderReductionText=leaderDamageReduction>0?'隊長技能減傷 '+Math.round(leaderDamageReduction*100)+'%。':'';
@@ -768,19 +838,25 @@ async function swapTry(a,b){
   $('log').textContent+=' 隊伍獲得 '+expReward+' EXP；升級：'+summary+'。';
  }else $('log').textContent+=' 隊伍全員獲得 '+expReward+' EXP。';
  skillStates=advanceSkillCooldowns(skillStates);if(totalDamage>0)pendingDamageMultiplier=1;
+ liveReplayTotals.totalHpDamageTaken+=hpDamageTaken;liveReplayTotals.totalShieldAbsorbed+=shieldAbsorbed;
+ liveBattleRecorder.endTurn({boardAfterMove,boardAfterTurn:[...cells],reshuffledAfterMove:reshuffled,partyHpAfterTurn:hp,shieldAfterTurn:shield,cooldownsAfterTurn:Object.fromEntries(Object.entries(skillStates).map(([id,state])=>[id,state.remaining])),reshuffleCount:reshuffled?1:0});
+ pendingReplaySkillHealing=0;
  busy=false;renderTeam();render();renderInventory();persist();
+ if(outcome.defeated){finishLiveEncounter("victory");if(!outcome.stageCompleted)startNewLiveEncounter();}
+ else if(hp<=0)finishLiveEncounter("party-defeated");
+ else{liveTurnBoardAtStart=[...cells];liveTurnReshuffled=reshuffled;}
 }
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function reset(){
  campaign=createCampaignState();cells=createBoard();battleStats=createBattleStats(campaign.stageIndex);
  selected=-1;dragFrom=-1;dragPointerId=null;busy=false;hp=maxHp;score=0;maxCombo=0;
- skillStates=createSkillStates(teamIds);shield=0;pendingDamageMultiplier=1;
+ skillStates=createSkillStates(teamIds);shield=0;pendingDamageMultiplier=1;startNewLiveEncounter();
  $('combatBreakdown').textContent='傷害計算明細會顯示在這裡。';$('log').textContent='新旅程開始！找出三顆以上相同符石。';render();persist("新旅程已儲存");
 }
 function nextStage(){
  if(!campaign.completed)return;
  if(campaign.campaignComplete){reset();return}
- campaign=advanceCampaignStage(campaign);battleStats=createBattleStats(campaign.stageIndex);selected=-1;shield=0;pendingDamageMultiplier=1;
+ campaign=advanceCampaignStage(campaign);battleStats=createBattleStats(campaign.stageIndex);selected=-1;shield=0;pendingDamageMultiplier=1;startNewLiveEncounter();
  $('log').textContent='進入 '+getCurrentStage(campaign).name+'！新的敵人正在前方等待。';$('combatBreakdown').textContent='新關卡開始。';render();persist();
 }
 $('tutorialAdvance').addEventListener('click',()=>updateTutorial("next",true));$('tutorialSkip').addEventListener('click',finishTutorial);
@@ -790,7 +866,7 @@ $('tutorialAdvance').addEventListener('click',()=>updateTutorial("next",true));$
 $('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);feedback.playHeal();$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
 $('codexSearch').addEventListener('input',renderCodex);
  ['codexElementFilter','codexRarityFilter','codexOwnershipFilter','codexEvolutionFilter'].forEach(id=>$(id).addEventListener('change',renderCodex));
- initializeReplayViewer();initializeEnemyCodex();renderTeam();renderInventory();render();renderTutorial();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
+ startNewLiveEncounter();initializeReplayViewer();initializeEnemyCodex();renderTeam();renderInventory();render();renderTutorial();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
 })();
 </script>
 </body>
