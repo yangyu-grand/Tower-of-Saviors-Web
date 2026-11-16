@@ -28,3 +28,5 @@ jobs:
         run: npm run balance:report
       - name: Run representative active-skill scenarios
         run: npm run balance:scenarios
+      - name: Run full party composition balance sweep
+        run: npm run balance:parties

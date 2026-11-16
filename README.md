@@ -10,6 +10,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Run unit and real-browser tests with `npm test`.
 - Generate a deterministic chapter/encounter balance baseline with `npm run balance:report`.
 - Compare active-skill cooldowns and three representative match distributions with `npm run balance:scenarios`.
+- Sweep every cost-valid leader/four-member lineup across all twelve encounters with `npm run balance:parties`.
 - Serve the project root with a static server because browser ES modules may not work from a `file://` URL. Example: `python3 -m http.server 8000`, then open `http://localhost:8000`.
 
 ## Implemented
@@ -26,6 +27,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Four original stages with twelve encounters, named enemy attacks, telegraphed heavy strikes, multi-hit attacks with per-hit shield mitigation, a self-healing support enemy, and a two-phase fourth-chapter boss with escalating specials and enrage thresholds.
 - A deterministic campaign balance simulator that reuses live team, leader-skill, elemental, Combo, enemy-phase, support-healing, shield, and damage-reduction rules across all twelve encounters.
 - A representative scenario simulator for steady, balanced, and high-Combo rune matches, including active-skill effects, per-card cooldown timing, healing, conversion, shields, and damage boosts.
+- A party-composition balance sweep that enumerates every cost-valid leader/four-member lineup from the 15-card catalog and evaluates all twelve encounters using shared team, combat, enemy-turn, and skill-cooldown rules.
 - Searchable enemy codex for all twelve encounters, with chapter/element/role filters and data-driven attack, support, special-skill, and boss-phase details.
 - Enemy intent previews, wave transitions, stage-clear rewards, and campaign completion.
 - A ten-card starter inventory plus five original summon-only characters across three rarity tiers; owned-card-only team selection.
@@ -73,10 +75,16 @@ This baseline is a repeatable balancing aid, not a player win-rate prediction: i
 
 Run `npm run balance:scenarios` to compare three deterministic match profiles across all twelve encounters. The steady profile uses a single three-rune match without active skills; balanced and high-Combo profiles include heart matches, cascades, and a round-robin skill schedule. Skill cooldowns use the live `advanceSkillCooldowns()` rule, including the rule that a newly activated skill does not tick down on that same turn. Conversion scenarios assume the player matches the converted target group; they are not a physics or random-board simulation.
 
+## Party composition balance report
+
+Run `npm run balance:parties` to enumerate all ordered leader choices and unordered four-card member groups that satisfy the configured team cost cap. With the current 15-card catalog and default cost limit of 30, the report evaluates 6,055 valid lineups against all 12 campaign encounters. It ranks the strongest and weakest representative lineups by victories, average turns to defeat, and average HP damage taken. The first card supplies the leader skill; the remaining four cards retain catalog order. Card levels, evolution levels, skill levels, match distribution, initial shield, turn limit, and output ranking limit can be supplied to `buildPartyBalanceReport()`.
+
+This is a deterministic roster-comparison tool, not a random-board simulation or player win-rate prediction. Match profiles assume the selected rune groups are successfully matched, and the skill scheduler uses a cooldown-aware round-robin policy rather than an optimal player policy.
+
 ## Next priorities
 
 1. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium now covers desktop browser flows and mobile viewport/touch-event emulation in CI.
-2. Use the new scenario matrix to compare team/skill combinations before tuning encounter values; complete physical-device QA remains outstanding.
+2. Review the full party-composition report and use its weakest encounters to target future team/skill balance tests before changing combat values.
 
 ## Project structure
 
@@ -88,9 +96,12 @@ Run `npm run balance:scenarios` to compare three deterministic match profiles ac
 - `enemyCodex.js` — searchable/filterable enemy catalog derived directly from the campaign source of truth.
 - `balance.js` — deterministic per-encounter and full-campaign balance simulation using the same combat, team, and enemy-turn modules.
 - `balanceScenarios.js` — active-skill cooldown-aware simulations and representative match-distribution reports.
+- `partyBalance.js` — exhaustive cost-valid party enumeration and twelve-encounter composition ranking.
 - `scripts/balance-report.js` — command-line campaign balance report.
 - `scripts/balance-scenarios.js` — command-line representative scenario matrix.
+- `scripts/party-balance-report.js` — command-line full party-composition sweep.
 - `tests/balance-scenarios.test.js` — active-skill timing, cooldown, conversion, shield, healing, and match-distribution tests.
+- `tests/party-balance.test.js` — lineup enumeration, cost filtering, leader-slot coverage, deterministic encounter reports, and progression-stat tests.
 - `tests/balance.test.js` — deterministic baseline, elemental matchup, support-healing, Boss-phase, shield, and campaign-report tests.
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
