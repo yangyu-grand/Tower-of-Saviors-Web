@@ -108,6 +108,32 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 @media(max-width:520px){.tutorial-actions{align-items:stretch}.tutorial-actions .hint{min-width:100%}.tutorial-actions button{width:100%}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 
+
+.replay-panel{margin-top:14px}
+.replay-head,.replay-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.replay-head h2{margin:0;color:var(--gold);font-size:20px}
+.replay-head p{margin:5px 0 0}
+.replay-actions{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.replay-actions button,.replay-toolbar button{padding:9px 12px}
+.replay-import{display:inline-flex;align-items:center;justify-content:center;min-height:38px;padding:9px 12px;border-radius:12px;background:#334564;color:#f7f4ec;border:1px solid #65789a;font-size:13px;font-weight:800;cursor:pointer}
+.replay-import:focus-within{outline:3px solid #fff;outline-offset:2px}
+.replay-file{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
+.replay-toolbar{justify-content:flex-start;margin-top:14px;padding:10px;background:#080f20aa;border-radius:12px}
+.replay-range{display:flex;align-items:center;gap:8px;flex:1;min-width:180px;color:var(--muted);font-size:12px}
+.replay-range input{width:100%;min-width:80px;accent-color:var(--gold)}
+.replay-position{min-width:110px;color:#f6d58b;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
+.replay-layout{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(220px,.95fr);gap:12px;margin-top:12px;align-items:start}
+.replay-board-wrap,.replay-event{min-width:0;padding:12px;background:#080f20aa;border:1px solid #52658b55;border-radius:13px}
+.replay-board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:7px;background:#070d1b;border-radius:11px}
+.replay-orb{min-width:0;aspect-ratio:1;border:1px solid #ffffff45;border-radius:50%;display:grid;place-items:center;font-size:clamp(17px,3.4vw,27px);box-shadow:inset 0 2px 5px #fff4,inset 0 -5px 8px #0006}
+.replay-board-caption,.replay-metadata,.replay-status{color:var(--muted);font-size:12px;line-height:1.6}
+.replay-board-caption{margin:8px 0 0}
+.replay-event h3{margin:0;color:var(--gold);font-size:17px}
+.replay-event p{margin:8px 0 0;color:#d4deef;font-size:13px;line-height:1.7;overflow-wrap:anywhere}
+.replay-metadata{margin-top:10px;padding-top:9px;border-top:1px solid #52658b55}
+.replay-status{margin:10px 0 0;min-height:20px}
+@media(max-width:680px){.replay-layout{grid-template-columns:1fr}.replay-board-wrap{width:100%}.replay-board{max-width:440px;margin:auto}.replay-position{text-align:left}.replay-range{flex-basis:100%;order:3}}
+
 </style>
 </head>
 <body>
@@ -201,6 +227,31 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
    <div class="result-actions"><button id="resultContinue" type="button">前往下一關</button><button id="resultDismiss" class="result-secondary" type="button">稍後再說</button></div>
   </div>
  </section>
+ 
+ <section class="panel replay-panel" aria-labelledby="replayHeading">
+  <div class="replay-head">
+   <div><h2 id="replayHeading">戰鬥重播</h2><p class="hint">載入固定種子的示範戰鬥，或匯入先前匯出的 JSON；可逐事件播放、暫停及跳轉。</p></div>
+   <div class="replay-actions">
+    <button id="replayGenerate" type="button">載入示範重播</button>
+    <label class="replay-import" for="replayImport">匯入 JSON</label>
+    <input id="replayImport" class="replay-file" type="file" accept=".json,application/json">
+    <button id="replayExport" type="button" disabled>匯出 JSON</button>
+   </div>
+  </div>
+  <div class="replay-toolbar" aria-label="重播控制">
+   <button id="replayPrevious" type="button" disabled>上一事件</button>
+   <button id="replayPlay" type="button" disabled>播放</button>
+   <button id="replayNext" type="button" disabled>下一事件</button>
+   <label class="replay-range">時間軸<input id="replaySeek" type="range" min="0" max="0" value="0" disabled></label>
+   <output id="replayPosition" class="replay-position">尚未載入</output>
+  </div>
+  <div class="replay-layout">
+   <div class="replay-board-wrap"><div id="replayBoard" class="replay-board" aria-label="重播符石盤"></div><p id="replayBoardCaption" class="replay-board-caption">載入重播後顯示最近一次完整盤面快照。</p></div>
+   <div class="replay-event" aria-live="polite"><h3 id="replayEventTitle">尚未載入重播</h3><p id="replayEventDetails">事件內容會顯示符石交換、Combo、傷害、回復與敵人行動。</p><p id="replayMetadata" class="replay-metadata"></p></div>
+  </div>
+  <p id="replayStatus" class="replay-status" role="status" aria-live="polite">尚未載入重播。</p>
+ </section>
+
  <footer>獨立原創原型；角色、圖像與名稱皆為暫用原創素材。</footer>
 </main>
 <script type="module">
@@ -219,9 +270,71 @@ import { createBattleFeedback } from "./battleFeedback.js";
 import { TUTORIAL_STEPS, loadTutorialProgress, saveTutorialProgress, getTutorialStep, advanceTutorial, skipTutorial } from "./tutorial.js";
 import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBattleStats, dismissBattleResult as markBattleResultDismissed, buildBattleResult } from "./battleResults.js";
 import { createRuneBoard, findRuneMatches, isAdjacentRuneCells, collapseRuneBoard, hasLegalRuneSwap } from "./runeBoard.js";
+import { simulateRuneEncounter } from "./runeBattleSimulation.js";
+import { createRuneBattleReplay } from "./runeBattleReplay.js";
+import { createReplayViewerState, seekReplayViewer, stepReplayViewer, setReplayViewerPlaying, advanceReplayViewer, getReplayViewerFrame, describeReplayEvent } from "./replayViewer.js";
 (()=>{
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
+
+let replayViewerState=null,replayTimer=null;
+function stopReplayTimer(){if(replayTimer!==null){window.clearInterval(replayTimer);replayTimer=null;}}
+function renderReplay(){
+ const state=replayViewerState,range=$('replaySeek');
+ const controls=['replayPrevious','replayPlay','replayNext','replayExport','replaySeek'];
+ if(!state){controls.forEach(id=>$(id).disabled=true);$('replayPosition').textContent='尚未載入';return;}
+ const frame=getReplayViewerFrame(state),event=frame.event,description=describeReplayEvent(event);
+ const last=state.replay.eventCount-1;
+ range.min='0';range.max=String(last);range.value=String(state.index);range.disabled=false;
+ $('replayPrevious').disabled=state.index===0;$('replayNext').disabled=state.index===last;
+ $('replayPlay').disabled=last===0;$('replayPlay').textContent=state.playing?'暫停':'播放';
+ $('replayExport').disabled=false;
+ $('replayPosition').textContent='事件 '+(state.index+1)+' / '+state.replay.eventCount+' · 第 '+event.turn+' 回合';
+ $('replayEventTitle').textContent=description.title;$('replayEventDetails').textContent=description.detail;
+ $('replayMetadata').textContent=(state.replay.stage.name??'未知章節')+'／'+(state.replay.encounter.name??'未知敵人')+' · 種子 '+state.replay.seed+' · '+state.replay.status;
+ const boardEl=$('replayBoard');boardEl.innerHTML='';
+ if(frame.board){frame.board.forEach((rune,index)=>{const cell=document.createElement('div');cell.className='replay-orb '+rune;cell.textContent=icons[rune]??'？';cell.setAttribute('aria-label','第 '+(index+1)+' 格 '+(elementNames[rune]??rune));boardEl.appendChild(cell);});}
+ $('replayBoardCaption').textContent=frame.board?'事件 '+(state.index+1)+' 的最近完整盤面快照。':'此事件之前尚無盤面快照。';
+ $('replayStatus').textContent='已載入 '+(state.replay.encounter.name??'戰鬥重播')+'，共 '+state.replay.eventCount+' 個事件。';
+}
+function loadReplayData(replay,sourceLabel){
+ stopReplayTimer();replayViewerState=createReplayViewerState(replay);renderReplay();
+ $('replayStatus').textContent=sourceLabel+'：'+(replayViewerState.replay.encounter.name??'戰鬥重播')+'，共 '+replayViewerState.replay.eventCount+' 個事件。';
+}
+function toggleReplayPlayback(){
+ if(!replayViewerState)return;
+ if(replayViewerState.playing){stopReplayTimer();replayViewerState=setReplayViewerPlaying(replayViewerState,false);renderReplay();return;}
+ if(replayViewerState.index>=replayViewerState.replay.eventCount-1)replayViewerState=seekReplayViewer(replayViewerState,0);
+ replayViewerState=setReplayViewerPlaying(replayViewerState,true);renderReplay();
+ replayTimer=window.setInterval(()=>{replayViewerState=advanceReplayViewer(replayViewerState);renderReplay();if(!replayViewerState.playing)stopReplayTimer();},650);
+}
+function initializeReplayViewer(){
+ $('replayGenerate').addEventListener('click',()=>{
+  try{
+   const simulation=simulateRuneEncounter({stageIndex:3,waveIndex:2,seed:20261117,skillPolicy:'greedy',maxTurns:60});
+   loadReplayData(createRuneBattleReplay(simulation),'示範重播已載入');
+  }catch(error){$('replayStatus').textContent='示範重播產生失敗：'+error.message;}
+ });
+ $('replayPlay').addEventListener('click',toggleReplayPlayback);
+ $('replayPrevious').addEventListener('click',()=>{if(!replayViewerState)return;stopReplayTimer();replayViewerState=stepReplayViewer(replayViewerState,-1);renderReplay();});
+ $('replayNext').addEventListener('click',()=>{if(!replayViewerState)return;stopReplayTimer();replayViewerState=stepReplayViewer(replayViewerState,1);renderReplay();});
+ $('replaySeek').addEventListener('input',event=>{if(!replayViewerState)return;stopReplayTimer();replayViewerState=seekReplayViewer(replayViewerState,Number(event.target.value));renderReplay();});
+ $('replayImport').addEventListener('change',async event=>{
+  const file=event.target.files?.[0];if(!file)return;
+  try{const replay=JSON.parse(await file.text());loadReplayData(replay,'匯入成功');}
+  catch(error){$('replayStatus').textContent='匯入失敗：'+error.message;}
+  finally{event.target.value='';}
+ });
+ $('replayExport').addEventListener('click',()=>{
+  if(!replayViewerState)return;
+  const blob=new Blob([JSON.stringify(replayViewerState.replay,null,2)],{type:'application/json'});
+  const url=URL.createObjectURL(blob),anchor=document.createElement('a');
+  anchor.href=url;anchor.download='tower-replay-seed-'+replayViewerState.replay.seed+'.json';
+  document.body.appendChild(anchor);anchor.click();anchor.remove();window.setTimeout(()=>URL.revokeObjectURL(url),0);
+ });
+ renderReplay();
+}
+
 const storage=(()=>{try{return window.localStorage}catch{return null}})();
 const loaded=loadSave(storage);
 const tutorialLoaded=loadTutorialProgress(storage);
@@ -677,7 +790,7 @@ $('tutorialAdvance').addEventListener('click',()=>updateTutorial("next",true));$
 $('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);feedback.playHeal();$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
 $('codexSearch').addEventListener('input',renderCodex);
  ['codexElementFilter','codexRarityFilter','codexOwnershipFilter','codexEvolutionFilter'].forEach(id=>$(id).addEventListener('change',renderCodex));
- initializeEnemyCodex();renderTeam();renderInventory();render();renderTutorial();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
+ initializeReplayViewer();initializeEnemyCodex();renderTeam();renderInventory();render();renderTutorial();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
 })();
 </script>
 </body>

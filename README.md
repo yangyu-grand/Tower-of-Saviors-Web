@@ -104,11 +104,11 @@ The greedy policy chooses the highest-utility legal swap and at most one useful 
 
 Run `npm run replay:sample` to generate a deterministic event timeline for a seeded encounter. The replay stores the board at turn start, the board after active-skill effects, the selected adjacent swap, every cascade's matched cell indices and post-refill board, player damage/healing, enemy response, cooldowns, shields, and the board carried into the next turn. Replay schema version 1 is JSON-serializable and can be validated or queried by event index without rerunning combat.
 
-The replay is derived from the simulator's exact seeded refill stream; it does not approximate cascade frames or infer match positions from summary counts. It is a data layer for a future browser replay viewer, not yet an interactive playback UI.
+The replay is derived from the simulator's exact seeded refill stream; it does not approximate cascade frames or infer match positions from summary counts. The browser includes an interactive replay viewer with play/pause, previous/next event stepping, timeline seeking, exact 6 × 5 board snapshots, and validated JSON import/export. A fixed-seed Boss sample can be generated in the page; imported replay files are schema-validated before they replace the current viewer state. The viewer currently displays simulator-generated or imported replays; it does not yet capture a live human-controlled battle.
 
 ## Next priorities
 
-1. Expose the validated replay timeline in the browser UI with step/seek controls and compare greedy, random-legal, and conservative player policies before changing encounter values.
+1. Capture replay events from live human-controlled battles, then compare greedy, random-legal, and conservative player policies before changing encounter values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
 
 ## Project structure
@@ -126,6 +126,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `runeMoveAnalysis.js` — deterministic evaluation of all legal adjacent swaps using the shared team and combat rules.
 - `runeBattleSimulation.js` — seeded board-driven encounter turns with active skills, enemy responses, boss phases, shields, and HP tracking.
 - `runeBattleReplay.js` — validated, JSON-serializable battle event timelines with exact cascade board snapshots.
+- `replayViewer.js` — validated replay-viewer state, bounded step/seek/playback transitions, board-snapshot lookup, and localized event summaries.
 - `scripts/rune-battle-replay-report.js` — deterministic sample replay timeline report.
 - `scripts/balance-report.js` — command-line campaign balance report.
 - `scripts/balance-scenarios.js` — command-line representative scenario matrix.
@@ -138,6 +139,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `tests/rune-move-analysis.test.js` — deterministic move ranking, team/element modifiers, heart healing, and board-sample reports.
 - `tests/rune-battle-simulation.test.js` — seeded encounter turns, enemy responses, boss phases, active skills, and campaign reports.
 - `tests/rune-battle-replay.test.js` — replay snapshot integrity, event ordering, deterministic serialization, and safe event seeking.
+- `tests/replay-viewer.test.js` — replay viewer state, step/seek bounds, playback completion, detached board snapshots, and event summaries.
 - `tests/balance.test.js` — deterministic baseline, elemental matchup, support-healing, Boss-phase, shield, and campaign-report tests.
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
@@ -148,7 +150,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `battleFeedback.js` — reduced-motion-aware visual feedback and opt-in synthesized audio.
 - `tutorial.js` — versioned first-run tutorial steps, event-gated progression, and independent browser-storage persistence.
 - `battleResults.js` — validated per-stage combat statistics, idempotent encounter reward accounting, and resumable stage-clear summaries.
-- `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, and responsive/touch behavior.
+- `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, replay playback/import/export, and responsive/touch behavior.
 - `tests/browser-script.test.js` — embedded browser-module syntax and UI integration checks.
 - `tests/battle-feedback.test.js` — opt-in audio, unsupported-audio fallback, animation hooks, and reduced-motion tests.
 - `tests/tutorial.test.js` — tutorial progression, event gates, skip behavior, and storage validation tests.
