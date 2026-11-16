@@ -372,7 +372,7 @@ function renderEnemyCodex(){
   const attackTitle=document.createElement('b');attackTitle.textContent='基本攻擊 · '+({single:'一般攻擊',heavy:'蓄力重擊',multi:'多段攻擊'}[entry.attackPattern.type]||'攻擊');
   const attackDescription=document.createElement('p');attackDescription.textContent=entry.attackPattern.name+' · '+(entry.attackEvery>1?'每 '+entry.attackEvery+' 回合（重擊會提前預告）':'每回合')+' · '+entry.attack+' 傷害'+(entry.attackPattern.hits>1?' · '+entry.attackPattern.hits+' 段':'');
   attack.append(attackTitle,attackDescription);tile.append(head,stage,stats,attack);
-  if(entry.special){
+  if(entry.special&&!entry.phases.length){
    const special=document.createElement('div');special.className='enemy-codex-detail';
    const title=document.createElement('b');title.textContent='特殊技能 · '+entry.special.name;
    const description=document.createElement('p');description.textContent='每 '+entry.special.every+' 回合 · '+entry.special.damage+' 傷害 · '+(entry.special.hits??1)+' 段 · 護盾穿透 '+Math.round((entry.special.shieldPierce??0)*100)+'%';
@@ -391,7 +391,7 @@ function renderEnemyCodex(){
    entry.phases.forEach((phase,index)=>{
     const next=entry.phases[index+1],threshold=index===0&&next?'HP > '+Math.round(next.at*100)+'%':'HP ≤ '+Math.round(phase.at*100)+'%';
     const parts=[phase.attackPattern.name+' · 每 '+phase.attackEvery+' 回合'];
-    if(phase.special)parts.push(phase.special.name+'：'+phase.special.damage+' 傷害 · '+(phase.special.hits??1)+' 段');
+    if(phase.special)parts.push(phase.special.name+'：'+phase.special.damage+' 傷害 · '+(phase.special.hits??1)+' 段 · 護盾穿透 '+Math.round((phase.special.shieldPierce??0)*100)+'%');
     if(Number.isFinite(phase.enrageAt)&&(!next||phase.enrageAt>next.at))parts.push('狂暴 HP ≤ '+Math.round(phase.enrageAt*100)+'% · '+phase.enrageMultiplier+'×');
     const line=document.createElement('p');line.className='enemy-codex-phase';line.textContent=phase.name+'（'+threshold+'）· '+parts.join('；');
     phases.appendChild(line);
