@@ -129,6 +129,10 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
 
   await page.goto(url, { waitUntil: "networkidle" });
   assert.equal(await page.title(), "符石遠征｜Puzzle RPG");
+  assert.equal(await page.locator("#tutorialPanel").isVisible(), true, "a first-time player should see the onboarding tutorial");
+  assert.match(await page.locator("#tutorialTitle").innerText(), /歡迎/);
+  await page.locator("#tutorialAdvance").click();
+  assert.ok((await page.locator("#board").getAttribute("class")).includes("tutorial-target"), "the rune board should be highlighted during the match lesson");
   assert.equal(await page.locator("#board .orb").count(), 30, "the 6 × 5 rune board should render");
   assert.equal(await page.locator("#codexGrid .codex-card").count(), 15, "all original cards should appear in the codex");
 
@@ -163,11 +167,19 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   }, null, { timeout: 10000 });
   const scoreAfterMatch = Number(await page.locator("#score").innerText());
   assert.ok(scoreAfterMatch > 0, "a real pointer drag should resolve a rune match and award score");
+  await page.waitForFunction(() => document.querySelector("#tutorialTitle").textContent.includes("Combo"));
+  await page.locator("#tutorialAdvance").click();
+  assert.ok((await page.locator("#skillButtons").getAttribute("class") || "").includes("tutorial-target"), "the active-skill area should be highlighted");
+  await page.locator("#skillButtons button:not(:disabled)").first().click();
+  await page.waitForFunction(() => document.querySelector("#tutorialTitle").textContent.includes("隊伍編組"));
+  for (let step = 0; step < 4; step += 1) await page.locator("#tutorialAdvance").click();
+  assert.equal(await page.locator("#tutorialPanel").isVisible(), false, "finishing the final lesson should dismiss the tutorial");
 
   await page.locator("#saveNow").click();
   await page.waitForFunction(() => document.querySelector("#saveStatus").textContent.includes("手動儲存"));
   await page.reload({ waitUntil: "networkidle" });
   await page.waitForFunction(() => document.querySelector("#saveStatus").textContent.includes("已載入上次遊戲進度"));
+  assert.equal(await page.locator("#tutorialPanel").isVisible(), false, "completed tutorial progress should survive a reload");
   assert.equal(Number(await page.locator("#score").innerText()), scoreAfterMatch, "the post-match score should survive a reload");
 
   const mobileContext = await browser.newContext({
