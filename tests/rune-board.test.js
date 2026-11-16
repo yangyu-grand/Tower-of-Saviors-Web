@@ -58,11 +58,11 @@ test("adjacency rejects row wrapping, diagonals, self-swaps, and out-of-range in
 });
 
 test("gravity preserves survivor order and fills only cleared cells", () => {
-  const board = Array.from({ length: 30 }, (_, index) => RUNE_TYPES[index % RUNE_TYPES.length]);
+  const board = fallbackBoard();
   const original = [...board];
   const collapsed = collapseRuneBoard(board, [0, 12], () => 0.99);
-  assert.deepEqual(collapsed.slice(0, 30).filter((_, index) => index % 6 === 0), [
-    "heart", "heart", "water", "light", "dark"
+  assert.deepEqual(collapsed.filter((_, index) => index % 6 === 0), [
+    "heart", "heart", "water", "water", "wood"
   ]);
   for (let index = 0; index < board.length; index += 1) {
     if (index % 6 !== 0) assert.equal(collapsed[index], original[index]);
@@ -99,5 +99,6 @@ test("invalid board and random configurations fail with explicit errors", () => 
   assert.throws(() => findRuneMatches([]), /exactly 30 cells/);
   assert.throws(() => createRuneBoard({ random: () => 1 }), /\[0, 1\)/);
   assert.throws(() => createRuneBoard({ maxAttempts: 0 }), /maxAttempts/);
-  assert.throws(() => resolveRuneSwap(fallbackBoard(), 0, 30), /maxCascades|random/);
+  assert.equal(resolveRuneSwap(fallbackBoard(), 0, 30).reason, "not-adjacent");
+  assert.throws(() => resolveRuneSwap(fallbackBoard(), 0, 1, { maxCascades: 0 }), /maxCascades/);
 });
