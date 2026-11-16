@@ -29,13 +29,14 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Card progression up to level 99, with battle EXP distributed to the active five-card team and gold-funded one-level training for any owned card.
 - Card HP and ATK grow by 2.5% per level; leveled team stats feed into party HP, elemental attack, leader-skill calculations, and save validation.
 - Duplicate copies can be consumed with gold to enhance a card's active skill up to skill level 5; damage boosts, rune conversion counts, shields, healing, and level-5 cooldowns improve with skill level.
-- Versioned local saves (version 3) persist skill levels, evolution, materials, inventory, team, campaign/wave, rune board, HP, score, shields, and active-skill cooldowns; older version-1/version-2 saves are migrated without discarding existing progression.
+- Versioned local saves (version 4) persist skill levels, evolution, materials, inventory, team, campaign/wave, rune board, HP, score, shields, active-skill cooldowns, and per-stage battle-result statistics; version-1/version-2/version-3 saves migrate without discarding existing progression.
 - Automatic checkpoint saves after stable gameplay actions plus a manual save control; invalid saves fall back safely without deleting the stored data.
 - Team cost validation, team HP aggregation, element-specific attack totals, and data-driven leader skills for all 15 original cards.
 - Party attack stats are applied to matched-rune damage; extra runes beyond three add a small bonus.
 - Responsive layout for narrow screens.
 - Opt-in, synthesized Web Audio feedback and reduced-motion-aware battle animations; no external audio or art assets are required.
 - First-run onboarding tutorial covering rune matching, cascading Combo, active skills, five-card party formation, inventory progression, and summoning; tutorial completion/skip is stored separately from the game save, and existing saved profiles are not interrupted.
+- Persistent stage-clear result screen with per-stage turn, Combo, damage, healing, mitigation, EXP, score, and cumulative reward summaries; rewards are credited during combat and are never claimed again from the result screen.
 - Deterministic Node.js unit tests plus Playwright Chromium end-to-end coverage for game boot, onboarding progression, rune dragging and matching, codex filters, save/reload persistence, sound controls, mobile layout emulation, and reduced-motion preference.
 
 ## Original prototype combat rules
@@ -63,7 +64,7 @@ These are original prototype rules and are intentionally data-driven so they can
 
 1. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium now covers desktop browser flows and mobile viewport/touch-event emulation in CI.
 2. Expand campaign content and balance leader, active-skill, and boss values.
-3. Add more enemy attack patterns and a battle-result screen with a clear reward summary.
+3. Add more enemy attack patterns, extend campaign chapters, and tune encounter difficulty using the new per-stage battle statistics.
 
 ## Project structure
 
@@ -80,6 +81,7 @@ These are original prototype rules and are intentionally data-driven so they can
 - `codex.js` — searchable card catalog and element, rarity, ownership, and evolution filters.
 - `battleFeedback.js` — reduced-motion-aware visual feedback and opt-in synthesized audio.
 - `tutorial.js` — versioned first-run tutorial steps, event-gated progression, and independent browser-storage persistence.
+- `battleResults.js` — validated per-stage combat statistics, idempotent encounter reward accounting, and resumable stage-clear summaries.
 - `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, and responsive/touch behavior.
 - `tests/browser-script.test.js` — embedded browser-module syntax and UI integration checks.
 - `tests/battle-feedback.test.js` — opt-in audio, unsupported-audio fallback, animation hooks, and reduced-motion tests.

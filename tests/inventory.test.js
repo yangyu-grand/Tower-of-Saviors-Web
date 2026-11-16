@@ -140,10 +140,11 @@ test("legacy saves without summon state migrate with zero summon history", () =>
 test("version-1 saves migrate to version 3 with skill level one and base evolution for every card", () => {
   const legacy = createDefaultSave();
   legacy.version = 1;
+  delete legacy.battleStats;
   delete legacy.materials;
   legacy.inventory.forEach((entry) => { delete entry.skillLevel; delete entry.evolutionLevel; });
   const migrated = normalizeSave(legacy);
-  assert.equal(migrated.version, 3);
+  assert.equal(migrated.version, 4);
   assert.ok(migrated.inventory.every((entry) => entry.skillLevel === 1 && entry.evolutionLevel === 0));
   assert.deepEqual(migrated.materials, { awakeningShards: 0, prismCores: 0 });
 });
@@ -161,10 +162,11 @@ test("summon pity state is validated and bounded below the guaranteed pull", () 
 test("version-2 saves migrate to version 3 with zero evolution materials and base card forms", () => {
   const legacy = createDefaultSave();
   legacy.version = 2;
+  delete legacy.battleStats;
   delete legacy.materials;
   legacy.inventory.forEach((entry) => { delete entry.evolutionLevel; });
   const migrated = normalizeSave(legacy);
-  assert.equal(migrated.version, 3);
+  assert.equal(migrated.version, 4);
   assert.deepEqual(migrated.materials, { awakeningShards: 0, prismCores: 0 });
   assert.ok(migrated.inventory.every((entry) => entry.evolutionLevel === 0));
 });
@@ -178,4 +180,31 @@ test("evolution materials are validated and can be added without mutating the in
   const invalid = createDefaultSave();
   invalid.materials.prismCores = -1;
   assert.throws(() => normalizeSave(invalid), /prismCores/);
+});
+
+
+test("version-3 saves migrate to version 4 with a fresh per-stage battle summary", () => {
+  const legacy = createDefaultSave();
+  legacy.version = 3;
+  delete legacy.battleStats;
+  const migrated = normalizeSave(legacy);
+  assert.equal(migrated.version, 4);
+  assert.equal(migrated.battleStats.stageIndex, 0);
+  assert.equal(migrated.battleStats.turns, 0);
+  assert.equal(migrated.battleStats.stageCompleted, false);
+});
+
+test("legacy completed-stage saves migrate without inventing a result or losing campaign progress", () => {
+  const legacy = createDefaultSave();
+  legacy.version = 3;
+  delete legacy.battleStats;
+  legacy.campaign = { stageIndex: 0, waveIndex: 2, turn: 5, enemyHp: 0, completed: true, campaignComplete: false };
+  legacy.unlockedStageIndex = 1;
+  const migrated = normalizeSave(legacy);
+  assert.equal(migrated.version, 4);
+  assert.equal(migrated.campaign.completed, true);
+  assert.equal(migrated.unlockedStageIndex, 1);
+  assert.equal(migrated.battleStats.stageCompleted, true);
+  assert.equal(migrated.battleStats.resultDismissed, true);
+  assert.deepEqual(migrated.battleStats.defeatedEncounterIds, []);
 });
