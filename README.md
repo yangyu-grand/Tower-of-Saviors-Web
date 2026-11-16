@@ -35,7 +35,8 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Party attack stats are applied to matched-rune damage; extra runes beyond three add a small bonus.
 - Responsive layout for narrow screens.
 - Opt-in, synthesized Web Audio feedback and reduced-motion-aware battle animations; no external audio or art assets are required.
-- Deterministic Node.js unit tests plus Playwright Chromium end-to-end coverage for game boot, rune dragging and matching, codex filters, save/reload persistence, sound controls, mobile layout emulation, and reduced-motion preference.
+- First-run onboarding tutorial covering rune matching, cascading Combo, active skills, five-card party formation, inventory progression, and summoning; tutorial completion/skip is stored separately from the game save, and existing saved profiles are not interrupted.
+- Deterministic Node.js unit tests plus Playwright Chromium end-to-end coverage for game boot, onboarding progression, rune dragging and matching, codex filters, save/reload persistence, sound controls, mobile layout emulation, and reduced-motion preference.
 
 ## Original prototype combat rules
 
@@ -62,7 +63,7 @@ These are original prototype rules and are intentionally data-driven so they can
 
 1. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium now covers desktop browser flows and mobile viewport/touch-event emulation in CI.
 2. Expand campaign content and balance leader, active-skill, and boss values.
-3. Add an onboarding tutorial that explains rune matching, skills, and campaign progression.
+3. Add more enemy attack patterns and a battle-result screen with a clear reward summary.
 
 ## Project structure
 
@@ -78,7 +79,9 @@ These are original prototype rules and are intentionally data-driven so they can
 - `evolution.js` — original evolution recipes, material costs, validation, and evolved team-stat lookup.
 - `codex.js` — searchable card catalog and element, rarity, ownership, and evolution filters.
 - `battleFeedback.js` — reduced-motion-aware visual feedback and opt-in synthesized audio.
+- `tutorial.js` — versioned first-run tutorial steps, event-gated progression, and independent browser-storage persistence.
 - `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, and responsive/touch behavior.
 - `tests/browser-script.test.js` — embedded browser-module syntax and UI integration checks.
 - `tests/battle-feedback.test.js` — opt-in audio, unsupported-audio fallback, animation hooks, and reduced-motion tests.
+- `tests/tutorial.test.js` — tutorial progression, event gates, skip behavior, and storage validation tests.
 - Other `tests/*.test.js` files — deterministic unit tests for combat, team, skills, campaign, inventory, summoning, progression, evolution, and the card codex.
