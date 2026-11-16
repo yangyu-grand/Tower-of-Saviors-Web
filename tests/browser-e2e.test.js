@@ -5,6 +5,8 @@ import { readFile } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { createDefaultSave, normalizeSave, SAVE_KEY } from "../inventory.js";
+import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBattleStats } from "../battleResults.js";
 
 const ROOT = resolve(fileURLToPath(new URL("../", import.meta.url)));
 const MIME_TYPES = {
@@ -237,4 +239,58 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   assert.deepEqual(mobileConsoleErrors, [], "mobile page should not log browser console errors");
   await mobileContext.close();
   await desktopContext.close();
+});
+
+
+test("Chromium restores a completed-stage result, prevents duplicate claiming, and advances cleanly", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+
+  const save = createDefaultSave();
+  save.campaign = { stageIndex: 0, waveIndex: 2, turn: 5, enemyHp: 0, completed: true, campaignComplete: false };
+  save.unlockedStageIndex = 1;
+  save.score = 830;
+  let battleStats = createBattleStats(0);
+  battleStats = recordBattleTurn(battleStats, {
+    combo: 4, runesMatched: 12, damageDealt: 1800, healingDone: 28,
+    hpDamageTaken: 35, shieldAbsorbed: 18, expEarned: 190, scoreEarned: 480
+  });
+  battleStats = recordEncounterDefeat(battleStats, "lava-wyrmling", { gold: 100, awakeningShards: 1, score: 100 });
+  battleStats = recordEncounterDefeat(battleStats, "cinder-guard", { gold: 100, awakeningShards: 1, score: 100 });
+  battleStats = recordEncounterDefeat(battleStats, "ash-dragon-king", { gold: 500, summonStones: 1, awakeningShards: 3, prismCores: 1, score: 150 });
+  save.battleStats = completeBattleStats(battleStats);
+  const serializedSave = JSON.stringify(normalizeSave(save));
+
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, isMobile: true, hasTouch: true });
+  const page = await context.newPage();
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: SAVE_KEY, value: serializedSave });
+  await page.goto(url, { waitUntil: "networkidle" });
+
+  assert.equal(await page.locator("#battleResult").isVisible(), true, "a saved completed stage should restore its result screen");
+  assert.match(await page.locator("#resultTitle").innerText(), /灰燼山徑/);
+  assert.equal(await page.locator("#resultGold").innerText(), "+700");
+  assert.equal(await page.locator("#resultStones").innerText(), "+1");
+  assert.equal(await page.locator("#resultShards").innerText(), "+5");
+  assert.equal(await page.locator("#resultPrism").innerText(), "+1");
+  assert.equal(await page.locator("#resultBestCombo").innerText(), "4");
+
+  await page.locator("#resultDismiss").click();
+  assert.equal(await page.locator("#battleResult").isVisible(), false);
+  await page.reload({ waitUntil: "networkidle" });
+  assert.equal(await page.locator("#battleResult").isVisible(), false, "dismissal should persist across reload");
+  assert.equal(await page.locator("#nextStage").isVisible(), true);
+
+  await page.locator("#nextStage").click();
+  await page.waitForFunction(() => document.querySelector("#stageName").textContent === "潮汐遺跡");
+  assert.equal(await page.locator("#battleResult").isVisible(), false);
+  assert.equal(await page.locator("#stageProgress").innerText(), "第 1 / 3 波");
+  assert.deepEqual(pageErrors, [], "result restoration and stage progression should not raise browser errors");
+  await context.close();
 });

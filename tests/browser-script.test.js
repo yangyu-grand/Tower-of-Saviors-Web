@@ -89,3 +89,15 @@ test("the browser exposes a first-run tutorial with gameplay event hooks and per
   assert.match(html, /saveTutorialProgress\(tutorialProgress,storage\)/);
   assert.match(html, /tutorial-target/);
 });
+
+
+test("the browser renders a persistent stage-clear result with a non-claiming reward summary", () => {
+  assert.match(html, /from "\.\/battleResults\.js"/);
+  assert.match(html, /id="battleResult"/);
+  assert.match(html, /id="resultContinue"/);
+  assert.match(html, /id="resultDismiss"/);
+  assert.match(html, /buildBattleResult\(battleStats\)/);
+  assert.match(html, /recordEncounterDefeat\(battleStats/);
+  assert.match(html, /completeBattleStats\(battleStats\)/);
+  assert.match(html, /獎勵已自動加入背包，不需要再次領取/);
+});

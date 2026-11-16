@@ -1,9 +1,10 @@
 import { CARD_CATALOG, STARTER_CARD_IDS, DEFAULT_TEAM, buildTeam, getCardStats } from "./team.js";
 import { createCampaignState, getCurrentStage, getCurrentEncounter } from "./stages.js";
 import { ACTIVE_SKILLS, createSkillStates } from "./skills.js";
+import { createBattleStats, normalizeBattleStats } from "./battleResults.js";
 
 export const SAVE_KEY = "tower-of-saviors-web.save";
-export const SAVE_VERSION = 3;
+export const SAVE_VERSION = 4;
 export const SUMMON_EPIC_PITY_LIMIT = 20;
 export const RUNE_TYPES = Object.freeze(["fire", "water", "wood", "light", "dark", "heart"]);
 export const EVOLUTION_MATERIALS = Object.freeze({
@@ -33,6 +34,7 @@ export function createDefaultSave() {
     summonState: { totalSummons: 0, epicPity: 0 },
     teamIds: [...DEFAULT_TEAM],
     campaign: createCampaignState(),
+    battleStats: createBattleStats(0),
     unlockedStageIndex: 0,
     hp: team.totalHp,
     score: 0,
@@ -114,7 +116,7 @@ export function spendMaterials(save, costs) {
 }
 
 export function normalizeSave(input) {
-  if (!isRecord(input) || ![1, 2, SAVE_VERSION].includes(input.version)) {
+  if (!isRecord(input) || ![1, 2, 3, SAVE_VERSION].includes(input.version)) {
     throw new RangeError("Unsupported or invalid save version");
   }
   if (!Array.isArray(input.inventory) || input.inventory.length > CARD_CATALOG.length) {
@@ -185,6 +187,13 @@ export function normalizeSave(input) {
   };
   getCurrentStage(campaign);
   getCurrentEncounter(campaign);
+  const battleStats = input.battleStats === undefined
+    ? createBattleStats(campaign.stageIndex, { stageCompleted: campaign.completed, resultDismissed: campaign.completed })
+    : normalizeBattleStats(input.battleStats);
+  if (battleStats.stageIndex !== campaign.stageIndex) throw new RangeError("Battle stats must match the saved campaign stage");
+  if (input.version === SAVE_VERSION && battleStats.stageCompleted !== campaign.completed) {
+    throw new RangeError("Battle result completion must match the campaign state");
+  }
   assertSafeInteger(input.unlockedStageIndex, "unlockedStageIndex", campaign.stageIndex, 2);
 
   if (!Number.isFinite(input.hp) || input.hp < 0 || input.hp > team.totalHp) {
@@ -218,6 +227,7 @@ export function normalizeSave(input) {
     summonState,
     teamIds,
     campaign,
+    battleStats,
     unlockedStageIndex: input.unlockedStageIndex,
     hp: input.hp,
     score: input.score,

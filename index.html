@@ -82,6 +82,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .tutorial-panel button{padding:8px 12px;white-space:nowrap}
 .tutorial-head button{background:#334564;color:#f7f4ec;border:1px solid #65789a}
 .tutorial-target{outline:3px solid #f6c96b!important;outline-offset:4px;box-shadow:0 0 0 6px #f6c96b25,0 0 24px #f6c96b55!important;position:relative;z-index:1}
+.result-overlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:16px;background:#050914df;backdrop-filter:blur(9px)}.result-overlay[hidden]{display:none}.result-card{width:min(560px,100%);max-height:min(92vh,780px);overflow:auto;padding:24px;border:1px solid #d7b76d99;border-radius:22px;background:radial-gradient(ellipse at top,#35476a,#151f35 68%);box-shadow:0 28px 90px #000b;text-align:center}.result-trophy{font-size:52px;filter:drop-shadow(0 0 18px #f6c96b88)}.result-eyebrow{margin:5px 0;color:#f6d58b;font-size:12px;font-weight:800;letter-spacing:.18em}.result-card h2{margin:5px 0;color:var(--gold);font-size:clamp(23px,5vw,30px)}.result-card .hint{margin:0}.result-stats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;margin:18px 0 10px}.result-stats>div,.result-rewards>div{padding:10px 6px;border:1px solid #65789a66;border-radius:11px;background:#080f20aa}.result-stats small,.result-rewards span{display:block;color:var(--muted);font-size:11px}.result-stats b{display:block;margin-top:4px;color:#fff;font-size:19px}.result-details{margin:10px 0 14px;color:#c4d0e5;font-size:12px;line-height:1.7}.result-rewards{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px}.result-rewards b{display:block;margin-top:5px;color:#f6d58b;font-size:18px}.result-note{margin:12px 0 5px;color:#aab6ce;font-size:11px;line-height:1.6}.result-score{margin:8px 0 16px;color:#dce6f7;font-size:13px}.result-score b{color:#fff}.result-actions{display:flex;gap:9px}.result-actions button{flex:1}.result-secondary{background:#334564;color:#f7f4ec;border:1px solid #65789a}
 @media(max-width:520px){.tutorial-actions{align-items:stretch}.tutorial-actions .hint{min-width:100%}.tutorial-actions button{width:100%}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 
@@ -148,6 +149,24 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   <div id="codexGrid" class="codex-grid"></div>
   <p id="codexEmpty" class="codex-empty" hidden>找不到符合條件的角色，請調整搜尋或篩選條件。</p>
  </section>
+ <section id="battleResult" class="result-overlay" hidden role="dialog" aria-modal="true" aria-labelledby="resultTitle" tabindex="-1">
+  <div class="result-card">
+   <div class="result-trophy" aria-hidden="true">🏆</div>
+   <p class="result-eyebrow">冒險結算</p>
+   <h2 id="resultTitle">關卡完成</h2>
+   <p id="resultSubtitle" class="hint"></p>
+   <div class="result-stats">
+    <div><small>成功回合</small><b id="resultTurns">0</b></div><div><small>總 Combo</small><b id="resultComboSteps">0</b></div><div><small>最高 Combo</small><b id="resultBestCombo">0</b></div><div><small>總傷害</small><b id="resultDamage">0</b></div>
+   </div>
+   <p id="resultDetails" class="result-details"></p>
+   <div class="result-rewards" aria-label="本關獎勵">
+    <div><span>金幣</span><b id="resultGold">+0</b></div><div><span>召喚石</span><b id="resultStones">+0</b></div><div><span>覺醒碎片</span><b id="resultShards">+0</b></div><div><span>稜鏡核心</span><b id="resultPrism">+0</b></div>
+   </div>
+   <p class="result-note">獎勵已自動加入背包，不需要再次領取。戰鬥結算會隨遊戲存檔保留。</p>
+   <p class="result-score">本關得分 <b id="resultScore">0</b></p>
+   <div class="result-actions"><button id="resultContinue" type="button">前往下一關</button><button id="resultDismiss" class="result-secondary" type="button">稍後再說</button></div>
+  </div>
+ </section>
  <footer>獨立原創原型；角色、圖像與名稱皆為暫用原創素材。</footer>
 </main>
 <script type="module">
@@ -163,6 +182,7 @@ import { getCardEvolutionLevels, getEvolutionQuote, evolveCard } from "./evoluti
 import { filterCardCatalog } from "./codex.js";
 import { createBattleFeedback } from "./battleFeedback.js";
 import { TUTORIAL_STEPS, loadTutorialProgress, saveTutorialProgress, getTutorialStep, advanceTutorial, skipTutorial } from "./tutorial.js";
+import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBattleStats, dismissBattleResult as markBattleResultDismissed, buildBattleResult } from "./battleResults.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
@@ -211,11 +231,11 @@ window.addEventListener('pagehide',event=>{if(!event.persisted)feedback.destroy(
 syncSoundToggle();
 let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)}),maxHp=currentTeam.totalHp;
 let skillStates=profile.skillStates,shield=profile.shield,pendingDamageMultiplier=profile.pendingDamageMultiplier;
-let cells=profile.board?[...profile.board]:createBoard(),selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex;
-function makeSaveSnapshot(){return {...profile,teamIds:[...teamIds],campaign:{...campaign},unlockedStageIndex,hp,score,maxCombo,board:[...cells],skillStates:Object.fromEntries(Object.entries(skillStates).map(([id,state])=>[id,{...state}])),shield,pendingDamageMultiplier,updatedAt:Date.now()};}
+let cells=profile.board?[...profile.board]:createBoard(),selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex,battleStats=profile.battleStats;
+function makeSaveSnapshot(){return {...profile,teamIds:[...teamIds],campaign:{...campaign},battleStats:{...battleStats,defeatedEncounterIds:[...battleStats.defeatedEncounterIds],rewards:{...battleStats.rewards}},unlockedStageIndex,hp,score,maxCombo,board:[...cells],skillStates:Object.fromEntries(Object.entries(skillStates).map(([id,state])=>[id,{...state}])),shield,pendingDamageMultiplier,updatedAt:Date.now()};}
 function persist(message="已自動儲存"){
  const snapshot=makeSaveSnapshot(),result=saveGame(snapshot,storage),status=$('saveStatus');
- if(result.ok){profile=normalizeSave(snapshot);if(status){status.textContent=message;status.dataset.state="saved";}}
+ if(result.ok){profile=normalizeSave(snapshot);battleStats=profile.battleStats;if(status){status.textContent=message;status.dataset.state="saved";}}
  else if(status){status.textContent=result.status==="unavailable"?"瀏覽器儲存不可用":"儲存失敗，請檢查瀏覽器空間";status.dataset.state="warning";}
  return result.ok;
 }
@@ -230,7 +250,21 @@ function createBoard(){
  let board=Array.from({length:30},rand);for(let tries=0;tries<30&&hasMatch(board);tries++)board=Array.from({length:30},rand);return board;
 }
 function renderEnemy(){ const stage=getCurrentStage(campaign),encounter=getCurrentEncounter(campaign)||stage.waves[stage.waves.length-1],intent=getEnemyIntent(campaign);$('stageName').textContent=stage.name;$('stageDifficulty').textContent=stage.difficulty;$('stageProgress').textContent=campaign.completed?'已通關':'第 '+(campaign.waveIndex+1)+' / '+stage.waves.length+' 波';$('enemy').textContent=encounter.emoji;$('enemyName').textContent=encounter.name+(encounter.boss?' · BOSS':'');$('enemyElement').textContent='敵人屬性：'+icons[encounter.element]+' '+elementNames[encounter.element];$('enemyHp').textContent=campaign.enemyHp+' / '+encounter.hp;$('enemyBar').style.width=Math.max(0,campaign.enemyHp/encounter.hp*100)+'%';$('enemyIntent').textContent=campaign.completed?'關卡已完成':('敵人預告：'+intent.label+(intent.damage?' · '+intent.damage+' 傷害':'')+(intent.enraged?' · 狂暴':''));$('nextStage').hidden=!campaign.completed;$('nextStage').textContent=campaign.campaignComplete?'重新挑戰全章':'前往下一關';}
-function stats(){ $('hp').textContent=hp+' / '+maxHp;$('atk').textContent=Object.values(currentTeam.attackByElement).reduce((sum,value)=>sum+value,0);$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||campaign.completed||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();renderSummonPanel();}
+function renderBattleResult(){
+ const panel=$('battleResult');if(!panel)return;
+ const visible=campaign.completed&&battleStats.stageCompleted&&!battleStats.resultDismissed;
+ panel.hidden=!visible;if(!visible)return;
+ const result=buildBattleResult(battleStats);
+ $('resultTitle').textContent=result.stageName+(campaign.campaignComplete?' · 全章通關':' · 關卡完成');
+ $('resultSubtitle').textContent='擊敗 '+result.bossName+'，完成 '+result.wavesDefeated+' / '+result.totalWaves+' 波';
+ $('resultTurns').textContent=result.turns;$('resultComboSteps').textContent=result.comboSteps;$('resultBestCombo').textContent=result.bestCombo;$('resultDamage').textContent=result.damageDealt.toLocaleString('zh-TW');
+ $('resultDetails').textContent='符石消除 '+result.runesMatched+' 顆 · 回復 '+result.healingDone+' HP · 承受 '+result.hpDamageTaken+' HP 傷害 · 護盾吸收 '+result.shieldAbsorbed+' · 全隊獲得 '+result.expEarned+' EXP';
+ $('resultScore').textContent=result.scoreEarned.toLocaleString('zh-TW');
+ $('resultGold').textContent='+'+result.rewards.gold.toLocaleString('zh-TW');$('resultStones').textContent='+'+result.rewards.summonStones;
+ $('resultShards').textContent='+'+result.rewards.awakeningShards;$('resultPrism').textContent='+'+result.rewards.prismCores;
+ $('resultContinue').textContent=campaign.campaignComplete?'重新挑戰全章':'前往下一關';
+}
+function stats(){ $('hp').textContent=hp+' / '+maxHp;$('atk').textContent=Object.values(currentTeam.attackByElement).reduce((sum,value)=>sum+value,0);$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||campaign.completed||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();renderSummonPanel();renderBattleResult();}
 function renderCodex(){
  const grid=$('codexGrid');if(!grid)return;
  const entries=filterCardCatalog(CARD_CATALOG,profile.inventory,{
@@ -440,19 +474,20 @@ function tap(i){if(busy||hp<=0||campaign.completed)return;if(selected<0){selecte
 function findMatches(){const found=new Set();for(let r=0;r<5;r++)for(let c=0;c<6;c++){const i=r*6+c,t=cells[i];if(c<=3&&cells[i+1]===t&&cells[i+2]===t){let k=c;while(k<6&&cells[r*6+k]===t)found.add(r*6+k++);}if(r<=2&&cells[i+6]===t&&cells[i+12]===t){let k=r;while(k<5&&cells[k*6+c]===t)found.add(k++*6+c);}}return found}
 async function swapTry(a,b){
  if(busy||hp<=0||campaign.completed||!adjacent(a,b))return;
+ let totalRunesMatched=0,runeScoreEarned=0,hpDamageTaken=0,shieldAbsorbed=0;
  busy=true;[cells[a],cells[b]]=[cells[b],cells[a]];render();
  let matches=findMatches();
  if(!matches.size){await wait(140);[cells[a],cells[b]]=[cells[b],cells[a]];busy=false;render();$('log').textContent='沒有形成消除，符石已換回。';return}
  updateTutorial("match");
  let combo=0,totalDamage=0,totalHeal=0;const damageLines=[];
  while(matches.size&&combo<12){
-  combo++;const removed=[...matches].map(i=>cells[i]),counts={};removed.forEach(t=>counts[t]=(counts[t]||0)+1);
+  combo++;totalRunesMatched+=matches.size;const removed=[...matches].map(i=>cells[i]),counts={};removed.forEach(t=>counts[t]=(counts[t]||0)+1);
   const target=getCurrentEncounter(campaign)||getCurrentStage(campaign).waves.at(-1);
   const result=calculateCombatResult({counts,combo,enemyElement:target.element,teamAttackByElement:currentTeam.attackByElement,skillMultiplier:pendingDamageMultiplier,comboStepBonus:currentTeam.leaderSkill?.comboStepBonus??0,healingMultiplier:currentTeam.leaderSkill?.healingMultiplier??1});
   totalDamage+=result.damage;totalHeal+=result.healing;
   let detail=result.breakdown.map(item=>icons[item.element]+' '+item.count+'顆×隊伍攻擊 '+item.baseDamage+'×符石 '+item.runeCountMultiplier.toFixed(2)+'×Combo '+result.comboMultiplier.toFixed(2)+'×屬性 '+item.multiplier.toFixed(2)+'×技能 '+result.skillMultiplier.toFixed(2)+'='+item.damage).join('；');
   if(!detail)detail='沒有攻擊符石';if(result.healing)detail+='；💗回復 '+result.healing;
-  damageLines.push('Combo '+combo+'：'+detail);score+=matches.size*10*combo;
+  damageLines.push('Combo '+combo+'：'+detail);const matchScore=matches.size*10*combo;score+=matchScore;runeScoreEarned+=matchScore;
   feedback.playMatch([...matches],combo);await wait(190);
   matches.forEach(i=>cells[i]=null);render();await wait(40);
   for(let c=0;c<6;c++){let stack=[];for(let r=4;r>=0;r--){const value=cells[r*6+c];if(value)stack.push(value)}while(stack.length<5)stack.push(rand());for(let r=4;r>=0;r--)cells[r*6+c]=stack[4-r]}
@@ -463,13 +498,15 @@ async function swapTry(a,b){
  if(totalDamage>0){if(outcome.defeated)feedback.playVictory();else feedback.playHit();}
  if(totalHeal>0)feedback.playHeal();
  if(outcome.defeated){
-  score+=outcome.stageCompleted?150:100;
-  profile=addCurrency(profile,"gold",outcome.stageCompleted?500:100);
-  profile=addMaterials(profile,"awakeningShards",outcome.defeatedEnemy.boss?3:1);
-  if(outcome.defeatedEnemy.boss)profile=addMaterials(profile,"prismCores",1);
+  const rewards=outcome.stageCompleted
+   ?{score:150,gold:500,summonStones:1,awakeningShards:3,prismCores:1}
+   :{score:100,gold:100,summonStones:0,awakeningShards:1,prismCores:0};
+  score+=rewards.score;battleStats=recordEncounterDefeat(battleStats,outcome.defeatedEnemy.id,rewards);
+  profile=addCurrency(profile,"gold",rewards.gold);profile=addMaterials(profile,"awakeningShards",rewards.awakeningShards);
+  if(rewards.prismCores)profile=addMaterials(profile,"prismCores",rewards.prismCores);
+  if(rewards.summonStones)profile=addCurrency(profile,"summonStones",rewards.summonStones);
   if(outcome.stageCompleted){
-   unlockedStageIndex=Math.max(unlockedStageIndex,Math.min(2,campaign.stageIndex+1));
-   profile=addCurrency(profile,"summonStones",1);renderInventory();
+   unlockedStageIndex=Math.max(unlockedStageIndex,Math.min(2,campaign.stageIndex+1));renderInventory();
    const restored=Math.min(maxHp-hp,Math.ceil(maxHp*.15));hp+=restored;
    $('log').textContent=outcome.campaignCompleted
     ?'擊敗 '+outcome.defeatedEnemy.name+'！全章通關！獲得 150 分、500 金幣、1 顆召喚石、3 枚覺醒碎片及 1 顆稜鏡核心並回復 '+restored+' HP。'
@@ -481,7 +518,7 @@ async function swapTry(a,b){
   const leaderDamageReduction=currentTeam.leaderSkill?.damageReduction??0;
   const adjustedIncomingDamage=Math.ceil(enemyTurn.incomingDamage*(1-leaderDamageReduction));
   const mitigation=mitigateIncomingDamage(adjustedIncomingDamage,shield,enemyTurn.intent.shieldPierce);
-  shield=mitigation.remainingShield;hp=Math.max(0,hp-mitigation.hpDamage);
+  hpDamageTaken=mitigation.hpDamage;shieldAbsorbed=mitigation.shieldDamage;shield=mitigation.remainingShield;hp=Math.max(0,hp-mitigation.hpDamage);
   const shieldText=mitigation.shieldDamage?'護盾吸收 '+mitigation.shieldDamage+' 點。':'';
   const pierceText=mitigation.piercingDamage?'其中 '+mitigation.piercingDamage+' 點穿透護盾。':'';
   const leaderReductionText=leaderDamageReduction>0?'隊長技能減傷 '+Math.round(leaderDamageReduction*100)+'%。':'';
@@ -489,6 +526,8 @@ async function swapTry(a,b){
  }
  if(hp<=0)$('log').textContent+=' 生命值歸零，請重新開始。';
  const expReward=20+(outcome.defeated?(outcome.stageCompleted?120:50):0),previousMaxHp=maxHp;
+ battleStats=recordBattleTurn(battleStats,{combo,runesMatched:totalRunesMatched,damageDealt:Math.round(totalDamage),healingDone:Math.round(totalHeal),hpDamageTaken,shieldAbsorbed,expEarned:expReward,scoreEarned:runeScoreEarned});
+ if(outcome.stageCompleted)battleStats=completeBattleStats(battleStats);
  const expResult=grantTeamExperience(profile,teamIds,expReward);profile=expResult.save;
  currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)});maxHp=currentTeam.totalHp;
  if(hp>0)hp=Math.min(maxHp,hp+Math.max(0,maxHp-previousMaxHp));
@@ -502,7 +541,7 @@ async function swapTry(a,b){
 }
 function wait(ms){return new Promise(r=>setTimeout(r,ms))}
 function reset(){
- campaign=createCampaignState();cells=createBoard();
+ campaign=createCampaignState();cells=createBoard();battleStats=createBattleStats(campaign.stageIndex);
  selected=-1;dragFrom=-1;dragPointerId=null;busy=false;hp=maxHp;score=0;maxCombo=0;
  skillStates=createSkillStates(teamIds);shield=0;pendingDamageMultiplier=1;
  $('combatBreakdown').textContent='傷害計算明細會顯示在這裡。';$('log').textContent='新旅程開始！找出三顆以上相同符石。';render();persist("新旅程已儲存");
@@ -510,10 +549,12 @@ function reset(){
 function nextStage(){
  if(!campaign.completed)return;
  if(campaign.campaignComplete){reset();return}
- campaign=advanceCampaignStage(campaign);selected=-1;shield=0;pendingDamageMultiplier=1;
+ campaign=advanceCampaignStage(campaign);battleStats=createBattleStats(campaign.stageIndex);selected=-1;shield=0;pendingDamageMultiplier=1;
  $('log').textContent='進入 '+getCurrentStage(campaign).name+'！新的敵人正在前方等待。';$('combatBreakdown').textContent='新關卡開始。';render();persist();
 }
 $('tutorialAdvance').addEventListener('click',()=>updateTutorial("next",true));$('tutorialSkip').addEventListener('click',finishTutorial);
+ $('resultContinue').addEventListener('click',nextStage);
+ $('resultDismiss').addEventListener('click',()=>{if(!battleStats.stageCompleted)return;battleStats=markBattleResultDismissed(battleStats);persist("結算狀態已儲存");renderBattleResult();$('nextStage').focus();});
  $('newGame').addEventListener('click',reset);$('nextStage').addEventListener('click',nextStage);$('saveNow').addEventListener('click',()=>persist("已手動儲存"));$('summonSingle').addEventListener('click',()=>performSummon(1));$('summonTen').addEventListener('click',()=>performSummon(10));
 $('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);feedback.playHeal();$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
 $('codexSearch').addEventListener('input',renderCodex);
