@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "test": "node --test --test-concurrency=1",
-    "balance:report": "node scripts/balance-report.js"
+    "balance:report": "node scripts/balance-report.js",
+    "balance:scenarios": "node scripts/balance-scenarios.js"
   },
   "devDependencies": {
     "playwright": "1.56.1"
