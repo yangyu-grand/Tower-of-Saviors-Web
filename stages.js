@@ -13,7 +13,7 @@ export const STAGES = Object.freeze([
     Object.freeze({id:"night-wisp",name:"夜幕幽靈",emoji:"👻",element:"dark",hp:420,attack:17,attackEvery:1,attackPattern:Object.freeze({type:"multi",name:"幽影連斬",hits:2})}),
     Object.freeze({id:"prism-golem",name:"稜鏡魔像",emoji:"🔮",element:"light",hp:520,attack:19,attackEvery:2,attackPattern:Object.freeze({type:"heavy",name:"稜鏡光束"})}),
     Object.freeze({id:"eclipse-sovereign",name:"蝕月君主",emoji:"🌘",element:"dark",hp:1100,attack:25,attackEvery:2,attackPattern:Object.freeze({type:"heavy",name:"蝕月斬"}),boss:true,special:Object.freeze({every:3,name:"日蝕裁決",damage:54,hits:2,shieldPierce:0.5}),enrageAt:0.5,enrageMultiplier:1.6})
-  ])})
+  ])}),
   Object.freeze({id:"mist-sakura-ancient",name:"霧櫻古境",difficulty:"傳說",rewardMultiplier:2,waves:Object.freeze([
     Object.freeze({id:"mist-tail-fox",name:"霧尾妖狐",emoji:"🦊",element:"wood",hp:720,attack:22,attackEvery:1,attackPattern:Object.freeze({type:"multi",name:"幻尾連擊",hits:2})}),
     Object.freeze({id:"splitwind-tengu",name:"裂風天狗",emoji:"👺",element:"light",hp:980,attack:28,attackEvery:2,attackPattern:Object.freeze({type:"heavy",name:"風刃蓄勢"})}),
