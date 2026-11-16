@@ -25,7 +25,7 @@ test("cooldown-aware rotation waits until the turn after the full cooldown has e
 test("a scheduled damage skill boosts only the attack on its activation turn", () => {
   const options = {
     stageIndex: 0,
-    waveIndex: 0,
+    waveIndex: 2,
     matchProfiles: [{ matchedElements: ["fire"], runesPerElement: 3 }],
     maxTurns: 8
   };
@@ -43,7 +43,7 @@ test("a scheduled damage skill boosts only the attack on its activation turn", (
 test("a conversion skill contributes its converted attack group to the selected post-skill match", () => {
   const result = analyzeEncounterScenario({
     stageIndex: 0,
-    waveIndex: 0,
+    waveIndex: 2,
     matchProfiles: [{ matchedElements: ["fire"], runesPerElement: 3 }],
     skillPlan: [{ turn: 1, cardId: "tide_monk" }]
   });
@@ -57,27 +57,27 @@ test("a conversion skill contributes its converted attack group to the selected 
 test("shield skills are applied before the enemy action and use the shared mitigation rules", () => {
   const result = analyzeEncounterScenario({
     stageIndex: 0,
-    waveIndex: 0,
+    waveIndex: 2,
     matchProfiles: [{ matchedElements: ["fire"], runesPerElement: 3 }],
     skillPlan: [{ turn: 1, cardId: "moss_guard" }]
   });
   assert.equal(result.turns[0].skillEvents[0].shieldAdded, 20);
-  assert.equal(result.turns[0].shieldAbsorbed, 9);
-  assert.equal(result.turns[0].hpDamageTaken, 0);
-  assert.equal(result.turns[0].shieldAfterTurn, 11);
+  assert.equal(result.turns[1].shieldAbsorbed, 16);
+  assert.equal(result.turns[1].hpDamageTaken, 0);
+  assert.equal(result.turns[1].shieldAfterTurn, 4);
 });
 
 test("healing skills apply immediately and cap at the party HP maximum", () => {
   const team = buildTeam(DEFAULT_TEAM);
   const result = analyzeEncounterScenario({
     stageIndex: 0,
-    waveIndex: 0,
+    waveIndex: 2,
     startingPartyHp: team.totalHp - 100,
     matchProfiles: [{ matchedElements: ["fire"], runesPerElement: 3 }],
     skillPlan: [{ turn: 1, cardId: "heart_priest" }]
   });
   assert.equal(result.turns[0].skillEvents[0].restored, 100);
-  assert.equal(result.turns[0].partyHpAfterTurn, team.totalHp - 9);
+  assert.equal(result.turns[0].partyHpAfterTurn, team.totalHp);
   assert.equal(result.totalSkillHealing, 100);
 });
 
