@@ -34,3 +34,5 @@ jobs:
         run: npm run balance:moves
       - name: Run board-driven encounter simulations
         run: npm run balance:battles
+      - name: Generate and validate deterministic battle replay
+        run: npm run replay:sample

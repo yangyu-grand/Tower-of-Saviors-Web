@@ -4,7 +4,7 @@ import {
   findRuneMatches,
   hasLegalRuneSwap
 } from "./runeBoard.js";
-import { analyzeRuneMoves } from "./runeMoveAnalysis.js";
+import { analyzeRuneMoves, traceRuneMove } from "./runeMoveAnalysis.js";
 import { DEFAULT_TEAM, buildTeam } from "./team.js";
 import {
   STAGES,
@@ -266,6 +266,8 @@ export function simulateRuneEncounter(options = {}) {
   for (let turn = 1; turn <= maxTurns; turn += 1) {
     const currentEncounter = getCurrentEncounter(state);
     if (!currentEncounter) break;
+    const boardAtTurnStart = [...board];
+    let reshuffledBeforeMove = false;
 
     const intentPreview = getEnemyIntent(state);
     const analysisContext = {
@@ -284,6 +286,7 @@ export function simulateRuneEncounter(options = {}) {
     if (!analysis.summary.bestMove) {
       board = createRuneBoard({ random: createSeededRandom(deriveSeed(seed, turn, 0xDEAD)) });
       reshuffleCount += 1;
+      reshuffledBeforeMove = true;
       analysis = makeMoveAnalysis(board, analysisContext);
     }
 
@@ -341,6 +344,7 @@ export function simulateRuneEncounter(options = {}) {
     if (!analysis.summary.bestMove) {
       board = createRuneBoard({ random: createSeededRandom(deriveSeed(seed, turn, 0xF00D)) });
       reshuffleCount += 1;
+      reshuffledBeforeMove = true;
       analysis = makeMoveAnalysis(board, {
         ...analysisContext,
         seed: deriveSeed(seed, turn, 0xF00D),
@@ -350,6 +354,11 @@ export function simulateRuneEncounter(options = {}) {
 
     const move = analysis.moves[0];
     if (!move) throw new Error("A playable board must provide at least one legal move");
+    const boardBeforeMove = [...board];
+    const moveTrace = traceRuneMove(boardBeforeMove, move, {
+      seed: analysis.seed,
+      maxCascades
+    });
     const enemyHpBeforeAttack = state.enemyHp;
     const damageResult = damageCurrentEnemy(state, move.damage);
     const damageDealt = Math.min(enemyHpBeforeAttack, move.damage);
@@ -360,10 +369,13 @@ export function simulateRuneEncounter(options = {}) {
     totalHealingApplied += runeHealing;
     damageMultiplier = 1;
 
-    board = [...move.finalBoard];
+    const boardAfterMove = [...move.finalBoard];
+    let reshuffledAfterMove = false;
+    board = [...boardAfterMove];
     if (!hasLegalRuneSwap(board)) {
       board = createRuneBoard({ random: createSeededRandom(deriveSeed(seed, turn, 0x51A7)) });
       reshuffleCount += 1;
+      reshuffledAfterMove = true;
     }
 
     skillStates = advanceSkillCooldowns(skillStates);
@@ -416,6 +428,13 @@ export function simulateRuneEncounter(options = {}) {
       turn,
       encounterId: currentEncounter.id,
       encounterName: currentEncounter.name,
+      boardAtTurnStart,
+      boardBeforeMove,
+      moveTrace,
+      boardAfterMove,
+      boardAfterTurn: [...board],
+      reshuffledBeforeMove,
+      reshuffledAfterMove,
       boardSeed: deriveSeed(seed, turn + state.waveIndex * 211, 0xA5A5A5A5),
       move: {
         from: move.from,
