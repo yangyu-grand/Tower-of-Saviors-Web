@@ -1,5 +1,5 @@
 import { CARD_CATALOG, STARTER_CARD_IDS, DEFAULT_TEAM, buildTeam, getCardStats } from "./team.js";
-import { createCampaignState, getCurrentStage, getCurrentEncounter } from "./stages.js";
+import { STAGES, createCampaignState, getCurrentStage, getCurrentEncounter } from "./stages.js";
 import { ACTIVE_SKILLS, createSkillStates } from "./skills.js";
 import { createBattleStats, normalizeBattleStats } from "./battleResults.js";
 
@@ -194,7 +194,7 @@ export function normalizeSave(input) {
   if (input.version === SAVE_VERSION && battleStats.stageCompleted !== campaign.completed) {
     throw new RangeError("Battle result completion must match the campaign state");
   }
-  assertSafeInteger(input.unlockedStageIndex, "unlockedStageIndex", campaign.stageIndex, 2);
+  assertSafeInteger(input.unlockedStageIndex, "unlockedStageIndex", campaign.stageIndex, STAGES.length - 1);
 
   if (!Number.isFinite(input.hp) || input.hp < 0 || input.hp > team.totalHp) {
     throw new RangeError("Saved HP must be within the current team's HP limit");

@@ -173,7 +173,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 import { calculateCombatResult } from "./combat.js";
 import { CARD_CATALOG, DEFAULT_TEAM, buildTeam } from "./team.js";
 import { createSkillStates, canActivateSkill, activateSkill, advanceSkillCooldowns, getActiveSkill } from "./skills.js";
-import { createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
+import { STAGES, createCampaignState, getCurrentStage, getCurrentEncounter, getEnemyIntent, damageCurrentEnemy, resolveEnemyTurn, mitigateIncomingDamage, advanceCampaignStage } from "./stages.js";
 import { loadSave, saveGame, normalizeSave, listOwnedCards, addCurrency, addMaterials, SUMMON_EPIC_PITY_LIMIT } from "./inventory.js";
 import { summonCards, SUMMON_RATES, SUMMON_COSTS } from "./summon.js";
 import { getCardLevels, grantTeamExperience, getTrainingQuote, trainCard, MAX_CARD_LEVEL, experienceToNextLevel } from "./progression.js";
@@ -255,6 +255,7 @@ function renderEnemy(){
  $('enemy').textContent=encounter.emoji;$('enemyName').textContent=encounter.name+(encounter.boss?' · BOSS':'');$('enemyElement').textContent='敵人屬性：'+icons[encounter.element]+' '+elementNames[encounter.element];
  $('enemyHp').textContent=campaign.enemyHp+' / '+encounter.hp;$('enemyBar').style.width=Math.max(0,campaign.enemyHp/encounter.hp*100)+'%';
  const details=[];
+ if(intent.phase)details.push(intent.phase);
  if(intent.damage>0)details.push(intent.damage+' 傷害');
  if(intent.hits>1)details.push(intent.hits+' 段連擊');
  if(intent.healing>0)details.push((intent.type==="heal"?"最多回復 ":"回復 ")+intent.healing+" HP");
@@ -512,20 +513,20 @@ async function swapTry(a,b){
  if(totalDamage>0){if(outcome.defeated)feedback.playVictory();else feedback.playHit();}
  if(totalHeal>0)feedback.playHeal();
  if(outcome.defeated){
+  const rewardMultiplier=getCurrentStage(campaign).rewardMultiplier??1;
   const rewards=outcome.stageCompleted
-   ?{score:150,gold:500,summonStones:1,awakeningShards:3,prismCores:1}
-   :{score:100,gold:100,summonStones:0,awakeningShards:1,prismCores:0};
+   ?{score:150*rewardMultiplier,gold:500*rewardMultiplier,summonStones:1,awakeningShards:3*rewardMultiplier,prismCores:1*rewardMultiplier}
+   :{score:100*rewardMultiplier,gold:100*rewardMultiplier,summonStones:0,awakeningShards:1*rewardMultiplier,prismCores:0};
   score+=rewards.score;battleStats=recordEncounterDefeat(battleStats,outcome.defeatedEnemy.id,rewards);
   profile=addCurrency(profile,"gold",rewards.gold);profile=addMaterials(profile,"awakeningShards",rewards.awakeningShards);
   if(rewards.prismCores)profile=addMaterials(profile,"prismCores",rewards.prismCores);
   if(rewards.summonStones)profile=addCurrency(profile,"summonStones",rewards.summonStones);
   if(outcome.stageCompleted){
-   unlockedStageIndex=Math.max(unlockedStageIndex,Math.min(2,campaign.stageIndex+1));renderInventory();
+   unlockedStageIndex=Math.max(unlockedStageIndex,Math.min(STAGES.length-1,campaign.stageIndex+1));renderInventory();
    const restored=Math.min(maxHp-hp,Math.ceil(maxHp*.15));hp+=restored;
-   $('log').textContent=outcome.campaignCompleted
-    ?'擊敗 '+outcome.defeatedEnemy.name+'！全章通關！獲得 150 分、500 金幣、1 顆召喚石、3 枚覺醒碎片及 1 顆稜鏡核心並回復 '+restored+' HP。'
-    :'擊敗 '+outcome.defeatedEnemy.name+'！關卡完成，獲得 150 分、500 金幣、1 顆召喚石、3 枚覺醒碎片及 1 顆稜鏡核心並回復 '+restored+' HP。';
-  }else{$('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！獲得 100 分、100 金幣及 1 枚覺醒碎片，下一波 '+outcome.nextEncounter.name+' 出現。';renderInventory();}
+   const rewardSummary='獲得 '+rewards.score+' 分、'+rewards.gold+' 金幣、'+rewards.summonStones+' 顆召喚石、'+rewards.awakeningShards+' 枚覺醒碎片及 '+rewards.prismCores+' 顆稜鏡核心';
+   $('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！'+(outcome.campaignCompleted?'全章通關！':'關卡完成，')+rewardSummary+'並回復 '+restored+' HP。';
+  }else{$('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！獲得 '+rewards.score+' 分、'+rewards.gold+' 金幣及 '+rewards.awakeningShards+' 枚覺醒碎片，下一波 '+outcome.nextEncounter.name+' 出現。';renderInventory();}
  }else{
   const enemyTurn=resolveEnemyTurn(campaign);campaign=enemyTurn.state;
   if(enemyTurn.incomingDamage>0)feedback.playEnemyAttack();

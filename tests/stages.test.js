@@ -7,8 +7,9 @@ function clearStage(state){
   return state;
 }
 
-test("campaign exposes three stages with a boss as the final wave",()=>{
-  assert.equal(STAGES.length,3);
+test("campaign exposes four stages with a boss as the final wave",()=>{
+  assert.equal(STAGES.length,4);
+  assert.equal(STAGES.reduce((total,stage)=>total+stage.waves.length,0),12);
   for(const stage of STAGES){
     assert.equal(stage.waves.length,3);
     assert.equal(stage.waves.at(-1).boss,true);
@@ -50,9 +51,11 @@ test("defeating the boss completes the stage and campaign only on the final wave
   assert.equal(bossResult.state.completed,true);
   assert.equal(getCurrentEncounter(bossResult.state),null);
 
-  let finalBoss=damageCurrentEnemy(createCampaignState(2),100000).state;
-  finalBoss=damageCurrentEnemy(finalBoss,100000).state;
-  const finalResult=damageCurrentEnemy(finalBoss,10000);
+  const thirdChapterBoss=damageCurrentEnemy(damageCurrentEnemy(createCampaignState(2),100000).state,100000).state;
+  const thirdChapterResult=damageCurrentEnemy(thirdChapterBoss,10000);
+  assert.equal(thirdChapterResult.campaignCompleted,false);
+  const fourthChapterBoss=damageCurrentEnemy(damageCurrentEnemy(createCampaignState(3),100000).state,100000).state;
+  const finalResult=damageCurrentEnemy(fourthChapterBoss,10000);
   assert.equal(finalResult.campaignCompleted,true);
 });
 
@@ -182,4 +185,36 @@ test("rejects invalid stage, damage, hit count, and shield values",()=>{
   assert.throws(()=>mitigateIncomingDamage(10,5,1.2),RangeError);
   assert.throws(()=>mitigateIncomingDamage(10,5,0,0),/hitCount/);
   assert.throws(()=>mitigateIncomingDamage(10,5,0,11),/hitCount/);
+});
+
+
+test("fourth chapter boss changes attack patterns at its half-HP phase boundary",()=>{
+  const boss={...createCampaignState(3),waveIndex:2,enemyHp:1000};
+  const firstPhase=getEnemyIntent(boss);
+  assert.equal(firstPhase.phase,"花霧姿態");
+  assert.equal(firstPhase.type,"charging");
+  assert.equal(firstPhase.previewDamage,32);
+
+  const secondPhaseState={...boss,enemyHp:900};
+  const secondPhase=getEnemyIntent(secondPhaseState);
+  assert.equal(secondPhase.phase,"月蝕姿態");
+  assert.equal(secondPhase.type,"multi");
+  assert.equal(secondPhase.hits,3);
+
+  const special=getEnemyIntent({...secondPhaseState,turn:1});
+  assert.equal(special.type,"special");
+  assert.equal(special.label,"天狐焚月");
+  assert.equal(special.damage,90);
+  assert.equal(special.hits,3);
+  assert.equal(special.shieldPierce,0.35);
+
+  const enraged=getEnemyIntent({...secondPhaseState,enemyHp:300,turn:1});
+  assert.equal(enraged.enraged,true);
+  assert.equal(enraged.damage,126);
+});
+
+test("fourth chapter uses a higher reward multiplier without changing earlier chapters",()=>{
+  assert.equal(STAGES[0].rewardMultiplier,undefined);
+  assert.equal(STAGES[2].rewardMultiplier,undefined);
+  assert.equal(STAGES[3].rewardMultiplier,2);
 });

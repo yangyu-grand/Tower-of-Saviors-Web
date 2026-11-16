@@ -13,6 +13,14 @@ export const STAGES = Object.freeze([
     Object.freeze({id:"night-wisp",name:"夜幕幽靈",emoji:"👻",element:"dark",hp:420,attack:17,attackEvery:1,attackPattern:Object.freeze({type:"multi",name:"幽影連斬",hits:2})}),
     Object.freeze({id:"prism-golem",name:"稜鏡魔像",emoji:"🔮",element:"light",hp:520,attack:19,attackEvery:2,attackPattern:Object.freeze({type:"heavy",name:"稜鏡光束"})}),
     Object.freeze({id:"eclipse-sovereign",name:"蝕月君主",emoji:"🌘",element:"dark",hp:1100,attack:25,attackEvery:2,attackPattern:Object.freeze({type:"heavy",name:"蝕月斬"}),boss:true,special:Object.freeze({every:3,name:"日蝕裁決",damage:54,hits:2,shieldPierce:0.5}),enrageAt:0.5,enrageMultiplier:1.6})
+  ])}),
+  Object.freeze({id:"mist-sakura-ancient",name:"霧櫻古境",difficulty:"傳說",rewardMultiplier:2,waves:Object.freeze([
+    Object.freeze({id:"mist-tail-fox",name:"霧尾妖狐",emoji:"🦊",element:"wood",hp:720,attack:22,attackEvery:1,attackPattern:Object.freeze({type:"multi",name:"幻尾連擊",hits:2})}),
+    Object.freeze({id:"splitwind-tengu",name:"裂風天狗",emoji:"👺",element:"light",hp:980,attack:28,attackEvery:2,attackPattern:Object.freeze({type:"heavy",name:"風刃蓄勢"})}),
+    Object.freeze({id:"sakura-moon-fox",name:"櫻月天狐",emoji:"🦊",element:"dark",hp:1850,attack:32,attackEvery:2,attackPattern:Object.freeze({type:"heavy",name:"櫻刃蓄力"}),boss:true,special:Object.freeze({every:3,name:"花影連舞",damage:72,hits:2,shieldPierce:0.2}),enrageAt:0.5,enrageMultiplier:1.25,phases:Object.freeze([
+      Object.freeze({at:1,name:"花霧姿態",attackEvery:2,attackPattern:Object.freeze({type:"heavy",name:"櫻刃蓄力"}),special:Object.freeze({every:3,name:"花影連舞",damage:72,hits:2,shieldPierce:0.2}),enrageAt:0.5,enrageMultiplier:1.25}),
+      Object.freeze({at:0.5,name:"月蝕姿態",attackEvery:1,attackPattern:Object.freeze({type:"multi",name:"月輪連斬",hits:3}),special:Object.freeze({every:2,name:"天狐焚月",damage:90,hits:3,shieldPierce:0.35}),enrageAt:0.2,enrageMultiplier:1.4})
+    ])})
   ])})
 ]);
 
@@ -53,28 +61,44 @@ export function damageCurrentEnemy(state,damage){
   return {state:{...state,enemyHp:0,completed:true,campaignComplete:campaignCompleted},defeated:true,defeatedEnemy:encounter,nextEncounter:null,stageCompleted:true,campaignCompleted};
 }
 
+function getEncounterPhase(encounter, enemyHp){
+  if(!Array.isArray(encounter.phases)||encounter.phases.length===0)return null;
+  const hpRatio=enemyHp/encounter.hp;
+  let active=null;
+  for(const phase of encounter.phases){
+    if(!Number.isFinite(phase.at)||phase.at<0||phase.at>1)throw new RangeError("Encounter phase threshold must be between 0 and 1");
+    if(hpRatio<=phase.at)active=phase;
+  }
+  return active;
+}
+
 export function getEnemyIntent(state){
   const encounter=getCurrentEncounter(state);
-  if(!encounter)return {type:"none",label:"關卡已完成",damage:0,healing:0,hits:1,previewDamage:0,previewHits:1,shieldPierce:0,enraged:false};
+  if(!encounter)return {type:"none",label:"關卡已完成",damage:0,healing:0,hits:1,previewDamage:0,previewHits:1,shieldPierce:0,enraged:false,phase:null};
 
+  const phase=getEncounterPhase(encounter,state.enemyHp);
   const nextTurn=state.turn+1;
-  const enraged=Number.isFinite(encounter.enrageAt)&&state.enemyHp<=encounter.hp*encounter.enrageAt;
-  const multiplier=enraged?(encounter.enrageMultiplier??1):1;
-  const support=encounter.support;
+  const phaseName=phase?.name??null;
+  const enrageAt=phase?.enrageAt??encounter.enrageAt;
+  const enraged=Number.isFinite(enrageAt)&&state.enemyHp<=encounter.hp*enrageAt;
+  const multiplier=enraged?(phase?.enrageMultiplier??encounter.enrageMultiplier??1):1;
+  const support=phase?.support??encounter.support;
+  const special=phase?.special??encounter.special;
+  const pattern=phase?.attackPattern??encounter.attackPattern??{type:"single"};
+  const attackEvery=phase?.attackEvery??encounter.attackEvery;
+
   if(support&&nextTurn%support.every===0){
-    return {type:"heal",label:support.name,damage:0,healing:support.amount,hits:1,previewDamage:0,previewHits:1,shieldPierce:0,enraged};
+    return {type:"heal",label:support.name,damage:0,healing:support.amount,hits:1,previewDamage:0,previewHits:1,shieldPierce:0,enraged,phase:phaseName};
   }
 
-  const special=encounter.special;
   if(special&&nextTurn%special.every===0){
-    return {type:"special",label:special.name,damage:Math.ceil(special.damage*multiplier),healing:0,hits:special.hits??1,previewDamage:0,previewHits:1,shieldPierce:special.shieldPierce??0,enraged};
+    return {type:"special",label:special.name,damage:Math.ceil(special.damage*multiplier),healing:0,hits:special.hits??1,previewDamage:0,previewHits:1,shieldPierce:special.shieldPierce??0,enraged,phase:phaseName};
   }
 
-  const pattern=encounter.attackPattern??{type:"single"};
   const damage=Math.ceil(encounter.attack*multiplier);
   const hits=pattern.hits??1;
-  if(nextTurn%encounter.attackEvery===0){
-    return {type:pattern.type==="heavy"?"heavy":pattern.type==="multi"?"multi":"attack",label:pattern.name??(enraged?"狂暴攻擊":"普通攻擊"),damage,healing:0,hits,previewDamage:0,previewHits:1,shieldPierce:0,enraged};
+  if(nextTurn%attackEvery===0){
+    return {type:pattern.type==="heavy"?"heavy":pattern.type==="multi"?"multi":"attack",label:pattern.name??(enraged?"狂暴攻擊":"普通攻擊"),damage,healing:0,hits,previewDamage:0,previewHits:1,shieldPierce:0,enraged,phase:phaseName};
   }
 
   return {
@@ -86,10 +110,10 @@ export function getEnemyIntent(state){
     previewDamage:damage,
     previewHits:hits,
     shieldPierce:0,
-    enraged
+    enraged,
+    phase:phaseName
   };
 }
-
 export function resolveEnemyTurn(state){
   assertCampaignState(state);
   if(state.completed)throw new Error("Cannot resolve an enemy turn after stage completion");
