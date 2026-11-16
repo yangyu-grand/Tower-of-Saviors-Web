@@ -58,7 +58,7 @@ These are original prototype rules and are intentionally data-driven so they can
 
 ## Next priorities
 
-1. Improve animations, sound, and browser/mobile QA.
+1. Complete real-browser and physical mobile QA for rune animations, opt-in sound, touch interaction, and reduced-motion behavior.
 2. Expand campaign content and balance leader, active-skill, and boss values.
 3. Add an onboarding tutorial that explains rune matching, skills, and campaign progression.
 
@@ -90,7 +90,10 @@ These are original prototype rules and are intentionally data-driven so they can
 - Defeated encounters award awakening shards; stage bosses also award prism cores. Evolution consumes the required materials and gold.
 - `evolution.js` contains recipes, cost quotes, evolution validation, and evolved team-stat lookup.
 - `codex.js` builds the searchable original-card catalog and applies element, effective-rarity, ownership, and evolution filters.
+- `battleFeedback.js` provides reduced-motion-aware combat animations and opt-in, synthesized Web Audio effects; no external audio or art assets are required.
+- The browser UI triggers match, enemy-hit, enemy-attack, healing, skill, and victory feedback, with sound disabled by default until the player opts in.
 - `tests/codex.test.js` covers catalog completeness, skill/name search, combined filters, ownership, evolution, and invalid input.
+- `tests/battle-feedback.test.js` covers opt-in audio, unsupported audio fallback, animation hooks, and reduced-motion behavior.
 
 
 - `team.js` — all original cards, validated leader skill effects, team validation, and stat aggregation.
