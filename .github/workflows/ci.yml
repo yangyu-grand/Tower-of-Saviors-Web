@@ -24,3 +24,5 @@ jobs:
         run: npx playwright install --with-deps chromium
       - name: Run unit and real-browser tests
         run: npm test
+      - name: Run deterministic campaign balance report
+        run: npm run balance:report
