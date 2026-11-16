@@ -65,3 +65,14 @@ test("the card codex exposes searchable element, rarity, ownership, and evolutio
   assert.match(html, /主動技能 · /);
   assert.match(html, /隊長技能 · /);
 });
+
+
+test("the browser UI wires opt-in sound and battle feedback animations", () => {
+  assert.match(html, /from "\.\/battleFeedback\.js"/);
+  assert.match(html, /id="soundToggle"/);
+  assert.match(html, /feedback\.playMatch/);
+  assert.match(html, /feedback\.playHit/);
+  assert.match(html, /feedback\.playVictory/);
+  assert.match(html, /feedback\.playEnemyAttack/);
+  assert.match(html, /prefers-reduced-motion:reduce/);
+});

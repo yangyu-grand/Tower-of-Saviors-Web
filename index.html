@@ -34,6 +34,15 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .summon-result small{display:block;color:var(--muted);font-size:10px;margin-top:3px}
 .summon-result[data-rarity="4"]{border-color:#62b6e8}.summon-result[data-rarity="5"]{border-color:#e6bd62;box-shadow:inset 0 0 18px #e6bd6218}
 @keyframes summonReveal{from{opacity:0;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
+.orb.match-pop{position:relative;z-index:2;animation:runeMatch .14s ease-in both;animation-delay:var(--match-delay,0ms)}
+#enemy.enemy-hit{animation:enemyHit .4s ease-out}#enemy.enemy-victory{animation:enemyVictory .68s ease-out}
+#board.board-hit{animation:boardHit .4s ease-out}#board.board-heal{animation:boardHeal .48s ease-out}#board.board-skill{animation:boardSkill .4s ease-out}
+@keyframes runeMatch{0%{transform:scale(1);filter:brightness(1)}55%{transform:scale(1.16);filter:brightness(1.7) drop-shadow(0 0 10px #fff8)}100%{transform:scale(.52);opacity:.18}}
+@keyframes enemyHit{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px) rotate(-3deg);filter:brightness(1.8)}45%{transform:translateX(5px) rotate(3deg)}70%{transform:translateX(-3px)}}
+@keyframes enemyVictory{0%{transform:scale(1);filter:brightness(1)}45%{transform:scale(1.22);filter:brightness(1.8) drop-shadow(0 0 18px #f6c96b)}100%{transform:scale(.88);filter:brightness(1.2)}}
+@keyframes boardHit{0%,100%{box-shadow:0 0 0 transparent}45%{box-shadow:inset 0 0 0 3px #f06a70,0 0 20px #f06a7066}}
+@keyframes boardHeal{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:inset 0 0 0 3px #ff9dc8,0 0 22px #ff9dc866}}
+@keyframes boardSkill{0%,100%{box-shadow:0 0 0 transparent}50%{box-shadow:inset 0 0 0 3px #8bc7ff,0 0 22px #8bc7ff66}}
 .stage-status{display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;padding:9px 10px;background:#080f20aa;border-radius:11px;margin-bottom:8px;font-size:13px}.stage-status strong{color:var(--gold)}.stage-difficulty{color:#aab6ce;font-size:11px;border:1px solid #65789a66;border-radius:20px;padding:3px 7px;margin-left:6px}
 #enemyIntent{padding:8px 10px;border-left:3px solid var(--gold);background:#080f2088;border-radius:6px}#nextStage{width:100%;margin-top:8px}#nextStage[hidden]{display:none}
 .team-panel{margin-top:14px}.team-head{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap}
@@ -63,12 +72,13 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .codex-empty{padding:18px;text-align:center;color:var(--muted)}
 @media(max-width:680px){.codex-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.codex-filters{grid-template-columns:repeat(2,minmax(0,1fr))}.codex-filters label:first-child{grid-column:1/-1}}
 @media(max-width:420px){.codex-grid{grid-template-columns:1fr}}
+@media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;animation-iteration-count:1!important;scroll-behavior:auto!important;transition-duration:.01ms!important}}
 
 </style>
 </head>
 <body>
 <main>
- <div class="top"><div><h1>符石遠征</h1><p class="sub">原創益智 RPG 原型 · 消除、連擊、屬性與戰鬥</p></div><div class="top-actions"><span id="saveStatus" class="save-status" role="status">存檔載入中…</span><button id="saveNow" type="button">立即儲存</button><button id="newGame">重新開始</button></div></div>
+ <div class="top"><div><h1>符石遠征</h1><p class="sub">原創益智 RPG 原型 · 消除、連擊、屬性與戰鬥</p></div><div class="top-actions"><span id="saveStatus" class="save-status" role="status">存檔載入中…</span><button id="soundToggle" type="button" aria-pressed="false" aria-label="開啟音效">音效：關</button><button id="saveNow" type="button">立即儲存</button><button id="newGame">重新開始</button></div></div>
  <section class="panel">
   <div class="stats">
    <div class="stat"><small>隊伍生命</small><b id="hp">100</b></div><div class="stat"><small>總攻擊力</small><b id="atk">0</b></div><div class="stat"><small>總分</small><b id="score">0</b></div><div class="stat"><small>最大 Combo</small><b id="combo">0</b></div>
@@ -134,6 +144,7 @@ import { getCardLevels, grantTeamExperience, getTrainingQuote, trainCard, MAX_CA
 import { enhanceCardSkill, getSkillEnhancementQuote } from "./skillEnhancement.js";
 import { getCardEvolutionLevels, getEvolutionQuote, evolveCard } from "./evolution.js";
 import { filterCardCatalog } from "./codex.js";
+import { createBattleFeedback } from "./battleFeedback.js";
 (()=>{
 const types=['fire','water','wood','light','dark','heart'],icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id),rand=()=>types[Math.floor(Math.random()*types.length)];
@@ -142,6 +153,12 @@ const loaded=loadSave(storage);
 let profile=loaded.save;
 let campaign={...profile.campaign};
 const boardEl=document.querySelector('#board');
+const feedback=createBattleFeedback({boardElement:boardEl,enemyElement:document.querySelector('#enemy')});
+const soundToggle=$('soundToggle');
+function syncSoundToggle(){const muted=feedback.isMuted();soundToggle.textContent=muted?'音效：關':'音效：開';soundToggle.setAttribute('aria-pressed',String(!muted));soundToggle.setAttribute('aria-label',muted?'開啟音效':'關閉音效');}
+soundToggle.addEventListener('click',()=>{feedback.setMuted(!feedback.isMuted());syncSoundToggle();if(!feedback.isMuted())feedback.playSkill();});
+window.addEventListener('pagehide',()=>feedback.destroy(),{once:true});
+syncSoundToggle();
 let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)}),maxHp=currentTeam.totalHp;
 let skillStates=profile.skillStates,shield=profile.shield,pendingDamageMultiplier=profile.pendingDamageMultiplier;
 let cells=profile.board?[...profile.board]:createBoard(),selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex;
@@ -357,7 +374,7 @@ function useSkill(cardId){
  const skill=getActiveSkill(cardId,skillLevel);
  if(skill.type==='heal'&&hp>=maxHp)return;
  const result=activateSkill({cardId,skillStates,board:cells,hp,maxHp,shield,damageMultiplier:pendingDamageMultiplier,random:Math.random,skillLevel});
- skillStates=result.skillStates;cells=result.board;hp=result.hp;shield=result.shield;pendingDamageMultiplier=result.damageMultiplier;
+ skillStates=result.skillStates;cells=result.board;hp=result.hp;shield=result.shield;pendingDamageMultiplier=result.damageMultiplier;feedback.playSkill();
  render();$('log').textContent=result.summary;persist();
 }
 function render(){boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label',t);b.dataset.i=i;b.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return}tap(i)});boardEl.appendChild(b)});stats()}
@@ -385,12 +402,15 @@ async function swapTry(a,b){
   let detail=result.breakdown.map(item=>icons[item.element]+' '+item.count+'顆×隊伍攻擊 '+item.baseDamage+'×符石 '+item.runeCountMultiplier.toFixed(2)+'×Combo '+result.comboMultiplier.toFixed(2)+'×屬性 '+item.multiplier.toFixed(2)+'×技能 '+result.skillMultiplier.toFixed(2)+'='+item.damage).join('；');
   if(!detail)detail='沒有攻擊符石';if(result.healing)detail+='；💗回復 '+result.healing;
   damageLines.push('Combo '+combo+'：'+detail);score+=matches.size*10*combo;
-  matches.forEach(i=>cells[i]=null);render();await wait(180);
+  feedback.playMatch([...matches],combo);await wait(190);
+  matches.forEach(i=>cells[i]=null);render();await wait(40);
   for(let c=0;c<6;c++){let stack=[];for(let r=4;r>=0;r--){const value=cells[r*6+c];if(value)stack.push(value)}while(stack.length<5)stack.push(rand());for(let r=4;r>=0;r--)cells[r*6+c]=stack[4-r]}
   render();await wait(120);matches=findMatches();
  }
  maxCombo=Math.max(maxCombo,combo);hp=Math.min(maxHp,hp+totalHeal);$('combatBreakdown').textContent=damageLines.join('｜');
  const outcome=damageCurrentEnemy(campaign,totalDamage);campaign=outcome.state;
+ if(totalDamage>0){if(outcome.defeated)feedback.playVictory();else feedback.playHit();}
+ if(totalHeal>0)feedback.playHeal();
  if(outcome.defeated){
   score+=outcome.stageCompleted?150:100;
   profile=addCurrency(profile,"gold",outcome.stageCompleted?500:100);
@@ -406,6 +426,7 @@ async function swapTry(a,b){
   }else{$('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！獲得 100 分、100 金幣及 1 枚覺醒碎片，下一波 '+outcome.nextEncounter.name+' 出現。';renderInventory();}
  }else{
   const enemyTurn=resolveEnemyTurn(campaign);campaign=enemyTurn.state;
+  if(enemyTurn.incomingDamage>0)feedback.playEnemyAttack();
   const leaderDamageReduction=currentTeam.leaderSkill?.damageReduction??0;
   const adjustedIncomingDamage=Math.ceil(enemyTurn.incomingDamage*(1-leaderDamageReduction));
   const mitigation=mitigateIncomingDamage(adjustedIncomingDamage,shield,enemyTurn.intent.shieldPierce);
@@ -442,7 +463,7 @@ function nextStage(){
  $('log').textContent='進入 '+getCurrentStage(campaign).name+'！新的敵人正在前方等待。';$('combatBreakdown').textContent='新關卡開始。';render();persist();
 }
 $('newGame').addEventListener('click',reset);$('nextStage').addEventListener('click',nextStage);$('saveNow').addEventListener('click',()=>persist("已手動儲存"));$('summonSingle').addEventListener('click',()=>performSummon(1));$('summonTen').addEventListener('click',()=>performSummon(10));
-$('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
+$('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);feedback.playHeal();$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
 $('codexSearch').addEventListener('input',renderCodex);
  ['codexElementFilter','codexRarityFilter','codexOwnershipFilter','codexEvolutionFilter'].forEach(id=>$(id).addEventListener('change',renderCodex));
  renderTeam();renderInventory();render();setLoadStatus();if(loaded.status==="new")persist("新存檔已建立");
