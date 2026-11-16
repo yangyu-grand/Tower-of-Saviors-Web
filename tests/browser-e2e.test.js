@@ -270,7 +270,7 @@ test("Chromium restores a completed-stage result, prevents duplicate claiming, a
   const page = await context.newPage();
   const pageErrors = [];
   page.on("pageerror", (error) => pageErrors.push(error.message));
-  await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), { key: SAVE_KEY, value: serializedSave });
+  await page.addInitScript(({ key, value }) => { if (!localStorage.getItem(key)) localStorage.setItem(key, value); }, { key: SAVE_KEY, value: serializedSave });
   await page.goto(url, { waitUntil: "networkidle" });
 
   assert.equal(await page.locator("#battleResult").isVisible(), true, "a saved completed stage should restore its result screen");
@@ -283,6 +283,7 @@ test("Chromium restores a completed-stage result, prevents duplicate claiming, a
 
   await page.locator("#resultDismiss").click();
   assert.equal(await page.locator("#battleResult").isVisible(), false);
+  assert.equal(await page.evaluate((key) => JSON.parse(localStorage.getItem(key)).battleStats.resultDismissed, SAVE_KEY), true, "dismissal should be written to the game save");
   await page.reload({ waitUntil: "networkidle" });
   assert.equal(await page.locator("#battleResult").isVisible(), false, "dismissal should persist across reload");
   assert.equal(await page.locator("#nextStage").isVisible(), true);
