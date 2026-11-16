@@ -2,7 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   SAVE_KEY, RUNE_TYPES, createDefaultSave, normalizeSave, loadSave, saveGame,
-  isCardOwned, listOwnedCards, addCard, addCurrency, spendCurrency, SUMMON_EPIC_PITY_LIMIT
+  isCardOwned, listOwnedCards, addCard, addCurrency, addMaterials, spendCurrency, SUMMON_EPIC_PITY_LIMIT
 } from "../inventory.js";
 
 function memoryStorage(initial = null) {
@@ -137,13 +137,15 @@ test("legacy saves without summon state migrate with zero summon history", () =>
   assert.deepEqual(migrated.summonState, { totalSummons: 0, epicPity: 0 });
 });
 
-test("version-1 saves migrate to version 2 with skill level one for every card", () => {
+test("version-1 saves migrate to version 3 with skill level one and base evolution for every card", () => {
   const legacy = createDefaultSave();
   legacy.version = 1;
-  legacy.inventory.forEach((entry) => { delete entry.skillLevel; });
+  delete legacy.materials;
+  legacy.inventory.forEach((entry) => { delete entry.skillLevel; delete entry.evolutionLevel; });
   const migrated = normalizeSave(legacy);
-  assert.equal(migrated.version, 2);
-  assert.ok(migrated.inventory.every((entry) => entry.skillLevel === 1));
+  assert.equal(migrated.version, 3);
+  assert.ok(migrated.inventory.every((entry) => entry.skillLevel === 1 && entry.evolutionLevel === 0));
+  assert.deepEqual(migrated.materials, { awakeningShards: 0, prismCores: 0 });
 });
 
 test("summon pity state is validated and bounded below the guaranteed pull", () => {
@@ -153,4 +155,27 @@ test("summon pity state is validated and bounded below the guaranteed pull", () 
   const negative = createDefaultSave();
   negative.summonState.totalSummons = -1;
   assert.throws(() => normalizeSave(negative), /totalSummons/);
+});
+
+
+test("version-2 saves migrate to version 3 with zero evolution materials and base card forms", () => {
+  const legacy = createDefaultSave();
+  legacy.version = 2;
+  delete legacy.materials;
+  legacy.inventory.forEach((entry) => { delete entry.evolutionLevel; });
+  const migrated = normalizeSave(legacy);
+  assert.equal(migrated.version, 3);
+  assert.deepEqual(migrated.materials, { awakeningShards: 0, prismCores: 0 });
+  assert.ok(migrated.inventory.every((entry) => entry.evolutionLevel === 0));
+});
+
+test("evolution materials are validated and can be added without mutating the input save", () => {
+  const save = createDefaultSave();
+  const rewarded = addMaterials(save, "awakeningShards", 3);
+  assert.equal(rewarded.materials.awakeningShards, 3);
+  assert.equal(save.materials.awakeningShards, 0);
+  assert.throws(() => addMaterials(save, "unknown", 1), /Unknown evolution material/);
+  const invalid = createDefaultSave();
+  invalid.materials.prismCores = -1;
+  assert.throws(() => normalizeSave(invalid), /prismCores/);
 });
