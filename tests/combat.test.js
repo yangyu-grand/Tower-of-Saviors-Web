@@ -78,3 +78,23 @@ test("rejects invalid team attack data", () => {
     teamAttackByElement: { fire: -1 }
   }), RangeError);
 });
+
+
+test("leader combo bonus increases each additional combo step", () => {
+  const result = calculateCombatResult({ counts: { fire: 3 }, combo: 3, enemyElement: "wood", comboStepBonus: 0.05 });
+  assert.equal(result.comboMultiplier, 1.6);
+  assert.equal(result.damage, 79);
+});
+
+test("leader healing multiplier improves heart rune recovery with integer HP", () => {
+  const result = calculateCombatResult({ counts: { heart: 2 }, combo: 1, enemyElement: "fire", healingMultiplier: 1.35 });
+  assert.equal(result.healing, 19);
+  assert.equal(result.damage, 0);
+});
+
+test("rejects out-of-range leader combo and healing modifiers", () => {
+  assert.throws(() => calculateCombatResult({ counts: {}, combo: 1, enemyElement: "fire", comboStepBonus: -0.01 }), RangeError);
+  assert.throws(() => calculateCombatResult({ counts: {}, combo: 1, enemyElement: "fire", comboStepBonus: 0.3 }), RangeError);
+  assert.throws(() => calculateCombatResult({ counts: {}, combo: 1, enemyElement: "fire", healingMultiplier: 0.1 }), RangeError);
+  assert.throws(() => calculateCombatResult({ counts: {}, combo: 1, enemyElement: "fire", healingMultiplier: 4 }), RangeError);
+});

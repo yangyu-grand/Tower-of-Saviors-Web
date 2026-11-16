@@ -18,12 +18,15 @@ test("team summary aggregates HP and attack by element", () => {
   });
 });
 
-test("only the first card supplies the leader skill", () => {
-  const team = buildTeam(DEFAULT_TEAM);
-  assert.equal(team.leaderSkill.name, "赤焰先鋒");
-  const withoutLeader = buildTeam(["tide_monk", "ember_scout", "moss_guard", "dawn_archer", "heart_priest"]);
-  assert.equal(withoutLeader.leaderSkill, null);
-  assert.equal(withoutLeader.attackByElement.fire, 180);
+test("the first card alone supplies the leader skill and its effects", () => {
+  const fireLeader = buildTeam(DEFAULT_TEAM);
+  assert.equal(fireLeader.leaderSkill.name, "赤焰先鋒");
+  assert.equal(fireLeader.attackByElement.fire, 216);
+  const waterLeader = buildTeam(["tide_monk", "ember_scout", "moss_guard", "dawn_archer", "heart_priest"]);
+  assert.equal(waterLeader.leaderSkill.name, "潮汐韻律");
+  assert.equal(waterLeader.attackByElement.water, 192);
+  assert.equal(waterLeader.attackByElement.fire, 180);
+  assert.equal(waterLeader.leaderSkill.comboStepBonus, 0.05);
 });
 
 test("catalog has original cards across all six elements", () => {
@@ -75,4 +78,26 @@ test("evolved card forms increase rarity and stats while preserving level scalin
 test("rarity-specific evolution caps are enforced in team stat calculation", () => {
   assert.throws(() => buildTeam(DEFAULT_TEAM, { evolutionLevels: { ember_scout: 3 } }), /Invalid evolution level/);
   assert.throws(() => buildTeam(DEFAULT_TEAM, { evolutionLevels: [] }), /evolutionLevels/);
+});
+
+
+test("all fifteen original cards define a validated leader skill", () => {
+  assert.equal(CARD_CATALOG.length, 15);
+  for (const card of CARD_CATALOG) {
+    assert.ok(card.leaderSkill, card.id + " should define a leader skill");
+    assert.ok(card.leaderSkill.description.length > 0);
+    assert.ok((card.leaderSkill.hpMultiplier ?? 1) > 0);
+    assert.ok((card.leaderSkill.comboStepBonus ?? 0) <= 0.25);
+    assert.ok((card.leaderSkill.healingMultiplier ?? 1) >= 0.5);
+    assert.ok((card.leaderSkill.damageReduction ?? 0) <= 0.5);
+  }
+});
+
+test("leader skill effects cover attack, HP, combo, healing, and damage reduction", () => {
+  const effects = CARD_CATALOG.map(card => card.leaderSkill);
+  assert.ok(effects.some(skill => Object.keys(skill.attackMultipliers ?? {}).length > 0));
+  assert.ok(effects.some(skill => skill.hpMultiplier > 1));
+  assert.ok(effects.some(skill => skill.comboStepBonus > 0));
+  assert.ok(effects.some(skill => skill.healingMultiplier > 1));
+  assert.ok(effects.some(skill => skill.damageReduction > 0));
 });

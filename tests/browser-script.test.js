@@ -44,3 +44,11 @@ test("the browser UI exposes card evolution, material balances, and battle mater
   assert.match(html, /id="prismCores"/);
   assert.match(html, /addMaterials\(profile,"awakeningShards"/);
 });
+
+
+test("the browser applies leader combo, heart-healing, and incoming-damage reduction effects", () => {
+  assert.match(html, /comboStepBonus:currentTeam\.leaderSkill\?\.comboStepBonus/);
+  assert.match(html, /healingMultiplier:currentTeam\.leaderSkill\?\.healingMultiplier/);
+  assert.match(html, /currentTeam\.leaderSkill\?\.damageReduction/);
+  assert.match(html, /adjustedIncomingDamage/);
+});

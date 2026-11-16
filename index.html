@@ -314,7 +314,7 @@ async function swapTry(a,b){
  while(matches.size&&combo<12){
   combo++;const removed=[...matches].map(i=>cells[i]),counts={};removed.forEach(t=>counts[t]=(counts[t]||0)+1);
   const target=getCurrentEncounter(campaign)||getCurrentStage(campaign).waves.at(-1);
-  const result=calculateCombatResult({counts,combo,enemyElement:target.element,teamAttackByElement:currentTeam.attackByElement,skillMultiplier:pendingDamageMultiplier});
+  const result=calculateCombatResult({counts,combo,enemyElement:target.element,teamAttackByElement:currentTeam.attackByElement,skillMultiplier:pendingDamageMultiplier,comboStepBonus:currentTeam.leaderSkill?.comboStepBonus??0,healingMultiplier:currentTeam.leaderSkill?.healingMultiplier??1});
   totalDamage+=result.damage;totalHeal+=result.healing;
   let detail=result.breakdown.map(item=>icons[item.element]+' '+item.count+'顆×隊伍攻擊 '+item.baseDamage+'×符石 '+item.runeCountMultiplier.toFixed(2)+'×Combo '+result.comboMultiplier.toFixed(2)+'×屬性 '+item.multiplier.toFixed(2)+'×技能 '+result.skillMultiplier.toFixed(2)+'='+item.damage).join('；');
   if(!detail)detail='沒有攻擊符石';if(result.healing)detail+='；💗回復 '+result.healing;
@@ -340,11 +340,14 @@ async function swapTry(a,b){
   }else{$('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！獲得 100 分、100 金幣及 1 枚覺醒碎片，下一波 '+outcome.nextEncounter.name+' 出現。';renderInventory();}
  }else{
   const enemyTurn=resolveEnemyTurn(campaign);campaign=enemyTurn.state;
-  const mitigation=mitigateIncomingDamage(enemyTurn.incomingDamage,shield,enemyTurn.intent.shieldPierce);
+  const leaderDamageReduction=currentTeam.leaderSkill?.damageReduction??0;
+  const adjustedIncomingDamage=Math.ceil(enemyTurn.incomingDamage*(1-leaderDamageReduction));
+  const mitigation=mitigateIncomingDamage(adjustedIncomingDamage,shield,enemyTurn.intent.shieldPierce);
   shield=mitigation.remainingShield;hp=Math.max(0,hp-mitigation.hpDamage);
   const shieldText=mitigation.shieldDamage?'護盾吸收 '+mitigation.shieldDamage+' 點。':'';
   const pierceText=mitigation.piercingDamage?'其中 '+mitigation.piercingDamage+' 點穿透護盾。':'';
-  $('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。'+enemyTurn.message+shieldText+pierceText;
+  const leaderReductionText=leaderDamageReduction>0?'隊長技能減傷 '+Math.round(leaderDamageReduction*100)+'%。':'';
+  $('log').textContent='完成 '+combo+' Combo！造成 '+totalDamage+' 傷害，回復 '+totalHeal+' 生命。'+enemyTurn.message+leaderReductionText+shieldText+pierceText;
  }
  if(hp<=0)$('log').textContent+=' 生命值歸零，請重新開始。';
  const expReward=20+(outcome.defeated?(outcome.stageCompleted?120:50):0),previousMaxHp=maxHp;

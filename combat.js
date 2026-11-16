@@ -27,12 +27,14 @@ export function getElementalMatchup(attackerElement, enemyElement) {
   return { multiplier: 1, relation: "neutral" };
 }
 
-export function calculateCombatResult({ counts = {}, combo = 1, enemyElement, teamAttackByElement = null, skillMultiplier = 1 }) {
+export function calculateCombatResult({ counts = {}, combo = 1, enemyElement, teamAttackByElement = null, skillMultiplier = 1, comboStepBonus = 0, healingMultiplier = 1 }) {
   assertElement(enemyElement, "enemy element");
   if (!Number.isInteger(combo) || combo < 1) throw new RangeError("combo must be a positive integer");
   if (typeof skillMultiplier !== "number" || !Number.isFinite(skillMultiplier) || skillMultiplier < 1 || skillMultiplier > 10) {
     throw new RangeError("skillMultiplier must be between 1 and 10");
   }
+  if (typeof comboStepBonus !== "number" || !Number.isFinite(comboStepBonus) || comboStepBonus < 0 || comboStepBonus > 0.25) throw new RangeError("comboStepBonus must be between 0 and 0.25");
+  if (typeof healingMultiplier !== "number" || !Number.isFinite(healingMultiplier) || healingMultiplier < 0.5 || healingMultiplier > 3) throw new RangeError("healingMultiplier must be between 0.5 and 3");
   for (const [element, count] of Object.entries(counts)) {
     assertElement(element, "rune element");
     if (!Number.isInteger(count) || count < 0) throw new RangeError(`count for ${element} must be a non-negative integer`);
@@ -50,7 +52,7 @@ export function calculateCombatResult({ counts = {}, combo = 1, enemyElement, te
     }
   }
 
-  const comboMultiplier = 1 + (combo - 1) * COMBO_STEP;
+  const comboMultiplier = 1 + (combo - 1) * (COMBO_STEP + comboStepBonus);
   const breakdown = [];
   let damage = 0;
   for (const element of ATTACK_ELEMENTS) {
@@ -74,5 +76,5 @@ export function calculateCombatResult({ counts = {}, combo = 1, enemyElement, te
     });
   }
   const heartCount = counts.heart ?? 0;
-  return { damage, healing: heartCount * HEAL_PER_HEART_RUNE, comboMultiplier, skillMultiplier, breakdown };
+  return { damage, healing: Math.round(heartCount * HEAL_PER_HEART_RUNE * healingMultiplier), comboMultiplier, skillMultiplier, comboStepBonus, healingMultiplier, breakdown };
 }
