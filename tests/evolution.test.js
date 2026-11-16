@@ -117,7 +117,7 @@ test("all catalog cards have a bounded evolution path", () => {
 test("unowned cards and malformed evolution levels are rejected", () => {
   const save = createDefaultSave();
   assert.throws(() => getEvolutionQuote(save, "abyss_weaver"), /not owned/);
-  const invalid = createDefaultSave();
+  const invalid = addCard(createDefaultSave(), "azure_minstrel");
   invalid.inventory.find((entry) => entry.cardId === "azure_minstrel").evolutionLevel = 2;
   assert.throws(() => normalizeSave(invalid), /Invalid evolution level/);
 });
