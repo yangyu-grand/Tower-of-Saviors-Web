@@ -171,7 +171,7 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   await page.locator("#tutorialAdvance").click();
   assert.ok((await page.locator("#skillButtons").getAttribute("class") || "").includes("tutorial-target"), "the active-skill area should be highlighted");
   await page.locator("#skillButtons button:not(:disabled)").first().click();
-  await page.waitForFunction(() => document.querySelector("#tutorialTitle").textContent.includes("隊伍編組"));
+  await page.waitForFunction(() => document.querySelector("#tutorialTitle").textContent.includes("編組"));
   for (let step = 0; step < 4; step += 1) await page.locator("#tutorialAdvance").click();
   assert.equal(await page.locator("#tutorialPanel").isVisible(), false, "finishing the final lesson should dismiss the tutorial");
 
