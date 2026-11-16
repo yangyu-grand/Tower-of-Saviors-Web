@@ -1,6 +1,8 @@
 export const TEAM_SIZE = 5;
 export const DEFAULT_COST_LIMIT = 30;
 export const CARD_STAT_GROWTH_PER_LEVEL = 0.025;
+export const MAX_CARD_EVOLUTION_LEVEL = 2;
+const EVOLUTION_SUFFIXES = Object.freeze(["覺醒", "神化"]);
 
 const ATTACK_ELEMENTS = Object.freeze(["fire", "water", "wood", "light", "dark"]);
 
@@ -80,13 +82,33 @@ export function getCard(cardId) {
   return card;
 }
 
-export function getCardStats(cardId, level = 1) {
+export function getMaxEvolutionLevel(cardId) {
+  const rarity = getCard(cardId).rarity;
+  return rarity === 3 ? 2 : 1;
+}
+
+export function getCardStats(cardId, level = 1, evolutionLevel = 0) {
   const card = getCard(cardId);
   if (!Number.isInteger(level) || level < 1 || level > 99) {
     throw new RangeError("Card level must be an integer between 1 and 99");
   }
-  const multiplier = 1 + CARD_STAT_GROWTH_PER_LEVEL * (level - 1);
-  return { ...card, level, hp: Math.round(card.hp * multiplier), atk: Math.round(card.atk * multiplier) };
+  if (!Number.isInteger(evolutionLevel) || evolutionLevel < 0 || evolutionLevel > getMaxEvolutionLevel(cardId)) {
+    throw new RangeError("Invalid evolution level for " + cardId);
+  }
+  const levelMultiplier = 1 + CARD_STAT_GROWTH_PER_LEVEL * (level - 1);
+  const evolutionMultiplier = 1 + 0.25 * evolutionLevel;
+  const suffix = evolutionLevel === 0 ? "" : "・" + EVOLUTION_SUFFIXES[evolutionLevel - 1];
+  const evolvedEmoji = evolutionLevel === 1 ? "✨" : evolutionLevel === 2 ? "🌟" : "";
+  return {
+    ...card,
+    name: card.name + suffix,
+    emoji: card.emoji + evolvedEmoji,
+    rarity: card.rarity + evolutionLevel,
+    level,
+    evolutionLevel,
+    hp: Math.round(card.hp * levelMultiplier * evolutionMultiplier),
+    atk: Math.round(card.atk * levelMultiplier * evolutionMultiplier)
+  };
 }
 
 export function buildTeam(cardIds, options = {}) {
@@ -104,8 +126,10 @@ export function buildTeam(cardIds, options = {}) {
   }
 
   const levels = options.levels ?? {};
+  const evolutionLevels = options.evolutionLevels ?? {};
   if (!levels || typeof levels !== "object" || Array.isArray(levels)) throw new TypeError("levels must be a card-id-to-level object");
-  const cards = cardIds.map((cardId) => getCardStats(cardId, levels[cardId] ?? 1));
+  if (!evolutionLevels || typeof evolutionLevels !== "object" || Array.isArray(evolutionLevels)) throw new TypeError("evolutionLevels must be a card-id-to-level object");
+  const cards = cardIds.map((cardId) => getCardStats(cardId, levels[cardId] ?? 1, evolutionLevels[cardId] ?? 0));
   const totalCost = cards.reduce((sum, card) => sum + card.cost, 0);
   if (totalCost > costLimit) {
     throw new RangeError("Team cost " + totalCost + " exceeds limit " + costLimit);

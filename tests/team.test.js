@@ -58,3 +58,21 @@ test("catalog contains ten starters and five summon-only cards across three rari
   assert.equal(CARD_CATALOG.filter((card) => card.rarity === 4).length, 3);
   assert.equal(CARD_CATALOG.filter((card) => card.rarity === 5).length, 2);
 });
+
+
+test("evolved card forms increase rarity and stats while preserving level scaling", () => {
+  const base = buildTeam(DEFAULT_TEAM);
+  const evolved = buildTeam(DEFAULT_TEAM, { evolutionLevels: { ember_scout: 1 } });
+  assert.equal(evolved.cards[0].rarity, 4);
+  assert.equal(evolved.cards[0].evolutionLevel, 1);
+  assert.match(evolved.cards[0].name, /覺醒/);
+  assert.ok(evolved.cards[0].hp > base.cards[0].hp);
+  assert.ok(evolved.cards[0].atk > base.cards[0].atk);
+  assert.ok(evolved.totalHp > base.totalHp);
+  assert.ok(evolved.attackByElement.fire > base.attackByElement.fire);
+});
+
+test("rarity-specific evolution caps are enforced in team stat calculation", () => {
+  assert.throws(() => buildTeam(DEFAULT_TEAM, { evolutionLevels: { ember_scout: 3 } }), /Invalid evolution level/);
+  assert.throws(() => buildTeam(DEFAULT_TEAM, { evolutionLevels: [] }), /evolutionLevels/);
+});

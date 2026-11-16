@@ -34,3 +34,13 @@ test("the inventory UI exposes duplicate-card skill enhancement and displays eff
   assert.match(html, /技能 Lv\./);
   assert.match(html, /getActiveSkill\(cardId,skillLevel\)/);
 });
+
+
+test("the browser UI exposes card evolution, material balances, and battle material rewards", () => {
+  assert.match(html, /from "\.\/evolution\.js"/);
+  assert.match(html, /function performEvolution/);
+  assert.match(html, /evolution-button/);
+  assert.match(html, /id="awakeningShards"/);
+  assert.match(html, /id="prismCores"/);
+  assert.match(html, /addMaterials\(profile,"awakeningShards"/);
+});
