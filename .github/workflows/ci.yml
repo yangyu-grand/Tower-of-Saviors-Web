@@ -32,3 +32,5 @@ jobs:
         run: npm run balance:parties
       - name: Run seeded rune move quality analysis
         run: npm run balance:moves
+      - name: Run board-driven encounter simulations
+        run: npm run balance:battles

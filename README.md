@@ -92,9 +92,15 @@ The browser game and automated tests share the pure functions in `runeBoard.js`.
 
 Run `npm run balance:moves` to generate 100 reproducible 6 × 5 boards and evaluate every possible adjacent swap. Each candidate uses an isolated seeded refill stream, the selected five-card team's actual leader-adjusted elemental attack, the target enemy element, the shared Combo damage formula, and heart-rune healing. The report summarizes legal-move availability and the average best-move damage, healing, and Combo. It is a deterministic move-quality benchmark, not a human-play or win-rate prediction: it does not model drag-path choices, player reaction time, active-skill decisions, or physical-device input.
 
+## Board-driven encounter simulation
+
+Run `npm run balance:battles` to simulate all twelve encounters from seeded 6 × 5 rune boards. Each turn evaluates legal adjacent swaps with the shared team and elemental combat rules, optionally activates one useful ready skill, applies rune healing, resolves the enemy's real attack/support/special intent, and carries shield, HP, and per-card cooldown state forward. Boss phase thresholds and enrage are evaluated after the player's actual board damage. The default CLI runs two deterministic samples per encounter.
+
+The greedy policy chooses the highest-utility legal swap and at most one useful active skill per turn. This is a reproducible automated benchmark, not a human-play prediction: it does not model manual drag paths, player reaction time, or optimal multi-skill planning.
+
 ## Next priorities
 
-1. Connect sampled legal moves to full encounter-turn simulations, including enemy responses and active-skill timing, before changing enemy balance values.
+1. Connect the board-driven simulator to interactive battle replay/telemetry and compare multiple player policies before changing encounter values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
 
 ## Project structure
@@ -110,14 +116,17 @@ Run `npm run balance:moves` to generate 100 reproducible 6 × 5 boards and evalu
 - `partyBalance.js` — exhaustive cost-valid party enumeration and twelve-encounter composition ranking.
 - `runeBoard.js` — seeded 6 × 5 board generation, match detection, legal swaps, gravity/refill, and cascade resolution.
 - `runeMoveAnalysis.js` — deterministic evaluation of all legal adjacent swaps using the shared team and combat rules.
+- `runeBattleSimulation.js` — seeded board-driven encounter turns with active skills, enemy responses, boss phases, shields, and HP tracking.
 - `scripts/balance-report.js` — command-line campaign balance report.
 - `scripts/balance-scenarios.js` — command-line representative scenario matrix.
 - `scripts/party-balance-report.js` — command-line full party-composition sweep.
 - `scripts/rune-move-quality-report.js` — command-line seeded move-quality report.
+- `scripts/rune-battle-report.js` — command-line seeded full encounter-turn simulation report.
 - `tests/balance-scenarios.test.js` — active-skill timing, cooldown, conversion, shield, healing, and match-distribution tests.
 - `tests/party-balance.test.js` — lineup enumeration, cost filtering, leader-slot coverage, deterministic encounter reports, and progression-stat tests.
 - `tests/rune-board.test.js` — seeded generation, match detection, adjacency, gravity, valid/invalid swaps, and cascade snapshots.
 - `tests/rune-move-analysis.test.js` — deterministic move ranking, team/element modifiers, heart healing, and board-sample reports.
+- `tests/rune-battle-simulation.test.js` — seeded encounter turns, enemy responses, boss phases, active skills, and campaign reports.
 - `tests/balance.test.js` — deterministic baseline, elemental matchup, support-healing, Boss-phase, shield, and campaign-report tests.
 - `inventory.js` — owned-card inventory, currency operations, backward-compatible save validation, and browser storage adapter.
 - `summon.js` — rarity rolls, ten-pull guarantee, duplicate handling, and epic pity.
