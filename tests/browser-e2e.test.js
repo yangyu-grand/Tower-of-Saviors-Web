@@ -1000,25 +1000,26 @@ test("Chromium plays the dominant recorded element timbre during sequential repl
   await page.goto(url, { waitUntil: "networkidle" });
 
   const replay = createRuneBattleReplay(simulateRuneEncounter({
-    stageIndex: 0, waveIndex: 0, seed: 913, skillPolicy: "greedy", maxTurns: 8
+    stageIndex: 3, waveIndex: 2, seed: 904, skillPolicy: "greedy", maxTurns: 8
   }));
   const playerActionIndex = replay.events.findIndex((event, index) =>
     index > 0 && event.type === "player-action" &&
-    Number.isSafeInteger(event.data?.enemyHpBeforeAttack) &&
-    event.data.enemyHpBeforeAttack > 50 &&
     Number.isSafeInteger(event.data?.enemyHpAfterTurn) &&
     event.data.enemyHpAfterTurn > 0
   );
-  assert.ok(playerActionIndex > 0, "the seeded replay should contain a non-final player attack");
+  assert.ok(playerActionIndex > 0, "the seeded Boss replay should contain a non-final player attack");
   const action = replay.events[playerActionIndex].data;
+  const enemyHpBeforeAttack = replay.encounter.hp;
+  assert.ok(Number.isSafeInteger(enemyHpBeforeAttack) && enemyHpBeforeAttack > 50);
   action.combo = 3;
   action.damage = 50;
   action.calculatedDamage = 50;
+  action.enemyHpBeforeAttack = enemyHpBeforeAttack;
+  action.enemyHpAfterTurn = enemyHpBeforeAttack - 50;
   action.damageByElement = [
     { element: "fire", runeCount: 3, damage: 35, relation: "neutral" },
     { element: "water", runeCount: 3, damage: 15, relation: "advantage" }
   ];
-  action.enemyHpAfterTurn = action.enemyHpBeforeAttack - 50;
   replay.events.forEach((event, index) => { event.index = index; });
   replay.eventCount = replay.events.length;
 

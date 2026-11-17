@@ -195,6 +195,6 @@ test("five elemental hits use distinct deterministic timbres and replay volume s
   assert.equal(feedback.playElementHit("heart", 1), false);
   assert.equal(feedback.playElementHit("fire", 0), false);
   assert.equal(audio.calls.oscillators, oscillatorCount);
-  assert.deepEqual(audio.calls.peakVolumes.slice(-2), [0.012, 0.011]);
+  assert.deepEqual(audio.calls.peakVolumes.slice(0, 2), [0.013, 0.011]);
   feedback.destroy();
 });
