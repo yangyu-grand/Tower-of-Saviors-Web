@@ -34,12 +34,44 @@ test("player-action feedback exposes validated per-element damage and overkill c
     ]
   })), {
     kind: "player-action", combo: 3, damage: 900, healing: 0,
-    enemyHpBefore: null, enemyHpAfter: null, calculatedDamage: 1180,
+    enemyHpBefore: null, enemyHpAfter: null, calculatedDamage: 1180, overkillDamage: 280,
     damageByElement: [
       { element: "fire", runeCount: 6, damage: 700, relation: "advantage" },
       { element: "water", runeCount: 3, damage: 480, relation: "neutral" }
     ]
   });
+});
+
+test("player-action feedback reports numeric overkill and a recorded final hit", () => {
+  const feedback = getReplayCombatFeedback(event("player-action", {
+    combo: 4,
+    damage: 500,
+    calculatedDamage: 740,
+    enemyHpBeforeAttack: 500,
+    enemyHpAfterTurn: 0
+  }));
+  assert.equal(feedback.overkillDamage, 240);
+  assert.equal(feedback.finalHit, true);
+});
+
+test("overkill and final-hit callouts are omitted without decisive recorded values", () => {
+  const notFinal = getReplayCombatFeedback(event("player-action", {
+    damage: 400,
+    calculatedDamage: 400,
+    enemyHpBeforeAttack: 700,
+    enemyHpAfterTurn: 300
+  }));
+  assert.equal("overkillDamage" in notFinal, false);
+  assert.equal("finalHit" in notFinal, false);
+
+  const alreadyDefeated = getReplayCombatFeedback(event("player-action", {
+    damage: 0,
+    calculatedDamage: 100,
+    enemyHpBeforeAttack: 0,
+    enemyHpAfterTurn: 0
+  }));
+  assert.equal("overkillDamage" in alreadyDefeated, false);
+  assert.equal("finalHit" in alreadyDefeated, false);
 });
 
 test("malformed elemental feedback entries are ignored safely", () => {

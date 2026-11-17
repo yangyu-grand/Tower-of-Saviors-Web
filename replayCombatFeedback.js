@@ -54,15 +54,26 @@ export function getReplayCombatFeedback(event) {
       Number.MAX_SAFE_INTEGER,
       safeAmount(data.healing) + safeAmount(data.skillHealing)
     );
+    const damage = safeAmount(data.damage);
+    const enemyHpBefore = safeHp(data.enemyHpBeforeAttack);
+    const enemyHpAfter = safeHp(data.enemyHpAfterTurn);
     const feedback = {
       kind: "player-action",
       combo: safeAmount(data.combo),
-      damage: safeAmount(data.damage),
+      damage,
       healing,
-      enemyHpBefore: safeHp(data.enemyHpBeforeAttack),
-      enemyHpAfter: safeHp(data.enemyHpAfterTurn)
+      enemyHpBefore,
+      enemyHpAfter
     };
-    if (Number.isSafeInteger(data.calculatedDamage) && data.calculatedDamage >= 0) feedback.calculatedDamage = data.calculatedDamage;
+    if (Number.isSafeInteger(data.calculatedDamage) && data.calculatedDamage >= 0) {
+      feedback.calculatedDamage = data.calculatedDamage;
+      if (damage > 0 && data.calculatedDamage > damage) {
+        feedback.overkillDamage = data.calculatedDamage - damage;
+      }
+    }
+    if (enemyHpBefore !== null && enemyHpBefore > 0 && enemyHpAfter === 0 && damage > 0) {
+      feedback.finalHit = true;
+    }
     const damageByElement = normalizeDamageByElement(data.damageByElement);
     if (damageByElement !== undefined) feedback.damageByElement = damageByElement;
     return feedback;
