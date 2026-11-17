@@ -729,6 +729,30 @@ function renderDefeatResult(){
  $('defeatNote').textContent='重新挑戰會從本波開始，保留已擊敗波次、已取得獎勵、角色、貨幣與總分；目前波次的敵人 HP、隊伍生命、技能冷卻及護盾會重置。';
  panel.focus({preventScroll:true});
 }
+function dismissDefeatDialog(){
+ if(!defeatResultVisible)return;
+ defeatResultVisible=false;
+ renderDefeatResult();
+ $('enemyName').focus({preventScroll:true});
+}
+function handleDefeatDialogKeydown(event){
+ if(!defeatResultVisible)return;
+ const panel=$('defeatResult');
+ if(event.key==='Escape'){
+  event.preventDefault();event.stopPropagation();dismissDefeatDialog();return;
+ }
+ if(event.key!=='Tab')return;
+ const focusable=[...panel.querySelectorAll('button:not([disabled]),a[href],input:not([disabled]),select:not([disabled]),textarea:not([disabled]),[tabindex]:not([tabindex="-1"])')]
+  .filter(element=>!element.hidden&&element.getClientRects().length>0);
+ const first=focusable[0],last=focusable.at(-1),active=document.activeElement;
+ if(!first){event.preventDefault();panel.focus({preventScroll:true});return;}
+ if(active===panel||!panel.contains(active)){
+  event.preventDefault();(event.shiftKey?last:first).focus({preventScroll:true});return;
+ }
+ if(event.shiftKey&&active===first){event.preventDefault();last.focus({preventScroll:true});}
+ else if(!event.shiftKey&&active===last){event.preventDefault();first.focus({preventScroll:true});}
+}
+document.addEventListener('keydown',handleDefeatDialogKeydown,true);
 function stats(){ $('hp').textContent=hp+' / '+maxHp;$('atk').textContent=Object.values(currentTeam.attackByElement).reduce((sum,value)=>sum+value,0);$('score').textContent=score;$('combo').textContent=maxCombo;$('heal').disabled=busy||campaign.completed||hp>=maxHp;document.querySelectorAll('#teamSlots select').forEach(select=>{select.disabled=busy});renderEnemy();$('shieldStatus').textContent='護盾：'+shield;$('skillEffectStatus').textContent='下一次攻擊增益：'+(pendingDamageMultiplier>1?pendingDamageMultiplier.toFixed(2)+'×':'無');renderSkillControls();renderSummonPanel();renderBattleResult();}
 function renderCodex(){
  const grid=$('codexGrid');if(!grid)return;
@@ -1152,7 +1176,7 @@ function nextStage(){
 $('tutorialAdvance').addEventListener('click',()=>updateTutorial("next",true));$('tutorialSkip').addEventListener('click',finishTutorial);
  $('resultContinue').addEventListener('click',nextStage);
  $('defeatRetry').addEventListener('click',retryCurrentEncounter);
- $('defeatDismiss').addEventListener('click',()=>{defeatResultVisible=false;renderDefeatResult();$('enemyName').focus({preventScroll:true});});
+ $('defeatDismiss').addEventListener('click',dismissDefeatDialog);
  $('resultDismiss').addEventListener('click',()=>{if(!battleStats.stageCompleted)return;battleStats=markBattleResultDismissed(battleStats);persist("結算狀態已儲存");renderBattleResult();$('nextStage').focus();});
  $('newGame').addEventListener('click',reset);$('nextStage').addEventListener('click',nextStage);$('saveNow').addEventListener('click',()=>persist("已手動儲存"));$('summonSingle').addEventListener('click',()=>performSummon(1));$('summonTen').addEventListener('click',()=>performSummon(10));
 $('heal').addEventListener('click',()=>{if(!busy&&hp<maxHp){const restored=Math.min(maxHp-hp,Math.ceil(maxHp*0.2));hp+=restored;score=Math.max(0,score-30);pendingReplaySkills.push({name:'隊伍回復',cardId:'party-heal',summary:'回復 '+restored+' HP',boardAfterSkill:[...cells]});pendingReplaySkillHealing+=restored;feedback.playHeal();$('log').textContent='使用隊伍回復技能：生命 +'+restored+'，消耗 30 分。';stats();persist()}});
