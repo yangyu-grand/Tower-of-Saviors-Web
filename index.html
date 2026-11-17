@@ -110,6 +110,8 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 
 
 .replay-panel{margin-top:14px}
+.replay-panel:focus-visible{outline:3px solid var(--gold);outline-offset:3px}
+.replay-keyboard-hint{margin:8px 2px 0;color:var(--muted);font-size:12px;line-height:1.6}
 .replay-head,.replay-toolbar{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
 .replay-head h2{margin:0;color:var(--gold);font-size:20px}
 .replay-head p{margin:5px 0 0}
@@ -230,7 +232,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   </div>
  </section>
  
- <section class="panel replay-panel" aria-labelledby="replayHeading">
+ <section id="replayPanel" class="panel replay-panel" aria-labelledby="replayHeading" tabindex="0" aria-keyshortcuts="Space ArrowLeft ArrowRight Home End">
   <div class="replay-head">
    <div><h2 id="replayHeading">戰鬥重播</h2><p class="hint">載入固定種子的示範戰鬥、最近一場實戰，或匯入先前匯出的 JSON；可逐事件播放、暫停及跳轉。</p></div>
    <div class="replay-actions">
@@ -249,6 +251,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
    <label class="replay-range">時間軸<input id="replaySeek" type="range" min="0" max="0" value="0" disabled></label>
    <output id="replayPosition" class="replay-position">尚未載入</output>
   </div>
+  <p class="replay-keyboard-hint">鍵盤快捷鍵：空白鍵播放／暫停，←／→切換事件，Home／End 跳到開頭／結尾。先聚焦此重播區。</p>
   <div class="replay-layout">
    <div class="replay-board-wrap"><div id="replayBoard" class="replay-board" aria-label="重播符石盤"></div><p id="replayBoardCaption" class="replay-board-caption">載入重播後顯示最近一次完整盤面快照。</p></div>
    <div class="replay-event" aria-live="polite"><h3 id="replayEventTitle">尚未載入重播</h3><p id="replayEventDetails">事件內容會顯示符石交換、Combo、傷害、回復與敵人行動。</p><p id="replayMetadata" class="replay-metadata"></p></div>
@@ -279,6 +282,7 @@ import { createRuneBattleReplay } from "./runeBattleReplay.js";
 import { createLiveBattleRecorder } from "./liveBattleRecorder.js";
 import { createReplayViewerState, seekReplayViewer, stepReplayViewer, setReplayViewerPlaying, advanceReplayViewer, getReplayViewerFrame, describeReplayEvent } from "./replayViewer.js";
 import { getReplayIntervalMs } from "./replayPlayback.js";
+import { getReplayKeyboardAction } from "./replayKeyboard.js";
 (()=>{
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
@@ -332,6 +336,19 @@ function initializeReplayViewer(){
  });
  $('replayPlay').addEventListener('click',toggleReplayPlayback);
  $('replaySpeed').addEventListener('change',()=>{if(replayViewerState?.playing)startReplayTimer();});
+ $('replayPanel').addEventListener('keydown',event=>{
+  const action=getReplayKeyboardAction(event);
+  if(!action||!replayViewerState)return;
+  event.preventDefault();
+  if(action==='toggle'){toggleReplayPlayback();return;}
+  stopReplayTimer();
+  replayViewerState=setReplayViewerPlaying(replayViewerState,false);
+  if(action==='previous')replayViewerState=stepReplayViewer(replayViewerState,-1);
+  else if(action==='next')replayViewerState=stepReplayViewer(replayViewerState,1);
+  else if(action==='first')replayViewerState=seekReplayViewer(replayViewerState,0);
+  else if(action==='last')replayViewerState=seekReplayViewer(replayViewerState,replayViewerState.replay.eventCount-1);
+  renderReplay();
+ });
  $('replayPrevious').addEventListener('click',()=>{if(!replayViewerState)return;stopReplayTimer();replayViewerState=stepReplayViewer(replayViewerState,-1);renderReplay();});
  $('replayNext').addEventListener('click',()=>{if(!replayViewerState)return;stopReplayTimer();replayViewerState=stepReplayViewer(replayViewerState,1);renderReplay();});
  $('replaySeek').addEventListener('input',event=>{if(!replayViewerState)return;stopReplayTimer();replayViewerState=seekReplayViewer(replayViewerState,Number(event.target.value));renderReplay();});
