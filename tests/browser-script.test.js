@@ -137,3 +137,12 @@ test("the browser exposes an importable, seekable battle replay viewer", () => {
   assert.match(html, /getReplayViewerFrame\(state\)/);
   assert.match(html, /createReplayViewerState/);
 });
+
+
+test("the replay panel exposes scoped keyboard shortcuts and accessible focus", () => {
+  assert.match(html, /from "\.\/replayKeyboard\.js"/);
+  assert.match(html, /id="replayPanel"[^>]*tabindex="0"/);
+  assert.match(html, /aria-keyshortcuts="Space ArrowLeft ArrowRight Home End"/);
+  assert.match(html, /鍵盤快捷鍵：空白鍵播放／暫停/);
+  assert.match(html, /getReplayKeyboardAction\(event\)/);
+});
