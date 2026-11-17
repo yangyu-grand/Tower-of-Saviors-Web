@@ -108,8 +108,9 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 ## Next priorities
 
-1. Capture replay events from live human-controlled battles, then compare greedy, random-legal, and conservative player policies before changing encounter values.
-2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
+1. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples; gather enough representative encounters before changing Boss or enemy values.
+2. Add visual swap, rune-clear, gravity/refill, Combo, and enemy-HP transitions to the replay viewer while preserving exact event seeking.
+3. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
 
 ## Project structure
 
@@ -127,6 +128,9 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `runeBattleSimulation.js` — seeded board-driven encounter turns with active skills, enemy responses, boss phases, shields, and HP tracking.
 - `runeBattleReplay.js` — validated, JSON-serializable battle event timelines with exact cascade board snapshots.
 - `replayViewer.js` — validated replay-viewer state, bounded step/seek/playback transitions, board-snapshot lookup, and localized event summaries.
+- `replayPlayback.js` — validated replay-speed multipliers and minimum-bounded playback intervals.
+- `replayKeyboard.js` — replay-panel-scoped keyboard shortcuts with native-control and modifier exclusions.
+- `tests/replay-playback.test.js` and `tests/replay-keyboard.test.js` — deterministic playback timing and keyboard-action tests.
 - `scripts/rune-battle-replay-report.js` — deterministic sample replay timeline report.
 - `scripts/balance-report.js` — command-line campaign balance report.
 - `scripts/balance-scenarios.js` — command-line representative scenario matrix.
