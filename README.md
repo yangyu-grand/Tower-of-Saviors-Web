@@ -200,7 +200,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 ## Replay combat feedback and enemy HP
 
 - Sequential player-action events display the recorded Combo count, damage dealt, and combined rune/skill healing as transient, text-safe callouts.
-- Sequential enemy-action events separate party HP damage from shield absorption; zero-value fields do not create misleading labels.
+- Sequential enemy-action events separate party HP damage from shield absorption; when an action causes no HP/shield change, its action label, pre-mitigation attack, or healing is still shown without misreporting it as HP damage.
 - The replay event panel shows the enemy's current HP and maximum HP. The value is reconstructed from the initial encounter HP, each recorded enemyHpAfterTurn, and the authoritative final enemyHpRemaining event.
 - Timeline seeks update the HP snapshot immediately; sequential playback animates the bar. The replay JSON schema remains version 1 and live-player recordings use the same path.
 - Combat callouts use DOM text nodes, respect prefers-reduced-motion, and never alter the live battle state.
