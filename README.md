@@ -110,7 +110,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 1. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
-3. Add optional, user-controlled replay audio cues for high-Combo, elemental overkill, and final-hit outcomes.
+3. Add optional per-element replay timbres and a separate replay-volume control after physical-device audio QA.
 
 ## Project structure
 
@@ -234,3 +234,13 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - Both callouts are transient replay feedback only; they do not alter combat, rewards, replay events, or Replay Schema v1.
 - Direct timeline seeking renders an exact snapshot and does not replay either callout. The effects respect `prefers-reduced-motion`.
 - Validation: unit tests cover numeric overkill, final-hit detection, and incomplete/non-decisive data; Chromium end-to-end coverage verifies sequential playback, animation names, and seek behavior.
+
+
+## Replay audio cues
+
+- Replay audio is separately opt-in through the `重播音效` control and remains silent by default.
+- Replay cues also require the existing page-level `音效` master control to be enabled; disabling either control suppresses replay audio.
+- Only sequential forward playback emits cues. Loading a replay, seeking directly, or rendering the same event again does not synthesize a sound.
+- A single deterministic cue is selected per event: final-hit victory, Boss phase transition, high/frenzy Combo, overkill, ordinary hit, enemy attack, skill, or healing. Higher-priority outcomes suppress lower-priority cues to avoid overlapping sounds.
+- The implementation reuses the existing synthesized Web Audio feedback and does not add external audio files or change Replay Schema v1.
+- Validation: pure unit tests cover cue priorities and malformed data; Chromium coverage uses a fake AudioContext to verify default-off behavior, master mute, sequential playback, direct seeking, and the replay-audio toggle.
