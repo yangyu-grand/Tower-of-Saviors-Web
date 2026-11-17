@@ -131,7 +131,8 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `replayPlayback.js` — validated replay-speed multipliers and minimum-bounded playback intervals.
 - `replayKeyboard.js` — replay-panel-scoped keyboard shortcuts with native-control and modifier exclusions.
 - `replayCombatFeedback.js` — validated player/enemy feedback, per-element damage, active-skill and Boss-phase callouts, and deterministic enemy-HP lookup at any replay event.
-- `tests/replay-combat-feedback.test.js` — combat feedback, healing/shield separation, HP timeline, and invalid-input coverage.\n- `tests/replay-phase-skill-feedback.test.js` — bounded skill summaries, Boss phase labels, and explicit enrage-state validation.
+- `tests/replay-combat-feedback.test.js` — combat feedback, healing/shield separation, HP timeline, and invalid-input coverage.
+- `tests/replay-phase-skill-feedback.test.js` — bounded skill summaries, Boss phase labels, and explicit enrage-state validation.
 - `tests/replay-playback.test.js` and `tests/replay-keyboard.test.js` — deterministic playback timing and keyboard-action tests.
 - `scripts/rune-battle-replay-report.js` — deterministic sample replay timeline report.
 - `scripts/balance-report.js` — command-line campaign balance report.
