@@ -118,7 +118,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 After a successful match turn, the board briefly displays the resolved Combo count, total damage, per-element damage chips, and heart-rune healing. Values are taken from the same aggregated combat result used by the battle recorder and combat breakdown; the overlay is presentation-only and does not recalculate or modify damage. The overlay uses an `aria-live="polite"` region and reduced-motion preferences are respected by the existing global motion rule.
 
-For Boss encounters, the same overlay also announces a phase transition when the resolved enemy intent changes from the previously active phase. Initial phases, unchanged phases, missing labels, and non-Boss encounters do not produce a callout. Phase names are whitespace-normalized, length-bounded, and inserted as text; this is presentation-only and does not change the Boss threshold, attack cadence, or combat state. `tests/live-boss-phase-feedback.test.js` covers transition, no-transition, label-bound, and plain-text cases.
+For Boss encounters, the same overlay also announces a phase transition when the resolved enemy intent changes from the previously active phase. Initial phases, unchanged phases, missing labels, and non-Boss encounters do not produce a callout. Phase names are whitespace-normalized, length-bounded, and inserted as text; this is presentation-only and does not change the Boss threshold, attack cadence, or combat state. `tests/live-boss-phase-feedback.test.js` covers transition, no-transition, label-bound, and plain-text cases; `tests/live-boss-phase-browser.test.js` drives the fourth-chapter Boss across the 50% HP boundary in Chromium and verifies the live callout.
 
 ## Project structure
 
@@ -167,6 +167,7 @@ For Boss encounters, the same overlay also announces a phase transition when the
 - `tutorial.js` — versioned first-run tutorial steps, event-gated progression, and independent browser-storage persistence.
 - `battleResults.js` — validated per-stage combat statistics, idempotent encounter reward accounting, and resumable stage-clear summaries.
 - `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, replay playback/import/export, and responsive/touch behavior.
+- `tests/live-boss-phase-browser.test.js` — real Chromium coverage for the live fourth-chapter Boss phase transition at the 50% HP boundary.
 - `tests/browser-script.test.js` — embedded browser-module syntax and UI integration checks.
 - `tests/battle-feedback.test.js` — opt-in audio, unsupported-audio fallback, animation hooks, and reduced-motion tests.
 - `tests/tutorial.test.js` — tutorial progression, event gates, skip behavior, and storage validation tests.
