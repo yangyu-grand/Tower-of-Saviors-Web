@@ -1061,3 +1061,103 @@ test("Chromium plays the dominant recorded element timbre during sequential repl
     "direct timeline seeking must not replay elemental audio");
   assert.deepEqual(pageErrors, [], "elemental replay timbres should not raise browser errors");
 });
+
+test("Chromium previews all five elemental timbres independently of replay playback", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    window.__previewEvents = [];
+    window.__previewPeaks = [];
+    window.AudioContext = class FakeAudioContext {
+      constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; }
+      createOscillator() {
+        const oscillator = {
+          type: "sine",
+          frequencyValue: 0,
+          frequency: { setValueAtTime(value) { oscillator.frequencyValue = value; } },
+          connect() {},
+          start() { window.__previewEvents.push({ frequency: oscillator.frequencyValue, waveform: oscillator.type }); },
+          stop() {}
+        };
+        return oscillator;
+      }
+      createGain() {
+        return {
+          gain: {
+            setValueAtTime() {},
+            exponentialRampToValueAtTime(value) {
+              if (value > 0.0001) window.__previewPeaks.push(value);
+            }
+          },
+          connect() {}
+        };
+      }
+      resume() { return Promise.resolve(); }
+      close() { this.state = "closed"; return Promise.resolve(); }
+    };
+  });
+  await page.goto(url, { waitUntil: "networkidle" });
+
+  const replayToggle = page.locator("#replayAudioToggle");
+  assert.equal(await replayToggle.getAttribute("aria-pressed"), "false",
+    "preview controls must not enable replay playback audio");
+
+  await page.getByRole("button", { name: "試聽火屬性音色" }).click();
+  assert.equal(await page.evaluate(() => window.__previewEvents.length), 0,
+    "preview must respect the page-level master mute");
+  assert.match(await page.locator("#replayStatus").textContent(), /請先開啟頁面上方/);
+
+  await page.locator("#soundToggle").click();
+  await page.evaluate(() => {
+    window.__previewEvents.length = 0;
+    window.__previewPeaks.length = 0;
+  });
+  await page.locator("#replayAudioVolume").evaluate((input) => {
+    input.value = "50";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  for (const element of ["fire", "water", "wood", "light", "dark"]) {
+    await page.locator('[data-replay-preview="' + element + '"]').click();
+  }
+
+  assert.deepEqual(await page.evaluate(() => window.__previewEvents), [
+    { frequency: 196, waveform: "sawtooth" }, { frequency: 294, waveform: "triangle" },
+    { frequency: 392, waveform: "sine" }, { frequency: 587.33, waveform: "sine" },
+    { frequency: 261.63, waveform: "triangle" }, { frequency: 329.63, waveform: "triangle" },
+    { frequency: 659.25, waveform: "sine" }, { frequency: 987.77, waveform: "sine" },
+    { frequency: 146.83, waveform: "square" }, { frequency: 220, waveform: "sawtooth" }
+  ], "each preview button must play its own two-note elemental signature");
+  assert.deepEqual(await page.evaluate(() => window.__previewPeaks), [
+    0.013, 0.011, 0.013, 0.011, 0.013, 0.011, 0.012, 0.01, 0.013, 0.011
+  ], "all previews must use the replay-only volume setting");
+  assert.equal(await replayToggle.getAttribute("aria-pressed"), "false",
+    "auditioning timbres must not turn on sequential replay audio");
+
+  await page.locator("#replayAudioVolume").evaluate((input) => {
+    input.value = "0";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.locator('[data-replay-preview="fire"]').click();
+  assert.equal(await page.evaluate(() => window.__previewEvents.length), 10,
+    "zero replay volume must suppress previews");
+  assert.match(await page.locator("#replayStatus").textContent(), /音量為 0%/);
+
+  await page.locator("#replayAudioVolume").evaluate((input) => {
+    input.value = "50";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  await page.locator("#soundToggle").click();
+  await page.locator('[data-replay-preview="water"]').click();
+  assert.equal(await page.evaluate(() => window.__previewEvents.length), 10,
+    "master mute must suppress previews");
+  assert.deepEqual(pageErrors, [], "elemental preview controls should not raise browser errors");
+});
