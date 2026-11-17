@@ -139,6 +139,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .replay-combat-number--fire{color:#ff9b86}.replay-combat-number--water{color:#8fd6ff}.replay-combat-number--wood{color:#a5df91}.replay-combat-number--light{color:#ffe08c}.replay-combat-number--dark{color:#c4a2ff}.replay-combat-number--overkill{color:#ffd27b}
 .replay-combat-number--skill{color:#a9c8f3;background:#17243b}.replay-combat-number--skill-detail{color:#d4deed;background:#101b2e;max-width:100%;white-space:normal;line-height:1.45}
 .replay-combat-number--phase{color:#f6d58b;background:#352a18}.replay-combat-number--enrage{color:#ff8189;background:#3a141c}
+.replay-combat-number--phase-transition{color:#fff1c2;background:linear-gradient(135deg,#55401b,#302514);border:1px solid #f6c96b99;box-shadow:0 0 18px #f6c96b22}
 @keyframes replay-number-pop{0%{opacity:0;transform:translateY(10px) scale(.82)}18%{opacity:1;transform:translateY(-3px) scale(1.04)}72%{opacity:1;transform:translateY(-12px) scale(1)}100%{opacity:0;transform:translateY(-22px) scale(.98)}}
 .replay-enemy-health{margin-top:12px;padding:10px;background:#080f20aa;border:1px solid #52658b55;border-radius:10px}
 .replay-enemy-health-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;margin-bottom:7px}
@@ -315,7 +316,7 @@ import { createReplayViewerState, seekReplayViewer, stepReplayViewer, setReplayV
 import { getReplayIntervalMs } from "./replayPlayback.js";
 import { getReplayKeyboardAction } from "./replayKeyboard.js";
 import { getReplayAnimationPlan } from "./replayAnimation.js";
-import { getReplayCombatFeedback, getReplayEnemyHp } from "./replayCombatFeedback.js";
+import { getReplayBossPhaseTransition, getReplayCombatFeedback, getReplayEnemyHp } from "./replayCombatFeedback.js";
 (()=>{
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
@@ -341,7 +342,7 @@ function applyReplayAnimation(plan,boardEl,boardWrap){
   }
  }
 }
-function renderReplayCombatFeedback(feedback,element){
+function renderReplayCombatFeedback(feedback,element,phaseTransition=null){
  element.replaceChildren();
  if(!feedback)return;
  const add=(kind,label,elementType=null)=>{
@@ -363,6 +364,7 @@ function renderReplayCombatFeedback(feedback,element){
   }
   if(feedback.healing>0)add('heal','+'+feedback.healing.toLocaleString('zh-TW')+' HP');
  }else if(feedback.kind==='enemy-action'){
+  if(phaseTransition)add('phase-transition','階段轉換 · '+phaseTransition.fromPhase+' → '+phaseTransition.toPhase);
   if(feedback.phaseName)add('phase','Boss 階段 · '+feedback.phaseName);
   if(feedback.enraged)add('enrage','狂暴');
   if(feedback.hpDamageTaken>0)add('incoming','−'+feedback.hpDamageTaken.toLocaleString('zh-TW')+' HP');
@@ -403,7 +405,7 @@ function renderReplay(){
  }else{
   $('replayEnemyHp').textContent='無 HP 資料';hpTrack.setAttribute('aria-valuemax','0');hpTrack.setAttribute('aria-valuenow','0');hpFill.style.width='0%';
  }
- renderReplayCombatFeedback(shouldAnimate?getReplayCombatFeedback(event):null,$('replayCombatFeedback'));
+ renderReplayCombatFeedback(shouldAnimate?getReplayCombatFeedback(event):null,$('replayCombatFeedback'),shouldAnimate?getReplayBossPhaseTransition(state.replay,state.index):null);
  const boardEl=$('replayBoard'),boardWrap=$('replayBoardWrap');boardEl.innerHTML='';
  if(frame.board){frame.board.forEach((rune,index)=>{const cell=document.createElement('div');cell.className='replay-orb '+rune;cell.textContent=icons[rune]??'？';cell.setAttribute('aria-label','第 '+(index+1)+' 格 '+(elementNames[rune]??rune));boardEl.appendChild(cell);});}
  applyReplayAnimation(animationPlan,boardEl,boardWrap);
