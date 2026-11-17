@@ -843,6 +843,7 @@ test("Chromium replay audio is opt-in, respects master mute, and ignores direct 
   page.on("pageerror", (error) => pageErrors.push(error.message));
   await page.addInitScript(() => {
     window.__audioOscillatorStarts = 0;
+    window.__audioPeakVolumes = [];
     window.AudioContext = class FakeAudioContext {
       constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; }
       createOscillator() {
@@ -856,7 +857,12 @@ test("Chromium replay audio is opt-in, respects master mute, and ignores direct 
       }
       createGain() {
         return {
-          gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+          gain: {
+            setValueAtTime() {},
+            exponentialRampToValueAtTime(value) {
+              if (value > 0.0001) window.__audioPeakVolumes.push(value);
+            }
+          },
           connect() {}
         };
       }
@@ -883,6 +889,8 @@ test("Chromium replay audio is opt-in, respects master mute, and ignores direct 
   await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入成功"));
   const replayAudioToggle = page.locator("#replayAudioToggle");
   assert.equal(await replayAudioToggle.getAttribute("aria-pressed"), "false");
+  assert.equal(await page.locator("#replayAudioVolume").inputValue(), "70");
+  assert.equal(await page.locator("#replayAudioVolume").getAttribute("aria-valuetext"), "70%");
 
   await replayAudioToggle.click();
   assert.equal(await replayAudioToggle.getAttribute("aria-pressed"), "true");
@@ -898,6 +906,13 @@ test("Chromium replay audio is opt-in, respects master mute, and ignores direct 
   const masterEnableOscillators = await page.evaluate(() => window.__audioOscillatorStarts);
   assert.ok(masterEnableOscillators >= 2, "enabling master sound should initialize the synthesized audio feedback");
 
+  const replayVolumeInput = page.locator("#replayAudioVolume");
+  await replayVolumeInput.evaluate(input => {
+    input.value = "50";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  assert.equal(await replayVolumeInput.getAttribute("aria-valuetext"), "50%");
+  const peaksBeforeCue = await page.evaluate(() => window.__audioPeakVolumes.length);
   await page.locator("#replaySeek").evaluate((input, index) => {
     input.value = String(index - 1);
     input.dispatchEvent(new Event("input", { bubbles: true }));
@@ -905,6 +920,8 @@ test("Chromium replay audio is opt-in, respects master mute, and ignores direct 
   await page.locator("#replayNext").click();
   assert.equal(await page.evaluate(() => window.__audioOscillatorStarts), masterEnableOscillators + 1,
     "the sequential 8-Combo event should emit exactly one replay cue");
+  const cuePeaks = await page.evaluate(start => window.__audioPeakVolumes.slice(start), peaksBeforeCue);
+  assert.deepEqual(cuePeaks, [0.014], "50% replay volume should halve the 8-Combo cue gain");
 
   await page.locator("#replaySeek").evaluate((input, index) => {
     input.value = String(index);
@@ -912,6 +929,19 @@ test("Chromium replay audio is opt-in, respects master mute, and ignores direct 
   }, playerActionIndex);
   assert.equal(await page.evaluate(() => window.__audioOscillatorStarts), masterEnableOscillators + 1,
     "direct timeline seeking must not emit replay audio");
+
+  await replayVolumeInput.evaluate(input => {
+    input.value = "0";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+  assert.equal(await replayVolumeInput.getAttribute("aria-valuetext"), "0%");
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  await page.locator("#replayNext").click();
+  assert.equal(await page.evaluate(() => window.__audioOscillatorStarts), masterEnableOscillators + 1,
+    "zero replay volume must suppress synthesized tones");
 
   await replayAudioToggle.click();
   await page.locator("#replaySeek").evaluate((input, index) => {
