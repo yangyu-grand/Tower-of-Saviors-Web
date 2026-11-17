@@ -1,5 +1,13 @@
 const DEFAULT_VOLUME = 0.035;
 
+const ELEMENT_HIT_TONES = Object.freeze({
+  fire: [[196, 0.12, "sawtooth", 0, 0.026], [294, 0.16, "triangle", 0.075, 0.022]],
+  water: [[392, 0.14, "sine", 0, 0.026], [587.33, 0.18, "sine", 0.09, 0.022]],
+  wood: [[261.63, 0.14, "triangle", 0, 0.026], [329.63, 0.18, "triangle", 0.09, 0.022]],
+  light: [[659.25, 0.12, "sine", 0, 0.024], [987.77, 0.17, "sine", 0.08, 0.02]],
+  dark: [[146.83, 0.14, "square", 0, 0.026], [220, 0.18, "sawtooth", 0.08, 0.022]]
+});
+
 function prefersReducedMotion() {
   try {
     return Boolean(globalThis.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches);
@@ -92,6 +100,17 @@ export function createBattleFeedback({
     playTone(145, 0.17, "sawtooth", 0, 0.04, volumeScale);
   }
 
+  function playElementHit(element, volumeScale = 1) {
+    const tones = ELEMENT_HIT_TONES[element];
+    if (!tones) return false;
+    pulse(enemyElement, "enemy-hit");
+    let played = false;
+    tones.forEach(([frequency, duration, waveform, delay, volume]) => {
+      played = playTone(frequency, duration, waveform, delay, volume, volumeScale) || played;
+    });
+    return played;
+  }
+
   function playEnemyAttack(volumeScale = 1) {
     pulse(boardElement, "board-hit");
     playTone(190, 0.12, "square", 0, 0.025, volumeScale);
@@ -140,6 +159,7 @@ export function createBattleFeedback({
     setMuted,
     playMatch,
     playHit,
+    playElementHit,
     playEnemyAttack,
     playHeal,
     playSkill,

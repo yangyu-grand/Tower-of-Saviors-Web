@@ -402,6 +402,7 @@ function playReplayAudioCue(event,combatFeedback,phaseTransition,comboMilestone,
  else if(cue==='combo-frenzy')feedback.playMatch([],8,volumeScale);
  else if(cue==='phase-transition'||cue==='skill')feedback.playSkill(volumeScale);
  else if(cue==='final-hit')feedback.playVictory(volumeScale);
+ else if(cue?.startsWith('element-hit-'))feedback.playElementHit(cue.slice('element-hit-'.length),volumeScale);
  else if(cue==='overkill'||cue==='hit')feedback.playHit(volumeScale);
  else if(cue==='enemy-attack')feedback.playEnemyAttack(volumeScale);
  else if(cue==='heal')feedback.playHeal(volumeScale);

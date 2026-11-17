@@ -6,6 +6,18 @@ function positiveAmount(value) {
   return Number.isSafeInteger(value) && value > 0;
 }
 
+const DAMAGE_ELEMENTS = new Set(["fire", "water", "wood", "light", "dark"]);
+
+function dominantDamageElement(value) {
+  if (!Array.isArray(value)) return null;
+  let selected = null;
+  for (const item of value) {
+    if (!isRecord(item) || !DAMAGE_ELEMENTS.has(item.element) || !positiveAmount(item.damage)) continue;
+    if (!selected || item.damage > selected.damage) selected = item;
+  }
+  return selected?.element ?? null;
+}
+
 function hasPhaseTransition(value) {
   return isRecord(value) &&
     typeof value.fromPhase === "string" &&
@@ -48,7 +60,10 @@ export function getReplayAudioCue(event, {
   if (comboMilestone?.tier === "frenzy") return "combo-frenzy";
   if (comboMilestone?.tier === "high") return "combo-high";
   if (positiveAmount(feedback.overkillDamage)) return "overkill";
-  if (positiveAmount(feedback.damage)) return "hit";
+  if (positiveAmount(feedback.damage)) {
+    const element = dominantDamageElement(feedback.damageByElement);
+    return element ? `element-hit-${element}` : "hit";
+  }
   if (positiveAmount(feedback.healing)) return "heal";
   return null;
 }
