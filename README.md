@@ -244,3 +244,12 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - A single deterministic cue is selected per event: final-hit victory, Boss phase transition, high/frenzy Combo, overkill, ordinary hit, enemy attack, skill, or healing. Higher-priority outcomes suppress lower-priority cues to avoid overlapping sounds.
 - The implementation reuses the existing synthesized Web Audio feedback and does not add external audio files or change Replay Schema v1.
 - Validation: pure unit tests cover cue priorities and malformed data; Chromium coverage uses a fake AudioContext to verify default-off behavior, master mute, sequential playback, direct seeking, and the replay-audio toggle.
+
+
+## Replay audio volume
+
+- The replay toolbar provides a separate 0–100% volume slider, defaulting to 70%.
+- The slider scales replay cues only; it does not change live battle sound volume or the page-level master mute.
+- Setting replay volume to 0 suppresses synthesized replay tones while leaving the opt-in control state unchanged.
+- Volume is an in-session preference and is not written into the versioned game save.
+- Unit and Chromium tests verify gain scaling, clamping, the default value, accessible value text, and zero-volume silence.
