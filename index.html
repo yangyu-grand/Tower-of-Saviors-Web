@@ -126,6 +126,10 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .replay-volume{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;white-space:nowrap}
 .replay-volume input{width:92px;accent-color:var(--gold)}
 .replay-volume output{min-width:34px;color:#f6d58b;font-variant-numeric:tabular-nums}
+.replay-preview{display:flex;align-items:center;gap:5px;flex-wrap:wrap;color:var(--muted);font-size:12px}
+.replay-preview-label{font-weight:800;white-space:nowrap}
+.replay-preview button{padding:7px 9px;min-width:42px;background:#263653;color:#f7f4ec;border:1px solid #65789a;font-size:12px}
+.replay-preview button:focus-visible{outline:3px solid #fff;outline-offset:2px}
 .replay-range{display:flex;align-items:center;gap:8px;flex:1;min-width:180px;color:var(--muted);font-size:12px}
 .replay-range input{width:100%;min-width:80px;accent-color:var(--gold)}
 .replay-position{min-width:110px;color:#f6d58b;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
@@ -290,6 +294,14 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
    <button id="replayNext" type="button" disabled>下一事件</button>
    <button id="replayAudioToggle" type="button" aria-pressed="false" aria-label="開啟重播音效" title="需同時開啟頁面上方音效">重播音效：關</button>
    <label class="replay-volume">重播音量<input id="replayAudioVolume" type="range" min="0" max="100" step="5" value="70" aria-label="重播音效音量" aria-valuetext="70%"><output id="replayAudioVolumeValue">70%</output></label>
+   <div class="replay-preview" role="group" aria-label="五種屬性音色試聽">
+    <span class="replay-preview-label">音色試聽</span>
+    <button type="button" data-replay-preview="fire" aria-label="試聽火屬性音色" title="火屬性">🔥 火</button>
+    <button type="button" data-replay-preview="water" aria-label="試聽水屬性音色" title="水屬性">💧 水</button>
+    <button type="button" data-replay-preview="wood" aria-label="試聽木屬性音色" title="木屬性">🌿 木</button>
+    <button type="button" data-replay-preview="light" aria-label="試聽光屬性音色" title="光屬性">✨ 光</button>
+    <button type="button" data-replay-preview="dark" aria-label="試聽暗屬性音色" title="暗屬性">🌙 暗</button>
+   </div>
    <label class="replay-speed">速度<select id="replaySpeed" aria-label="重播速度"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></label>
    <label class="replay-range">時間軸<input id="replaySeek" type="range" min="0" max="0" value="0" disabled></label>
    <output id="replayPosition" class="replay-position">尚未載入</output>
@@ -476,6 +488,23 @@ function initializeReplayViewer(){
   const label=Math.round(replayAudioVolume*100)+'%';
   replayVolumeOutput.textContent=label;
   replayVolumeInput.setAttribute('aria-valuetext',label);
+ });
+ document.querySelectorAll('[data-replay-preview]').forEach(button=>{
+  button.addEventListener('click',()=>{
+   const element=button.dataset.replayPreview;
+   if(feedback.isMuted()){
+    $('replayStatus').textContent='請先開啟頁面上方「音效」，再試聽屬性音色。';
+    return;
+   }
+   if(replayAudioVolume<=0){
+    $('replayStatus').textContent='重播音量為 0%，請調高音量後再試聽。';
+    return;
+   }
+   const played=feedback.playElementHit(element,replayAudioVolume);
+   $('replayStatus').textContent=played
+    ?(elementNames[element]+'屬性音色試聽中。')
+    :'目前瀏覽器無法播放此音色。';
+  });
  });
  $('replayAudioToggle').addEventListener('click',()=>{
   replayAudioEnabled=!replayAudioEnabled;syncReplayAudioToggle();
