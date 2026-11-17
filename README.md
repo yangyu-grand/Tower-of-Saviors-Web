@@ -305,3 +305,11 @@ Version-3 migration coverage also verifies that an already-recorded completed-st
 ## Defeat dialog keyboard accessibility
 
 The live defeat dialog traps Tab and Shift+Tab within its available actions while it is open. Escape dismisses the dialog without resetting campaign progress and returns focus to the current encounter heading. The Chromium regression test verifies forward/reverse focus wrapping, current-wave retry, Escape dismissal, and focus restoration.
+
+
+## Rune board keyboard navigation
+
+- The 6 × 5 live rune board exposes one roving Tab stop. Use the arrow keys to move between adjacent cells without wrapping across row or column edges.
+- Press Enter or Space to use the focused rune with the existing select/swap interaction. Board re-renders preserve the focused cell when possible.
+- The Chromium regression test verifies four-direction movement, edge bounds, focus retention, and that Tab/Shift+Tab enter or leave the board without visiting all 30 runes.
+- Run it with `node --test tests/keyboard-rune-navigation.test.js` or the full `npm test` suite.
