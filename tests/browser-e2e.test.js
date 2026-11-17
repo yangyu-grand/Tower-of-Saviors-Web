@@ -435,6 +435,8 @@ test("Chromium plays, pauses, seeks, imports, and exports deterministic battle r
   await page.locator("#replayNext").click();
   await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.includes("傷害"));
   assert.match(await page.locator("#replayCombatFeedback").innerText(), /Combo/);
+  assert.ok(await page.locator("#replayCombatFeedback .replay-combat-number--element").count() > 0, "sequential replay should show per-element damage chips");
+  assert.match(await page.locator("#replayCombatFeedback").innerText(), /屬性計算/);
   const hpAfterPlayer = imported.events[playerActionIndex].data.enemyHpAfterTurn;
   assert.equal(await page.locator("#replayEnemyHp").innerText(), hpAfterPlayer.toLocaleString("zh-TW") + " / " + imported.encounter.hp.toLocaleString("zh-TW"));
 
@@ -512,6 +514,9 @@ test("Chromium records a real player-controlled encounter and restores its repla
   assert.ok(stored.events.some((event) => event.type === "swap"));
   assert.ok(stored.events.some((event) => event.type === "cascade"));
   assert.ok(stored.events.some((event) => event.type === "battle-end"));
+  const livePlayerAction = stored.events.find((event) => event.type === "player-action");
+  assert.ok(Array.isArray(livePlayerAction.data.damageByElement), "live player replays should retain per-element damage");
+  assert.equal(livePlayerAction.data.damageByElement.reduce((sum, item) => sum + item.damage, 0), livePlayerAction.data.calculatedDamage);
 
   await page.locator("#replayLoadLive").click();
   assert.match(await page.locator("#replayStatus").innerText(), /最近一場實戰重播已載入/);
