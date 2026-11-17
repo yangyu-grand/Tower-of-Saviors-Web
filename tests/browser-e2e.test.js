@@ -410,7 +410,7 @@ test("Chromium plays, pauses, seeks, imports, and exports deterministic battle r
   assert.equal(download.suggestedFilename(), "tower-replay-seed-20261117.json");
 
   const imported = createRuneBattleReplay(simulateRuneEncounter({
-    stageIndex: 0, waveIndex: 0, seed: 81, skillPolicy: "greedy", maxTurns: 8
+    stageIndex: 3, waveIndex: 2, seed: 81, skillPolicy: "greedy", maxTurns: 8
   }));
   await page.locator("#replayImport").setInputFiles({
     name: "sample-replay.json",
@@ -420,6 +420,39 @@ test("Chromium plays, pauses, seeks, imports, and exports deterministic battle r
   await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入成功"));
   assert.equal(Number(await page.locator("#replaySeek").getAttribute("max")) + 1, imported.eventCount);
   assert.equal(await page.locator("#replayBoard .replay-orb").count(), 30);
+  assert.match(await page.locator("#replayEnemyName").innerText(), /櫻月天狐/);
+  assert.equal(await page.locator("#replayEnemyHp").innerText(), imported.encounter.hp.toLocaleString("zh-TW") + " / " + imported.encounter.hp.toLocaleString("zh-TW"));
+
+  const playerActionIndex = imported.events.findIndex((event) => event.type === "player-action");
+  const enemyActionIndex = imported.events.findIndex((event) => event.type === "enemy-action");
+  assert.ok(playerActionIndex > 0, "the Boss replay should contain a player-action event");
+  assert.ok(enemyActionIndex > playerActionIndex, "the Boss should respond after the player action");
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  await page.locator("#replayNext").click();
+  await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.includes("傷害"));
+  assert.match(await page.locator("#replayCombatFeedback").innerText(), /Combo/);
+  const hpAfterPlayer = imported.events[playerActionIndex].data.enemyHpAfterTurn;
+  assert.equal(await page.locator("#replayEnemyHp").innerText(), hpAfterPlayer.toLocaleString("zh-TW") + " / " + imported.encounter.hp.toLocaleString("zh-TW"));
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, enemyActionIndex);
+  await page.locator("#replayNext").click();
+  await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.trim().length > 0);
+  assert.match(await page.locator("#replayCombatFeedback").innerText(), /HP/);
+  assert.equal(await page.locator("#replayEnemyHp").innerText(), hpAfterPlayer.toLocaleString("zh-TW") + " / " + imported.encounter.hp.toLocaleString("zh-TW"));
+
+  const finalHp = imported.events.at(-1).data.enemyHpRemaining;
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, imported.eventCount - 1);
+  assert.equal(await page.locator("#replayEnemyHp").innerText(), finalHp.toLocaleString("zh-TW") + " / " + imported.encounter.hp.toLocaleString("zh-TW"));
 
   await page.locator("#replayImport").setInputFiles({
     name: "broken-replay.json",
