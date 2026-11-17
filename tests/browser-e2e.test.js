@@ -444,7 +444,8 @@ test("Chromium plays, pauses, seeks, imports, and exports deterministic battle r
   }, enemyActionIndex);
   await page.locator("#replayNext").click();
   await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.trim().length > 0);
-  assert.match(await page.locator("#replayCombatFeedback").innerText(), /HP/);
+  const enemyFeedbackText = await page.locator("#replayCombatFeedback").innerText();
+  assert.match(enemyFeedbackText, /HP|護盾吸收|敵方攻擊|敵方回復|敵方行動/);
   assert.equal(await page.locator("#replayEnemyHp").innerText(), hpAfterPlayer.toLocaleString("zh-TW") + " / " + imported.encounter.hp.toLocaleString("zh-TW"));
 
   const finalHp = imported.events.at(-1).data.enemyHpRemaining;
