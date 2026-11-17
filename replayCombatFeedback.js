@@ -89,6 +89,37 @@ export function getReplayCombatFeedback(event) {
   return null;
 }
 
+export function getReplayBossPhaseTransition(replay, eventIndex) {
+  if (!isRecord(replay) || !isRecord(replay.encounter) || !Array.isArray(replay.events)) {
+    throw new TypeError("replay phase transition requires encounter metadata and events");
+  }
+  if (!Number.isInteger(eventIndex) || eventIndex < 0 || eventIndex >= replay.events.length) {
+    throw new RangeError("replay phase transition event index is out of range");
+  }
+  if (replay.encounter.boss !== true) return null;
+
+  const current = replay.events[eventIndex];
+  if (!isRecord(current) || current.type !== "enemy-action" || !isRecord(current.data)) return null;
+  const currentAction = isRecord(current.data.action) ? current.data.action : {};
+  const toPhase = safeText(currentAction.phase, "", 48);
+  if (!toPhase) return null;
+
+  let fromPhase = "";
+  for (let index = eventIndex - 1; index >= 0; index -= 1) {
+    const candidate = replay.events[index];
+    if (!isRecord(candidate) || candidate.type !== "enemy-action" || !isRecord(candidate.data)) continue;
+    const action = isRecord(candidate.data.action) ? candidate.data.action : {};
+    const phase = safeText(action.phase, "", 48);
+    if (phase) {
+      fromPhase = phase;
+      break;
+    }
+  }
+
+  if (!fromPhase || fromPhase === toPhase) return null;
+  return { fromPhase, toPhase };
+}
+
 export function getReplayEnemyHp(replay, eventIndex) {
   if (!isRecord(replay) || !isRecord(replay.encounter) || !Array.isArray(replay.events)) {
     throw new TypeError("replay enemy HP requires replay metadata and events");

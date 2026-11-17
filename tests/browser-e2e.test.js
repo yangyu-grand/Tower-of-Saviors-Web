@@ -494,9 +494,17 @@ test("Chromium displays active-skill effects and Boss phase/enrage callouts", as
   assert.ok(enemyAction, "the seeded Boss replay should include an enemy response");
   enemyAction.data.action = {
     ...enemyAction.data.action,
+    phase: "花霧姿態",
+    enraged: false
+  };
+  const phaseTransitionEvent = JSON.parse(JSON.stringify(enemyAction));
+  phaseTransitionEvent.data.action = {
+    ...phaseTransitionEvent.data.action,
     phase: "月蝕姿態",
     enraged: true
   };
+  const enemyActionIndex = replay.events.indexOf(enemyAction);
+  replay.events.splice(enemyActionIndex + 1, 0, phaseTransitionEvent);
   replay.events.forEach((event, index) => { event.index = index; });
   replay.eventCount = replay.events.length;
 
@@ -514,16 +522,29 @@ test("Chromium displays active-skill effects and Boss phase/enrage callouts", as
   assert.match(await skillFeedback.innerText(), /火屬性攻擊提升 1.5 倍/);
   assert.equal(await skillFeedback.locator("img").count(), 0, "skill summaries must render as text, not HTML");
 
-  const enemyActionIndex = replay.events.findIndex((event) => event.type === "enemy-action");
   await page.locator("#replaySeek").evaluate((input, index) => {
     input.value = String(index - 1);
     input.dispatchEvent(new Event("input", { bubbles: true }));
   }, enemyActionIndex);
   await page.locator("#replayNext").click();
   await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.includes("Boss 階段"));
+  const firstPhaseFeedback = await page.locator("#replayCombatFeedback").innerText();
+  assert.match(firstPhaseFeedback, /花霧姿態/);
+  assert.doesNotMatch(firstPhaseFeedback, /階段轉換/);
+
+  await page.locator("#replayNext").click();
+  await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.includes("階段轉換"));
   const phaseFeedback = await page.locator("#replayCombatFeedback").innerText();
-  assert.match(phaseFeedback, /月蝕姿態/);
+  assert.match(phaseFeedback, /花霧姿態\s*→\s*月蝕姿態/);
   assert.match(phaseFeedback, /狂暴/);
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, enemyActionIndex + 1);
+  assert.doesNotMatch(await page.locator("#replayCombatFeedback").innerText(), /階段轉換/,
+    "direct timeline seeks must remain exact snapshots without transition animation");
+
   assert.deepEqual(pageErrors, [], "Boss phase and skill feedback should not raise browser errors");
 });
 
