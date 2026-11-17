@@ -36,8 +36,13 @@ export function getReplayCombatFeedback(event) {
   }
 
   if (event.type === "enemy-action") {
+    const action = isRecord(data.action) ? data.action : {};
+    const rawLabel = action.label ?? action.name ?? action.type;
     return {
       kind: "enemy-action",
+      actionLabel: typeof rawLabel === "string" && rawLabel.trim() ? rawLabel : "敵人行動",
+      incomingDamage: safeAmount(action.damage),
+      enemyHealing: safeAmount(action.healing),
       hpDamageTaken: safeAmount(data.hpDamageTaken),
       shieldAbsorbed: safeAmount(data.shieldAbsorbed),
       partyHpAfter: safeHp(data.partyHpAfterTurn)
