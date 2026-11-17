@@ -281,3 +281,9 @@ For Boss encounters, the same overlay also announces a phase transition when the
 - Previews use the replay-only volume slider, including its zero-volume mute behavior, and do not change live combat state or Replay Schema v1.
 - The controls have individual accessible names and wrap on narrow screens.
 - Chromium end-to-end coverage verifies all five two-note signatures, replay-volume scaling, master mute, zero volume, and that previewing leaves replay audio disabled.
+
+## Legacy completed-save migration coverage
+
+The migration regression test also covers version-1 and version-2 profiles that were saved after completing a stage but before per-stage battle summaries existed. It verifies that campaign progress and score survive, the migrated result is marked as already dismissed, and no encounter defeats or rewards are invented. Re-normalizing the migrated version-4 save must remain stable.
+
+Run it with `node --test tests/legacy-completed-save-migration.test.js` or the full `npm test` suite.
