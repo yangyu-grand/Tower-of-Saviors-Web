@@ -19,7 +19,7 @@ const MIME_TYPES = {
 function startStaticServer() {
   const server = createServer(async (request, response) => {
     const pathname = new URL(request.url, "http://127.0.0.1").pathname;
-    const relativePath = pathname === "/" ? "index.html" : decodeURIComponent(pathname).replace(/^\\/+/, "");
+    const relativePath = pathname === "/" ? "index.html" : decodeURIComponent(pathname.slice(1));
     const filePath = resolve(ROOT, relativePath);
     if (filePath !== ROOT && !filePath.startsWith(ROOT + sep)) {
       response.writeHead(403).end("Forbidden");
