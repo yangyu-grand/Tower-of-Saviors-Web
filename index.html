@@ -36,6 +36,14 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 @keyframes summonReveal{from{opacity:0;transform:translateY(7px) scale(.96)}to{opacity:1;transform:translateY(0) scale(1)}}
 .orb.match-pop{position:relative;z-index:2;animation:runeMatch .14s ease-in both;animation-delay:var(--match-delay,0ms)}
 #enemy.enemy-hit{animation:enemyHit .4s ease-out}
+.enemy-panel{position:relative;overflow:hidden}
+.live-combat-feedback{position:absolute;z-index:6;top:68px;left:8px;right:8px;display:flex;justify-content:center;align-items:center;gap:6px;flex-wrap:wrap;pointer-events:none}
+.live-combat-feedback:empty{display:none}
+.live-combat-number{display:inline-flex;align-items:center;padding:7px 10px;border:1px solid currentColor;border-radius:999px;background:#081020e8;box-shadow:0 5px 16px #0008;font-size:13px;font-weight:900;animation:live-damage-float 980ms cubic-bezier(.16,.8,.3,1) both}
+.live-combat-number--fire{color:#ff9c73}.live-combat-number--water{color:#8edcff}.live-combat-number--wood{color:#a9e58b}.live-combat-number--light{color:#ffe69a}.live-combat-number--dark{color:#c7a5ff}.live-combat-number--neutral{color:#fff}.live-combat-number--combo{color:#fff0bf;border-color:#f6d58b;background:linear-gradient(135deg,#57421d,#302615)}
+@keyframes live-damage-float{0%{opacity:0;transform:translateY(12px) scale(.82)}18%{opacity:1;transform:translateY(0) scale(1.06)}72%{opacity:1;transform:translateY(-34px) scale(1)}100%{opacity:0;transform:translateY(-58px) scale(.94)}}
+@media(prefers-reduced-motion:reduce){.live-combat-number{animation:none;opacity:1}}
+
 #board.board-hit{animation:boardHit .4s ease-out}#board.board-heal{animation:boardHeal .48s ease-out}#board.board-skill{animation:boardSkill .4s ease-out}#board.board-victory{animation:boardVictory .68s ease-out}
 @keyframes runeMatch{0%{transform:scale(1);filter:brightness(1)}55%{transform:scale(1.16);filter:brightness(1.7) drop-shadow(0 0 10px #fff8)}100%{transform:scale(.52);opacity:.18}}
 @keyframes enemyHit{0%,100%{transform:translateX(0)}20%{transform:translateX(-6px) rotate(-3deg);filter:brightness(1.8)}45%{transform:translateX(5px) rotate(3deg)}70%{transform:translateX(-3px)}}
@@ -201,7 +209,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   <div class="battle">
    <div><div id="board" class="board" aria-label="符石盤"></div><p class="hint">操作：點選兩顆相鄰符石交換，或用滑鼠／手指拖曳。橫向或直向連成 3 顆即可消除。</p></div>
    <aside class="side">
-    <div class="panel wide"><div class="stage-status"><div><strong id="stageName">灰燼山徑</strong><span class="stage-difficulty" id="stageDifficulty">初階</span></div><span id="stageProgress">第 1 / 3 波</span></div><div class="enemy" id="enemy">🐉</div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p><p class="hint" id="enemyIntent" role="status" aria-live="polite">敵人預告：普通攻擊</p><p class="hint" id="shieldStatus">護盾：0</p><p class="hint" id="skillEffectStatus">下一次攻擊增益：無</p><button id="nextStage" hidden>前往下一關</button></div>
+    <div class="panel wide enemy-panel"><div class="stage-status"><div><strong id="stageName">灰燼山徑</strong><span class="stage-difficulty" id="stageDifficulty">初階</span></div><span id="stageProgress">第 1 / 3 波</span></div><div class="enemy" id="enemy">🐉</div><div id="liveCombatFeedback" class="live-combat-feedback" aria-live="polite" aria-atomic="false" aria-label="即時戰鬥傷害"></div><b id="enemyName">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p><p class="hint" id="enemyIntent" role="status" aria-live="polite">敵人預告：普通攻擊</p><p class="hint" id="shieldStatus">護盾：0</p><p class="hint" id="skillEffectStatus">下一次攻擊增益：無</p><button id="nextStage" hidden>前往下一關</button></div>
     <div class="panel"><b>隊伍屬性</b><p class="hint">火 🔥　水 💧　木 🌿<br>光 ✨　暗 🌙　心 💗</p><div class="actions"><button id="heal">隊伍回復技能</button></div></div>
     <div class="panel"><b>戰鬥紀錄</b><p class="log" id="log" aria-live="polite">拖曳或點選符石，開始你的第一場戰鬥！</p><p class="hint" id="combatBreakdown">傷害計算明細會顯示在這裡。</p></div>
    </aside>
@@ -342,6 +350,7 @@ import { getReplayKeyboardAction } from "./replayKeyboard.js";
 import { getReplayAnimationPlan } from "./replayAnimation.js";
 import { getReplayBossPhaseTransition, getReplayComboMilestone, getReplayCombatFeedback, getReplayEnemyHp } from "./replayCombatFeedback.js";
 import { getReplayAudioCue } from "./replayAudioCues.js";
+import { buildLiveCombatNumbers } from "./liveCombatNumbers.js";
 (()=>{
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
@@ -960,6 +969,19 @@ function useSkill(cardId){
  feedback.playSkill();updateTutorial("skill");
  render();$('log').textContent=result.summary;persist();
 }
+function showLiveCombatNumbers(damageByElement,totalDamage,combo){
+ const container=$('liveCombatFeedback');if(!container)return;
+ container.replaceChildren();
+ const numbers=buildLiveCombatNumbers({damageByElement,totalDamage,combo});
+ numbers.forEach((item,index)=>{
+  const node=document.createElement('span');
+  node.className='live-combat-number live-combat-number--'+item.element;
+  node.textContent=item.text;
+  node.style.animationDelay=(index*55)+'ms';
+  container.appendChild(node);
+  window.setTimeout(()=>node.remove(),1150+index*55);
+ });
+}
 function render(){boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label',t);b.dataset.i=i;b.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return}tap(i)});boardEl.appendChild(b)});stats()}
 function cellIndex(target){const cell=target&&target.closest?target.closest('.orb'):null;return cell&&boardEl.contains(cell)?Number(cell.dataset.i):-1}
 function onBoardPointerDown(event){if(busy||hp<=0||campaign.completed||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;const index=cellIndex(event.target);if(index<0)return;dragFrom=index;dragPointerId=event.pointerId}
@@ -1008,6 +1030,7 @@ async function swapTry(a,b){
  maxCombo=Math.max(maxCombo,combo);hp=Math.min(maxHp,hp+totalHeal);$('combatBreakdown').textContent=damageLines.join('｜');
  const enemyHpBeforeAttack=campaign.enemyHp;
  const outcome=damageCurrentEnemy(campaign,totalDamage);campaign=outcome.state;
+ showLiveCombatNumbers(Object.values(damageByElementTotals),Math.round(totalDamage),combo);
  liveReplayTotals.totalDamageDealt+=Math.round(totalDamage);
  liveReplayTotals.totalHealingApplied+=Math.round(totalHeal+pendingReplaySkillHealing);
  liveBattleRecorder.recordPlayerAction({combo,matchedRuneCount:totalRunesMatched,runeCounts:{...totalRuneCounts},damage:Math.round(totalDamage),calculatedDamage:Math.round(totalDamage),damageByElement:Object.values(damageByElementTotals).map(item=>({...item})),healing:Math.round(totalHeal),skillHealing:Math.round(pendingReplaySkillHealing),enemyHpBeforeAttack,enemyHpAfterTurn:outcome.defeated?0:campaign.enemyHp});
