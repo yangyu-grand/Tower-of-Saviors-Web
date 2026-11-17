@@ -134,13 +134,13 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .replay-combat-feedback{position:absolute;z-index:4;top:12px;left:8px;right:8px;display:flex;justify-content:center;align-items:flex-start;gap:6px;flex-wrap:wrap;pointer-events:none}
 .replay-combat-feedback:empty{display:none}
 .replay-combat-number{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border:1px solid currentColor;border-radius:999px;background:#081020e8;box-shadow:0 4px 12px #0007;font-size:12px;font-weight:900;animation:replay-number-pop 680ms cubic-bezier(.16,.8,.3,1) both}
-.replay-combat-number--combo{color:#f6d58b}.replay-combat-number--damage{color:#ff9b86}.replay-combat-number--heal{color:#8ee0a8}.replay-combat-number--incoming{color:#ff8189}.replay-combat-number--shield{color:#9bd5ff}
+.replay-combat-number--combo{color:#f6d58b}.replay-combat-number--combo-milestone-high{color:#fff0bf;background:linear-gradient(135deg,#57421d,#302615);border-color:#f6d58b;font-size:14px;letter-spacing:.04em}.replay-combat-number--combo-milestone-frenzy{color:#fff8e8;background:linear-gradient(135deg,#70451c,#432312);border-color:#ffd27b;font-size:16px;letter-spacing:.06em;box-shadow:0 0 22px #f6c96b55}.replay-combat-number--damage{color:#ff9b86}.replay-combat-number--heal{color:#8ee0a8}.replay-combat-number--incoming{color:#ff8189}.replay-combat-number--shield{color:#9bd5ff}
 .replay-combat-number--element-label{color:#d6e2f4;background:#17243b}.replay-combat-number--element{font-size:11px;background:#111b30}
 .replay-combat-number--fire{color:#ff9b86}.replay-combat-number--water{color:#8fd6ff}.replay-combat-number--wood{color:#a5df91}.replay-combat-number--light{color:#ffe08c}.replay-combat-number--dark{color:#c4a2ff}.replay-combat-number--overkill{color:#ffd27b}
 .replay-combat-number--skill{color:#a9c8f3;background:#17243b}.replay-combat-number--skill-detail{color:#d4deed;background:#101b2e;max-width:100%;white-space:normal;line-height:1.45}
 .replay-combat-number--phase{color:#f6d58b;background:#352a18}.replay-combat-number--enrage{color:#ff8189;background:#3a141c}
 .replay-combat-number--phase-transition{color:#fff1c2;background:linear-gradient(135deg,#55401b,#302514);border:1px solid #f6c96b99;box-shadow:0 0 18px #f6c96b22}
-@keyframes replay-number-pop{0%{opacity:0;transform:translateY(10px) scale(.82)}18%{opacity:1;transform:translateY(-3px) scale(1.04)}72%{opacity:1;transform:translateY(-12px) scale(1)}100%{opacity:0;transform:translateY(-22px) scale(.98)}}
+@keyframes replay-number-pop{0%{opacity:0;transform:translateY(10px) scale(.82)}18%{opacity:1;transform:translateY(-3px) scale(1.04)}72%{opacity:1;transform:translateY(-12px) scale(1)}100%{opacity:0;transform:translateY(-22px) scale(.98)}}\n@keyframes replay-combo-high{0%{opacity:0;transform:translateY(12px) scale(.72)}22%{opacity:1;transform:translateY(-4px) scale(1.14)}62%{transform:translateY(-8px) scale(1)}100%{opacity:0;transform:translateY(-24px) scale(.96)}}\n@keyframes replay-combo-frenzy{0%{opacity:0;transform:translateY(16px) scale(.55) rotate(-2deg);filter:brightness(1.8)}18%{opacity:1;transform:translateY(-5px) scale(1.2) rotate(1deg);filter:brightness(1.3)}48%{transform:translateY(-8px) scale(1.04) rotate(0)}100%{opacity:0;transform:translateY(-28px) scale(.98);filter:brightness(1)}}
 .replay-enemy-health{margin-top:12px;padding:10px;background:#080f20aa;border:1px solid #52658b55;border-radius:10px}
 .replay-enemy-health-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;margin-bottom:7px}
 .replay-enemy-health-head strong{color:#f6d58b;font-variant-numeric:tabular-nums}
@@ -316,7 +316,7 @@ import { createReplayViewerState, seekReplayViewer, stepReplayViewer, setReplayV
 import { getReplayIntervalMs } from "./replayPlayback.js";
 import { getReplayKeyboardAction } from "./replayKeyboard.js";
 import { getReplayAnimationPlan } from "./replayAnimation.js";
-import { getReplayBossPhaseTransition, getReplayCombatFeedback, getReplayEnemyHp } from "./replayCombatFeedback.js";
+import { getReplayBossPhaseTransition, getReplayComboMilestone, getReplayCombatFeedback, getReplayEnemyHp } from "./replayCombatFeedback.js";
 (()=>{
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
@@ -342,7 +342,7 @@ function applyReplayAnimation(plan,boardEl,boardWrap){
   }
  }
 }
-function renderReplayCombatFeedback(feedback,element,phaseTransition=null){
+function renderReplayCombatFeedback(feedback,element,phaseTransition=null,comboMilestone=null){
  element.replaceChildren();
  if(!feedback)return;
  const add=(kind,label,elementType=null)=>{
@@ -354,7 +354,7 @@ function renderReplayCombatFeedback(feedback,element,phaseTransition=null){
   add('skill','技能發動 · '+feedback.skillName);
   if(feedback.summary)add('skill-detail',feedback.summary);
  }else if(feedback.kind==='player-action'){
-  if(feedback.combo>0)add('combo','Combo '+feedback.combo);
+  if(feedback.combo>0)add('combo','Combo '+feedback.combo);\n  if(comboMilestone)add('combo-milestone-'+comboMilestone.tier,comboMilestone.label+' · '+comboMilestone.combo+' Combo');
   if(feedback.damage>0)add('damage','−'+feedback.damage.toLocaleString('zh-TW')+' 傷害');
   if(feedback.damageByElement?.length){
    add('element-label','屬性計算');
@@ -405,7 +405,7 @@ function renderReplay(){
  }else{
   $('replayEnemyHp').textContent='無 HP 資料';hpTrack.setAttribute('aria-valuemax','0');hpTrack.setAttribute('aria-valuenow','0');hpFill.style.width='0%';
  }
- renderReplayCombatFeedback(shouldAnimate?getReplayCombatFeedback(event):null,$('replayCombatFeedback'),shouldAnimate?getReplayBossPhaseTransition(state.replay,state.index):null);
+ renderReplayCombatFeedback(shouldAnimate?getReplayCombatFeedback(event):null,$('replayCombatFeedback'),shouldAnimate?getReplayBossPhaseTransition(state.replay,state.index):null,shouldAnimate?getReplayComboMilestone(event):null);
  const boardEl=$('replayBoard'),boardWrap=$('replayBoardWrap');boardEl.innerHTML='';
  if(frame.board){frame.board.forEach((rune,index)=>{const cell=document.createElement('div');cell.className='replay-orb '+rune;cell.textContent=icons[rune]??'？';cell.setAttribute('aria-label','第 '+(index+1)+' 格 '+(elementNames[rune]??rune));boardEl.appendChild(cell);});}
  applyReplayAnimation(animationPlan,boardEl,boardWrap);
