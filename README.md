@@ -310,6 +310,6 @@ The live defeat dialog traps Tab and Shift+Tab within its available actions whil
 ## Rune board keyboard navigation
 
 - The 6 × 5 live rune board exposes one roving Tab stop. Use the arrow keys to move between adjacent cells without wrapping across row or column edges.
-- Press Enter or Space to use the focused rune with the existing select/swap interaction. Board re-renders preserve the focused cell when possible.
+- Press Enter or Space to use the focused rune with the existing select/swap interaction. Home/End moves to the first/last cell in the current row; Ctrl/Cmd+Home and Ctrl/Cmd+End move to the first/last cell of the board. Board re-renders preserve the focused cell when possible.
 - The Chromium regression test verifies four-direction movement, edge bounds, focus retention, and that Tab/Shift+Tab enter or leave the board without visiting all 30 runes.
 - Run it with `node --test tests/keyboard-rune-navigation.test.js` or the full `npm test` suite.
