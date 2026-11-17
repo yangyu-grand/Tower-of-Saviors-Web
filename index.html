@@ -131,6 +131,15 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .replay-board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:7px;background:#070d1b;border-radius:11px}
 .replay-orb{min-width:0;aspect-ratio:1;border:1px solid #ffffff45;border-radius:50%;display:grid;place-items:center;font-size:clamp(17px,3.4vw,27px);box-shadow:inset 0 2px 5px #fff4,inset 0 -5px 8px #0006}
 .replay-board-wrap{position:relative;overflow:hidden}
+.replay-combat-feedback{position:absolute;z-index:4;top:12px;left:8px;right:8px;display:flex;justify-content:center;align-items:flex-start;gap:6px;flex-wrap:wrap;pointer-events:none}
+.replay-combat-feedback:empty{display:none}
+.replay-combat-number{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border:1px solid currentColor;border-radius:999px;background:#081020e8;box-shadow:0 4px 12px #0007;font-size:12px;font-weight:900;animation:replay-number-pop 680ms cubic-bezier(.16,.8,.3,1) both}
+.replay-combat-number--combo{color:#f6d58b}.replay-combat-number--damage{color:#ff9b86}.replay-combat-number--heal{color:#8ee0a8}.replay-combat-number--incoming{color:#ff8189}.replay-combat-number--shield{color:#9bd5ff}
+@keyframes replay-number-pop{0%{opacity:0;transform:translateY(10px) scale(.82)}18%{opacity:1;transform:translateY(-3px) scale(1.04)}72%{opacity:1;transform:translateY(-12px) scale(1)}100%{opacity:0;transform:translateY(-22px) scale(.98)}}
+.replay-enemy-health{margin-top:12px;padding:10px;background:#080f20aa;border:1px solid #52658b55;border-radius:10px}
+.replay-enemy-health-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;margin-bottom:7px}
+.replay-enemy-health-head strong{color:#f6d58b;font-variant-numeric:tabular-nums}
+.replay-enemy-health .bar{height:10px}.replay-enemy-health .fill{transition:width 420ms cubic-bezier(.2,.8,.2,1)}
 .replay-orb--swap,.replay-orb--drop,.replay-orb--refill{will-change:transform,opacity,filter}
 .replay-orb--swap{z-index:2;animation:replay-swap 220ms cubic-bezier(.2,.8,.2,1) both}
 .replay-orb--drop{animation:replay-drop var(--replay-duration,460ms) cubic-bezier(.2,.75,.3,1) both}
@@ -145,7 +154,8 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 @keyframes replay-skill-pulse{0%,100%{box-shadow:none}35%{box-shadow:0 0 22px #f6c96b88;border-color:#f6c96b}}
 @keyframes replay-player-pulse{0%,100%{box-shadow:none}35%{box-shadow:0 0 18px #72d8b077;border-color:#72d8b0}}
 @media(prefers-reduced-motion:reduce){
- .replay-orb--swap,.replay-orb--drop,.replay-orb--refill,.replay-board-wrap--enemy-hit,.replay-board-wrap--skill,.replay-board-wrap--player-action{animation-duration:1ms!important;animation-delay:0ms!important}
+ .replay-orb--swap,.replay-orb--drop,.replay-orb--refill,.replay-board-wrap--enemy-hit,.replay-board-wrap--skill,.replay-board-wrap--player-action,.replay-combat-number{animation-duration:1ms!important;animation-delay:0ms!important}
+ .replay-enemy-health .fill{transition:none!important}
 }
 .replay-board-caption,.replay-metadata,.replay-status{color:var(--muted);font-size:12px;line-height:1.6}
 .replay-board-caption{margin:8px 0 0}
@@ -270,8 +280,8 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   </div>
   <p class="replay-keyboard-hint">鍵盤快捷鍵：空白鍵播放／暫停，←／→切換事件，Home／End 跳到開頭／結尾。先聚焦此重播區。</p>
   <div class="replay-layout">
-   <div id="replayBoardWrap" class="replay-board-wrap"><div id="replayBoard" class="replay-board" aria-label="重播符石盤"></div><p id="replayBoardCaption" class="replay-board-caption">載入重播後顯示最近一次完整盤面快照。</p></div>
-   <div class="replay-event" aria-live="polite"><h3 id="replayEventTitle">尚未載入重播</h3><p id="replayEventDetails">事件內容會顯示符石交換、Combo、傷害、回復與敵人行動。</p><p id="replayMetadata" class="replay-metadata"></p></div>
+   <div id="replayBoardWrap" class="replay-board-wrap"><div id="replayBoard" class="replay-board" aria-label="重播符石盤"></div><div id="replayCombatFeedback" class="replay-combat-feedback" aria-live="polite" aria-atomic="true"></div><p id="replayBoardCaption" class="replay-board-caption">載入重播後顯示最近一次完整盤面快照。</p></div>
+   <div class="replay-event" aria-live="polite"><h3 id="replayEventTitle">尚未載入重播</h3><p id="replayEventDetails">事件內容會顯示符石交換、Combo、傷害、回復與敵人行動。</p><div class="replay-enemy-health"><div class="replay-enemy-health-head"><span id="replayEnemyName">敵方生命</span><strong id="replayEnemyHp">尚未載入</strong></div><div id="replayEnemyHealthBar" class="bar" role="progressbar" aria-label="重播敵方生命" aria-valuemin="0" aria-valuemax="0" aria-valuenow="0"><div id="replayEnemyBar" class="fill" style="width:0%"></div></div></div><p id="replayMetadata" class="replay-metadata"></p></div>
   </div>
   <p id="replayStatus" class="replay-status" role="status" aria-live="polite">尚未載入重播。</p>
  </section>
@@ -301,6 +311,7 @@ import { createReplayViewerState, seekReplayViewer, stepReplayViewer, setReplayV
 import { getReplayIntervalMs } from "./replayPlayback.js";
 import { getReplayKeyboardAction } from "./replayKeyboard.js";
 import { getReplayAnimationPlan } from "./replayAnimation.js";
+import { getReplayCombatFeedback, getReplayEnemyHp } from "./replayCombatFeedback.js";
 (()=>{
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
@@ -326,11 +337,31 @@ function applyReplayAnimation(plan,boardEl,boardWrap){
   }
  }
 }
+function renderReplayCombatFeedback(feedback,element){
+ element.replaceChildren();
+ if(!feedback)return;
+ const add=(kind,label)=>{const node=document.createElement('span');node.className='replay-combat-number replay-combat-number--'+kind;node.textContent=label;element.appendChild(node);};
+ if(feedback.kind==='player-action'){
+  if(feedback.combo>0)add('combo','Combo '+feedback.combo);
+  if(feedback.damage>0)add('damage','−'+feedback.damage.toLocaleString('zh-TW')+' 傷害');
+  if(feedback.healing>0)add('heal','+'+feedback.healing.toLocaleString('zh-TW')+' HP');
+ }else if(feedback.kind==='enemy-action'){
+  if(feedback.hpDamageTaken>0)add('incoming','−'+feedback.hpDamageTaken.toLocaleString('zh-TW')+' HP');
+  if(feedback.shieldAbsorbed>0)add('shield','護盾吸收 '+feedback.shieldAbsorbed.toLocaleString('zh-TW'));
+  if(feedback.hpDamageTaken===0&&feedback.shieldAbsorbed===0&&feedback.incomingDamage>0)add('incoming','敵方攻擊 '+feedback.incomingDamage.toLocaleString('zh-TW')+'（減傷前）');
+  if(feedback.enemyHealing>0)add('heal','敵方回復 '+feedback.enemyHealing.toLocaleString('zh-TW')+' HP');
+  if(element.childElementCount===0)add('incoming','敵方行動 · '+feedback.actionLabel);
+ }
+}
 function renderReplay(){
  const state=replayViewerState,range=$('replaySeek');
  const controls=['replayPrevious','replayPlay','replayNext','replayExport','replaySeek'];
  $('replayLoadLive').disabled=!lastLiveReplay;
- if(!state){controls.forEach(id=>$(id).disabled=true);$('replayPosition').textContent='尚未載入';lastReplayRenderIndex=null;return;}
+ if(!state){
+  controls.forEach(id=>$(id).disabled=true);$('replayPosition').textContent='尚未載入';lastReplayRenderIndex=null;
+  $('replayEnemyName').textContent='敵方生命';$('replayEnemyHp').textContent='尚未載入';$('replayEnemyBar').style.width='0%';$('replayEnemyBar').style.transition='none';$('replayCombatFeedback').replaceChildren();
+  return;
+ }
  const previousIndex=lastReplayRenderIndex;
  const frame=getReplayViewerFrame(state),event=frame.event,description=describeReplayEvent(event);
  const shouldAnimate=previousIndex!==null&&state.index===previousIndex+1;
@@ -343,6 +374,17 @@ function renderReplay(){
  $('replayPosition').textContent='事件 '+(state.index+1)+' / '+state.replay.eventCount+' · 第 '+event.turn+' 回合';
  $('replayEventTitle').textContent=description.title;$('replayEventDetails').textContent=description.detail;
  $('replayMetadata').textContent=(state.replay.stage.name??'未知章節')+'／'+(state.replay.encounter.name??'未知敵人')+' · 種子 '+state.replay.seed+' · '+state.replay.status;
+ const hp=getReplayEnemyHp(state.replay,state.index),hpTrack=$('replayEnemyHealthBar'),hpFill=$('replayEnemyBar');
+ $('replayEnemyName').textContent=[state.replay.encounter.emoji,state.replay.encounter.name??'敵方生命'].filter(Boolean).join(' ');
+ hpFill.style.transition=shouldAnimate?'':'none';
+ if(hp){
+  $('replayEnemyHp').textContent=hp.currentHp.toLocaleString('zh-TW')+' / '+hp.maxHp.toLocaleString('zh-TW');
+  hpTrack.setAttribute('aria-valuemax',String(hp.maxHp));hpTrack.setAttribute('aria-valuenow',String(hp.currentHp));
+  hpFill.style.width=(hp.ratio*100).toFixed(2)+'%';
+ }else{
+  $('replayEnemyHp').textContent='無 HP 資料';hpTrack.setAttribute('aria-valuemax','0');hpTrack.setAttribute('aria-valuenow','0');hpFill.style.width='0%';
+ }
+ renderReplayCombatFeedback(shouldAnimate?getReplayCombatFeedback(event):null,$('replayCombatFeedback'));
  const boardEl=$('replayBoard'),boardWrap=$('replayBoardWrap');boardEl.innerHTML='';
  if(frame.board){frame.board.forEach((rune,index)=>{const cell=document.createElement('div');cell.className='replay-orb '+rune;cell.textContent=icons[rune]??'？';cell.setAttribute('aria-label','第 '+(index+1)+' 格 '+(elementNames[rune]??rune));boardEl.appendChild(cell);});}
  applyReplayAnimation(animationPlan,boardEl,boardWrap);
