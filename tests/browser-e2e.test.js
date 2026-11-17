@@ -186,6 +186,20 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   }, null, { timeout: 10000 });
   const scoreAfterMatch = Number(await page.locator("#score").innerText());
   assert.ok(scoreAfterMatch > 0, "a real pointer drag should resolve a rune match and award score");
+  await page.waitForFunction(() => document.querySelector("#liveCombatFeedback").textContent.includes("Combo"));
+  assert.equal(await page.locator("#liveCombatFeedback").getAttribute("aria-live"), "polite");
+  assert.ok(await page.locator("#liveCombatFeedback .live-combat-number--combo").count() > 0,
+    "a completed live move should display its Combo count");
+  const liveBreakdown = await page.locator("#combatBreakdown").innerText();
+  if (liveBreakdown.includes("沒有攻擊符石")) {
+    assert.ok(await page.locator("#liveCombatFeedback .live-combat-number--heal").count() > 0,
+      "a heart-only move should display its healing feedback");
+  } else {
+    assert.ok(await page.locator("#liveCombatFeedback .live-combat-number--element").count() > 0,
+      "an attack move should display its per-element damage feedback");
+    assert.ok(await page.locator("#liveCombatFeedback .live-combat-number--total").count() > 0,
+      "an attack move should display its total damage feedback");
+  }
   await page.waitForFunction(() => document.querySelector("#tutorialTitle").textContent.includes("Combo"));
   await page.locator("#tutorialAdvance").click();
   assert.ok((await page.locator("#skillButtons").getAttribute("class") || "").includes("tutorial-target"), "the active-skill area should be highlighted");
