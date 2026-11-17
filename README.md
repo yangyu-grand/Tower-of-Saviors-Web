@@ -104,7 +104,7 @@ The greedy policy chooses the highest-utility legal swap and at most one useful 
 
 Run `npm run replay:sample` to generate a deterministic event timeline for a seeded encounter. The replay stores the board at turn start, the board after active-skill effects, the selected adjacent swap, every cascade's matched cell indices and post-refill board, player damage/healing, enemy response, cooldowns, shields, and the board carried into the next turn. Replay schema version 1 is JSON-serializable and can be validated or queried by event index without rerunning combat.
 
-The replay is derived from the simulator's exact seeded refill stream; it does not approximate cascade frames or infer match positions from summary counts. The browser includes an interactive replay viewer with play/pause, previous/next event stepping, timeline seeking, exact 6 × 5 board snapshots, and validated JSON import/export. A fixed-seed Boss sample can be generated in the page; imported replay files are schema-validated before they replace the current viewer state. The viewer currently displays simulator-generated or imported replays; it does not yet capture a live human-controlled battle.
+The replay is derived from the simulator's exact seeded refill stream; it does not approximate cascade frames or infer match positions from summary counts. The browser includes an interactive replay viewer with play/pause, previous/next event stepping, timeline seeking, exact 6 × 5 board snapshots, and validated JSON import/export. A fixed-seed Boss sample can be generated in the page; imported replay files are schema-validated before they replace the current viewer state. The viewer displays simulator-generated, imported, and live human-controlled replays; the live recorder stores the latest completed encounter in browser storage.
 
 ## Next priorities
 
@@ -171,3 +171,12 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - Changing the speed while playback is active restarts the timer at the selected interval without changing the current event index or pausing the replay.
 - `replayPlayback.js` validates supported multipliers and calculates the interval from the 650 ms default, with a 50 ms minimum interval to keep fast playback readable.
 - Validation: `tests/replay-playback.test.js` covers supported speeds, interval scaling, invalid values, and the minimum interval; Chromium end-to-end coverage verifies the speed selector and live speed changes.
+
+
+## Replay keyboard shortcuts
+
+- Focus the replay panel, then press Space to play or pause.
+- Use Left/Right Arrow to move to the previous or next event.
+- Use Home/End to jump to the first or last event.
+- Shortcuts are scoped to the replay panel and ignored while a native input, select, button, link, label, or editable region has focus; modifier combinations and key repeats are ignored.
+- Validation: unit tests cover key mapping and exclusions; Chromium end-to-end coverage verifies navigation, playback, and that the speed selector keeps its native keyboard behavior.
