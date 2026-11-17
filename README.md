@@ -48,6 +48,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Responsive layout for narrow screens.
 - Opt-in, synthesized Web Audio feedback and reduced-motion-aware battle animations; no external audio or art assets are required.
 - Live battle feedback floats the resolved Combo count, total damage, each contributing element's damage, and heart-rune healing above the board without changing combat calculations.
+- Live Boss phase changes are announced only when a Boss moves from one recorded phase to another; initial and unchanged phases stay silent.
 - First-run onboarding tutorial covering rune matching, cascading Combo, active skills, five-card party formation, inventory progression, and summoning; tutorial completion/skip is stored separately from the game save, and existing saved profiles are not interrupted.
 - Persistent stage-clear result screen with per-stage turn, Combo, damage, healing, mitigation, EXP, score, and cumulative reward summaries; rewards are credited during combat and are never claimed again from the result screen.
 - Deterministic Node.js unit tests plus Playwright Chromium end-to-end coverage for game boot, onboarding progression, rune dragging and matching, codex filters, save/reload persistence, sound controls, distinct enemy intent previews, mobile layout emulation, and reduced-motion preference.
@@ -111,11 +112,13 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 1. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
-3. Add Boss phase-transition and victory/defeat overlays for live battles.
+3. Add explicit victory/defeat overlays for live battles.
 
 ## Live battle feedback
 
 After a successful match turn, the board briefly displays the resolved Combo count, total damage, per-element damage chips, and heart-rune healing. Values are taken from the same aggregated combat result used by the battle recorder and combat breakdown; the overlay is presentation-only and does not recalculate or modify damage. The overlay uses an `aria-live="polite"` region and reduced-motion preferences are respected by the existing global motion rule.
+
+For Boss encounters, the same overlay also announces a phase transition when the resolved enemy intent changes from the previously active phase. Initial phases, unchanged phases, missing labels, and non-Boss encounters do not produce a callout. Phase names are whitespace-normalized, length-bounded, and inserted as text; this is presentation-only and does not change the Boss threshold, attack cadence, or combat state. `tests/live-boss-phase-feedback.test.js` covers transition, no-transition, label-bound, and plain-text cases.
 
 ## Project structure
 

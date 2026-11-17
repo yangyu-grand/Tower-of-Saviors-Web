@@ -22,6 +22,7 @@ h1{font-size:clamp(25px,5vw,40px);margin:4px 0;color:var(--gold);letter-spacing:
 .live-combat-number--element{font-size:11px;background:#111b30}
 .live-combat-number--fire{color:#ff9b86}.live-combat-number--water{color:#8fd6ff}.live-combat-number--wood{color:#a5df91}.live-combat-number--light{color:#ffe08c}.live-combat-number--dark{color:#c4a2ff}
 .live-combat-number--heal{color:#ffb4d4}
+.live-combat-number--boss-phase{color:#f0c5ff;background:linear-gradient(135deg,#39254c,#1b1428);border-color:#c99be8}
 @keyframes live-combat-rise{0%{opacity:0;transform:translateY(12px) scale(.92)}18%{opacity:1;transform:translateY(0) scale(1)}72%{opacity:1;transform:translateY(-10px) scale(1)}100%{opacity:0;transform:translateY(-24px) scale(.96)}}
 .orb{aspect-ratio:1;border:2px solid #ffffff30;border-radius:50%;display:grid;place-items:center;font-size:clamp(22px,5vw,38px);cursor:pointer;box-shadow:inset 0 3px 7px #fff5,inset 0 -7px 10px #0006,0 3px 5px #0007;transition:transform .12s,border-color .12s;touch-action:none}
 .orb.selected{outline:3px solid #fff;outline-offset:1px;transform:scale(.91)}.orb:focus-visible{outline:3px solid white}
@@ -339,6 +340,7 @@ import { getCardEvolutionLevels, getEvolutionQuote, evolveCard } from "./evoluti
 import { filterCardCatalog } from "./codex.js";
 import { ENEMY_CODEX, filterEnemyCodex } from "./enemyCodex.js";
 import { createBattleFeedback } from "./battleFeedback.js";
+import { getLiveBossPhaseTransition } from "./liveBossPhaseFeedback.js";
 import { TUTORIAL_STEPS, loadTutorialProgress, saveTutorialProgress, getTutorialStep, advanceTutorial, skipTutorial } from "./tutorial.js";
 import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBattleStats, dismissBattleResult as markBattleResultDismissed, buildBattleResult } from "./battleResults.js";
 import { createRuneBoard, findRuneMatches, isAdjacentRuneCells, collapseRuneBoard, hasLegalRuneSwap } from "./runeBoard.js";
@@ -611,12 +613,13 @@ let skillStates=profile.skillStates,shield=profile.shield,pendingDamageMultiplie
 let cells=profile.board?[...profile.board]:createBoard(),selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex,battleStats=profile.battleStats;
 
 const LIVE_REPLAY_KEY="tower_of_saviors_live_replay_v1";
-let liveBattleRecorder=null,liveTurnBoardAtStart=null,liveTurnReshuffled=false;
+let liveBattleRecorder=null,liveTurnBoardAtStart=null,liveTurnReshuffled=false,liveBossPhase=null;
 let pendingReplaySkills=[],pendingReplaySkillHealing=0;
 let liveReplayTotals={totalDamageDealt:0,totalHealingApplied:0,totalHpDamageTaken:0,totalShieldAbsorbed:0};
 function startNewLiveEncounter(){
  const stage=getCurrentStage(campaign);
  const encounter=getCurrentEncounter(campaign)||stage.waves[Math.min(campaign.waveIndex,stage.waves.length-1)];
+ liveBossPhase=encounter.boss?getEnemyIntent(campaign).phase:null;
  liveBattleRecorder=createLiveBattleRecorder({
   seed:Date.now(),
   stage:{id:stage.id??String(campaign.stageIndex),name:stage.name,difficulty:stage.difficulty,stageIndex:campaign.stageIndex},
@@ -970,7 +973,7 @@ function useSkill(cardId){
  render();$('log').textContent=result.summary;persist();
 }
 function render(){boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label',t);b.dataset.i=i;b.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return}tap(i)});boardEl.appendChild(b)});stats()}
-function renderLiveCombatFeedback(combo,damageByElement,totalDamage,totalHealing){
+function renderLiveCombatFeedback(combo,damageByElement,totalDamage,totalHealing,bossPhaseTransition=null){
  const container=$('liveCombatFeedback');if(!container)return;
  container.replaceChildren();
  let index=0;
@@ -988,6 +991,7 @@ function renderLiveCombatFeedback(combo,damageByElement,totalDamage,totalHealing
   add('element',icons[item.element]+' '+elementNames[item.element]+' '+Math.round(item.damage).toLocaleString('zh-TW'),item.element);
  });
  if(totalHealing>0)add('heal','+'+Math.round(totalHealing).toLocaleString('zh-TW')+' HP');
+ if(bossPhaseTransition)add('boss-phase','Boss 階段：'+bossPhaseTransition.fromPhase+' → '+bossPhaseTransition.toPhase);
 }
 function cellIndex(target){const cell=target&&target.closest?target.closest('.orb'):null;return cell&&boardEl.contains(cell)?Number(cell.dataset.i):-1}
 function onBoardPointerDown(event){if(busy||hp<=0||campaign.completed||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;const index=cellIndex(event.target);if(index<0)return;dragFrom=index;dragPointerId=event.pointerId}
@@ -1001,7 +1005,7 @@ function tap(i){if(busy||hp<=0||campaign.completed)return;if(selected<0){selecte
 function findMatches(){return findRuneMatches(cells)}
 async function swapTry(a,b){
  if(busy||hp<=0||campaign.completed||!adjacent(a,b))return;
- let totalRunesMatched=0,runeScoreEarned=0,hpDamageTaken=0,shieldAbsorbed=0;
+ let totalRunesMatched=0,runeScoreEarned=0,hpDamageTaken=0,shieldAbsorbed=0,bossPhaseTransition=null;
  const boardBeforeMove=[...cells];
  busy=true;[cells[a],cells[b]]=[cells[b],cells[a]];render();
  let matches=findMatches();
@@ -1058,6 +1062,10 @@ async function swapTry(a,b){
   }else{$('log').textContent='擊敗 '+outcome.defeatedEnemy.name+'！獲得 '+rewards.score+' 分、'+rewards.gold+' 金幣及 '+rewards.awakeningShards+' 枚覺醒碎片，下一波 '+outcome.nextEncounter.name+' 出現。';renderInventory();}
  }else{
   const enemyTurn=resolveEnemyTurn(campaign);campaign=enemyTurn.state;
+  if(getCurrentEncounter(campaign)?.boss){
+   bossPhaseTransition=getLiveBossPhaseTransition(liveBossPhase,enemyTurn.intent.phase);
+   if(enemyTurn.intent.phase)liveBossPhase=enemyTurn.intent.phase;
+  }
   if(enemyTurn.incomingDamage>0)feedback.playEnemyAttack();
   const leaderDamageReduction=currentTeam.leaderSkill?.damageReduction??0;
   const adjustedIncomingDamage=Math.ceil(enemyTurn.incomingDamage*(1-leaderDamageReduction));
@@ -1086,7 +1094,7 @@ async function swapTry(a,b){
  liveReplayTotals.totalHpDamageTaken+=hpDamageTaken;liveReplayTotals.totalShieldAbsorbed+=shieldAbsorbed;
  liveBattleRecorder.endTurn({boardAfterMove,boardAfterTurn:[...cells],reshuffledAfterMove:reshuffled,partyHpAfterTurn:hp,shieldAfterTurn:shield,cooldownsAfterTurn:Object.fromEntries(Object.entries(skillStates).map(([id,state])=>[id,state.remaining])),reshuffleCount:reshuffled?1:0});
  pendingReplaySkillHealing=0;
- busy=false;renderTeam();render();renderInventory();renderLiveCombatFeedback(combo,damageByElementTotals,totalDamage,totalHeal);persist();
+ busy=false;renderTeam();render();renderInventory();renderLiveCombatFeedback(combo,damageByElementTotals,totalDamage,totalHeal,bossPhaseTransition);persist();
  if(outcome.defeated){finishLiveEncounter("victory");if(!outcome.stageCompleted)startNewLiveEncounter();}
  else if(hp<=0)finishLiveEncounter("party-defeated");
  else{liveTurnBoardAtStart=[...cells];liveTurnReshuffled=reshuffled;}
