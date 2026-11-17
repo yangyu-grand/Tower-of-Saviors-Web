@@ -298,3 +298,4 @@ Version-3 migration coverage also verifies that an already-recorded completed-st
 - The player can retry only the current wave. The defeated encounter's HP and turn counter reset, party HP is restored, and skill cooldowns/shield are reset; earlier cleared waves, earned rewards, inventory, currencies, unlocked progress, and total score remain intact.
 - The defeat dialog can be dismissed without deleting the saved campaign state. The most recent live replay remains available when browser storage is available.
 - Validation: `tests/live-defeat-overlay-browser.test.js` uses a fixed match-free board and Chromium pointer drag to trigger a deterministic party defeat, verify the dialog, retry the same wave, and confirm saved progress and score are preserved.
+- Accessibility: the defeat dialog receives focus when opened, exposes its summary through `aria-describedby`, and returns focus to the current encounter heading after retry or dismissal.
