@@ -537,6 +537,14 @@ test("Chromium displays active-skill effects and Boss phase/enrage callouts", as
   const phaseFeedback = await page.locator("#replayCombatFeedback").innerText();
   assert.match(phaseFeedback, /花霧姿態\s*→\s*月蝕姿態/);
   assert.match(phaseFeedback, /狂暴/);
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, enemyActionIndex + 1);
+  assert.doesNotMatch(await page.locator("#replayCombatFeedback").innerText(), /階段轉換/,
+    "direct timeline seeks must remain exact snapshots without transition animation");
+
   assert.deepEqual(pageErrors, [], "Boss phase and skill feedback should not raise browser errors");
 });
 
