@@ -91,10 +91,10 @@ test("Boss phase transition is detected from the last recorded non-empty phase",
 });
 
 test("initial phase, unchanged phase, and non-Boss encounters do not announce transitions", () => {
-  const replay = bossReplay(["花霧姿態", "花霧姿態", "月蝕姿態"]);
+  const replay = bossReplay(["花霧姿態", "花霧姿態", "花霧姿態"]);
   assert.equal(getReplayBossPhaseTransition(replay, 0), null);
   assert.equal(getReplayBossPhaseTransition(replay, 2), null);
-  assert.equal(getReplayBossPhaseTransition(bossReplay(["花霧姿態", "月蝕姿態"], false), 1), null);
+  assert.equal(getReplayBossPhaseTransition(bossReplay(["花霧姿態", "月蝕姿態", "月蝕姿態"], false), 2), null);
 });
 
 test("phase transition lookup is seek-stable and validates replay indices", () => {
