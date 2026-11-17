@@ -108,7 +108,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 ## Next priorities
 
-1. Add Boss-phase labels, skill-effect callouts, and clearer overkill context to sequential replay playback without changing the replay schema.
+1. Add explicit phase-transition callouts when a Boss crosses an HP threshold, while preserving the replay schema and exact seek behavior.
 2. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 3. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
 
@@ -130,8 +130,8 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `replayViewer.js` — validated replay-viewer state, bounded step/seek/playback transitions, board-snapshot lookup, and localized event summaries.
 - `replayPlayback.js` — validated replay-speed multipliers and minimum-bounded playback intervals.
 - `replayKeyboard.js` — replay-panel-scoped keyboard shortcuts with native-control and modifier exclusions.
-- `replayCombatFeedback.js` — validated player/enemy feedback, per-element damage display data, and deterministic enemy-HP lookup at any replay event.
-- `tests/replay-combat-feedback.test.js` — combat feedback, healing/shield separation, HP timeline, and invalid-input coverage.
+- `replayCombatFeedback.js` — validated player/enemy feedback, per-element damage, active-skill and Boss-phase callouts, and deterministic enemy-HP lookup at any replay event.
+- `tests/replay-combat-feedback.test.js` — combat feedback, healing/shield separation, HP timeline, and invalid-input coverage.\n- `tests/replay-phase-skill-feedback.test.js` — bounded skill summaries, Boss phase labels, and explicit enrage-state validation.
 - `tests/replay-playback.test.js` and `tests/replay-keyboard.test.js` — deterministic playback timing and keyboard-action tests.
 - `scripts/rune-battle-replay-report.js` — deterministic sample replay timeline report.
 - `scripts/balance-report.js` — command-line campaign balance report.
@@ -205,3 +205,12 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - Timeline seeks update the HP snapshot immediately; sequential playback animates the bar. The replay JSON schema remains version 1 and live-player recordings use the same path.
 - Combat callouts use DOM text nodes, respect prefers-reduced-motion, and never alter the live battle state.
 - Validation: tests/replay-combat-feedback.test.js covers event parsing, safe numeric handling, healing/shield separation, HP reconstruction, and boundary validation; Chromium end-to-end coverage verifies sequential damage feedback and HP transitions.
+
+
+## Replay Boss phases and active-skill callouts
+
+- Sequential `skill` events show the recorded skill name and a bounded effect summary, so replay playback explains why the board, shield, HP, or next attack changed.
+- Sequential `enemy-action` events show the recorded Boss phase (for example, 花霧姿態 or 月蝕姿態) and an explicit 狂暴 label only when the recorded action marks the enemy as enraged.
+- Phase and skill details are read from existing event payloads; Replay Schema v1 is unchanged. Older replays without phase fields remain valid.
+- Labels are whitespace-normalized, length-bounded, and rendered through DOM `textContent`, not interpreted as HTML.
+- Validation: `tests/replay-phase-skill-feedback.test.js` covers skill summaries, fallback labels, phase/enrage validation, and bounds; Chromium end-to-end coverage imports a Boss replay and verifies both callout types.
