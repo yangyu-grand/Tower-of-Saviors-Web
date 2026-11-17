@@ -764,3 +764,67 @@ test("Chromium shows a frenzy Combo milestone only during sequential replay play
 
   assert.deepEqual(pageErrors, [], "Combo milestone playback should not raise browser errors");
 });
+
+
+test("Chromium shows numeric overkill and final-hit callouts only during sequential replay playback", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.goto(url, { waitUntil: "networkidle" });
+
+  const replay = createRuneBattleReplay(simulateRuneEncounter({
+    stageIndex: 0, waveIndex: 0, seed: 903, skillPolicy: "greedy", maxTurns: 8
+  }));
+  const playerActionIndex = replay.events.findIndex((event, index) => index > 0 && event.type === "player-action");
+  assert.ok(playerActionIndex > 0, "the seeded encounter should contain a player action");
+  const enemyHp = replay.encounter.hp;
+  assert.ok(Number.isSafeInteger(enemyHp) && enemyHp > 0, "the encounter should have a positive HP maximum");
+  Object.assign(replay.events[playerActionIndex].data, {
+    combo: 4,
+    damage: enemyHp,
+    calculatedDamage: enemyHp + 240,
+    damageByElement: [{ element: "fire", runeCount: 3, damage: enemyHp + 240, relation: "neutral" }],
+    enemyHpBeforeAttack: enemyHp,
+    enemyHpAfterTurn: 0
+  });
+  replay.events.forEach((event, index) => { event.index = index; });
+  replay.eventCount = replay.events.length;
+
+  await page.locator("#replayImport").setInputFiles({
+    name: "overkill-final-hit-replay.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(replay))
+  });
+  await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入成功"));
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  await page.locator("#replayNext").click();
+
+  const overkill = page.locator("#replayCombatFeedback .replay-combat-number--overkill");
+  const finalHit = page.locator("#replayCombatFeedback .replay-combat-number--final-hit");
+  await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.includes("最後一擊"));
+  assert.equal(await overkill.count(), 1);
+  assert.equal(await finalHit.count(), 1);
+  assert.match(await page.locator("#replayCombatFeedback").innerText(), /溢傷 \+240/);
+  assert.match(await page.locator("#replayCombatFeedback").innerText(), /最後一擊 · 擊破！/);
+  assert.equal(await overkill.evaluate((node) => getComputedStyle(node).animationName), "replay-overkill-flash");
+  assert.equal(await finalHit.evaluate((node) => getComputedStyle(node).animationName), "replay-final-hit");
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  assert.equal(await overkill.count(), 0, "direct seeking must not replay overkill feedback");
+  assert.equal(await finalHit.count(), 0, "direct seeking must not replay final-hit feedback");
+  assert.deepEqual(pageErrors, [], "overkill/final-hit replay should not raise browser errors");
+});

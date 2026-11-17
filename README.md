@@ -104,13 +104,13 @@ The greedy policy chooses the highest-utility legal swap and at most one useful 
 
 Run `npm run replay:sample` to generate a deterministic event timeline for a seeded encounter. The replay stores the board at turn start, the board after active-skill effects, the selected adjacent swap, every cascade's matched cell indices and post-refill board, player damage/healing, enemy response, cooldowns, shields, and the board carried into the next turn. Replay schema version 1 is JSON-serializable and can be validated or queried by event index without rerunning combat.
 
-The replay is derived from the simulator's exact seeded refill stream; it does not approximate cascade frames or infer match positions from summary counts. The browser includes an interactive replay viewer with play/pause, previous/next event stepping, timeline seeking, exact 6 × 5 board snapshots, and validated JSON import/export. A fixed-seed Boss sample can be generated in the page; imported replay files are schema-validated before they replace the current viewer state. The viewer displays simulator-generated, imported, and live human-controlled replays; the live recorder stores the latest completed encounter in browser storage. Sequential playback also emphasizes 5–7 Combo turns as 高連擊 and 8+ Combo turns as 極限連鎖; direct seeking remains an exact snapshot without replaying milestone effects.
+The replay is derived from the simulator's exact seeded refill stream; it does not approximate cascade frames or infer match positions from summary counts. The browser includes an interactive replay viewer with play/pause, previous/next event stepping, timeline seeking, exact 6 × 5 board snapshots, and validated JSON import/export. A fixed-seed Boss sample can be generated in the page; imported replay files are schema-validated before they replace the current viewer state. The viewer displays simulator-generated, imported, and live human-controlled replays; the live recorder stores the latest completed encounter in browser storage. Sequential playback emphasizes 5–7 Combo turns as 高連擊 and 8+ Combo turns as 極限連鎖, displays numeric overkill when calculated damage exceeds actual enemy HP lost, and marks a final hit when recorded HP falls from positive to zero. Direct seeking remains an exact snapshot without replaying these transient effects.
 
 ## Next priorities
 
 1. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
-3. Add optional, user-controlled audio and reduced-motion-aware visual emphasis for elemental overkill and final-hit outcomes.
+3. Add optional, user-controlled replay audio cues for high-Combo, elemental overkill, and final-hit outcomes.
 
 ## Project structure
 
@@ -130,7 +130,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `replayViewer.js` — validated replay-viewer state, bounded step/seek/playback transitions, board-snapshot lookup, and localized event summaries.
 - `replayPlayback.js` — validated replay-speed multipliers and minimum-bounded playback intervals.
 - `replayKeyboard.js` — replay-panel-scoped keyboard shortcuts with native-control and modifier exclusions.
-- `replayCombatFeedback.js` — validated player/enemy feedback, per-element damage, active-skill and Boss-phase callouts, sequential Boss phase-transition detection, Combo milestone tiers, and deterministic enemy-HP lookup at any replay event.
+- `replayCombatFeedback.js` — validated player/enemy feedback, per-element damage, active-skill and Boss-phase callouts, sequential Boss phase-transition detection, Combo milestone tiers, numeric overkill/final-hit outcomes, and deterministic enemy-HP lookup at any replay event.
 - `tests/replay-combat-feedback.test.js` — combat feedback, healing/shield separation, HP timeline, and invalid-input coverage.
 - `tests/replay-phase-skill-feedback.test.js` — bounded skill summaries, Boss phase labels, sequential phase-transition detection, exact-seek stability, and explicit enrage-state validation.
 - `tests/replay-combo-milestone.test.js` — 5–7 and 8+ Combo tiers, non-player events, and invalid Combo counts.
@@ -225,3 +225,12 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - Timeline seeks render exact snapshots and do not replay milestone effects.
 - The high-Combo emphasis respects `prefers-reduced-motion`; no sound is played unless the player has explicitly enabled the existing sound control.
 - Unit and Chromium tests cover both threshold tiers and sequential-versus-seek behavior.
+
+
+## Replay overkill and final-hit feedback
+
+- Sequential player-action playback shows the exact overkill amount when calculated damage exceeds the enemy HP actually lost; the difference is derived from the recorded calculated and capped damage values.
+- A final-hit callout appears only when the recorded enemy HP moves from a positive value to zero on that player action.
+- Both callouts are transient replay feedback only; they do not alter combat, rewards, replay events, or Replay Schema v1.
+- Direct timeline seeking renders an exact snapshot and does not replay either callout. The effects respect `prefers-reduced-motion`.
+- Validation: unit tests cover numeric overkill, final-hit detection, and incomplete/non-decisive data; Chromium end-to-end coverage verifies sequential playback, animation names, and seek behavior.
