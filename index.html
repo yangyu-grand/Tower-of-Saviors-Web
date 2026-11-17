@@ -123,6 +123,9 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .replay-toolbar{justify-content:flex-start;margin-top:14px;padding:10px;background:#080f20aa;border-radius:12px}
 .replay-speed{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;white-space:nowrap}
 .replay-speed select{background:#202d48;color:#fff;border:1px solid #65789a;border-radius:8px;padding:8px 10px;font:inherit;font-size:12px}
+.replay-volume{display:flex;align-items:center;gap:7px;color:var(--muted);font-size:12px;white-space:nowrap}
+.replay-volume input{width:92px;accent-color:var(--gold)}
+.replay-volume output{min-width:34px;color:#f6d58b;font-variant-numeric:tabular-nums}
 .replay-range{display:flex;align-items:center;gap:8px;flex:1;min-width:180px;color:var(--muted);font-size:12px}
 .replay-range input{width:100%;min-width:80px;accent-color:var(--gold)}
 .replay-position{min-width:110px;color:#f6d58b;font-size:12px;text-align:right;font-variant-numeric:tabular-nums}
@@ -286,6 +289,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
    <button id="replayPlay" type="button" disabled>播放</button>
    <button id="replayNext" type="button" disabled>下一事件</button>
    <button id="replayAudioToggle" type="button" aria-pressed="false" aria-label="開啟重播音效" title="需同時開啟頁面上方音效">重播音效：關</button>
+   <label class="replay-volume">重播音量<input id="replayAudioVolume" type="range" min="0" max="100" step="5" value="70" aria-label="重播音效音量" aria-valuetext="70%"><output id="replayAudioVolumeValue">70%</output></label>
    <label class="replay-speed">速度<select id="replaySpeed" aria-label="重播速度"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="1.5">1.5×</option><option value="2">2×</option><option value="3">3×</option><option value="4">4×</option></select></label>
    <label class="replay-range">時間軸<input id="replaySeek" type="range" min="0" max="0" value="0" disabled></label>
    <output id="replayPosition" class="replay-position">尚未載入</output>
@@ -330,7 +334,7 @@ import { getReplayAudioCue } from "./replayAudioCues.js";
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
 
-let replayViewerState=null,replayTimer=null,lastLiveReplay=null,lastReplayRenderIndex=null,replayAudioEnabled=false;
+let replayViewerState=null,replayTimer=null,lastLiveReplay=null,lastReplayRenderIndex=null,replayAudioEnabled=false,replayAudioVolume=0.7;
 function stopReplayTimer(){if(replayTimer!==null){window.clearInterval(replayTimer);replayTimer=null;}}
 function applyReplayAnimation(plan,boardEl,boardWrap){
  const wrapClasses=['replay-board-wrap--enemy-hit','replay-board-wrap--skill','replay-board-wrap--player-action'];
@@ -391,16 +395,16 @@ function syncReplayAudioToggle(){
  button.setAttribute('aria-pressed',String(replayAudioEnabled));
  button.setAttribute('aria-label',replayAudioEnabled?'關閉重播音效':'開啟重播音效');
 }
-function playReplayAudioCue(event,combatFeedback,phaseTransition,comboMilestone){
+function playReplayAudioCue(event,combatFeedback,phaseTransition,comboMilestone,volumeScale=replayAudioVolume){
  if(!replayAudioEnabled||feedback.isMuted())return;
  const cue=getReplayAudioCue(event,{combatFeedback,phaseTransition,comboMilestone});
- if(cue==='combo-high')feedback.playMatch([],6);
- else if(cue==='combo-frenzy')feedback.playMatch([],8);
- else if(cue==='phase-transition'||cue==='skill')feedback.playSkill();
- else if(cue==='final-hit')feedback.playVictory();
- else if(cue==='overkill'||cue==='hit')feedback.playHit();
- else if(cue==='enemy-attack')feedback.playEnemyAttack();
- else if(cue==='heal')feedback.playHeal();
+ if(cue==='combo-high')feedback.playMatch([],6,volumeScale);
+ else if(cue==='combo-frenzy')feedback.playMatch([],8,volumeScale);
+ else if(cue==='phase-transition'||cue==='skill')feedback.playSkill(volumeScale);
+ else if(cue==='final-hit')feedback.playVictory(volumeScale);
+ else if(cue==='overkill'||cue==='hit')feedback.playHit(volumeScale);
+ else if(cue==='enemy-attack')feedback.playEnemyAttack(volumeScale);
+ else if(cue==='heal')feedback.playHeal(volumeScale);
 }
 function renderReplay(){
  const state=replayViewerState,range=$('replaySeek');
@@ -437,7 +441,7 @@ function renderReplay(){
  const phaseTransition=shouldAnimate?getReplayBossPhaseTransition(state.replay,state.index):null;
  const comboMilestone=shouldAnimate?getReplayComboMilestone(event):null;
  renderReplayCombatFeedback(combatFeedback,$('replayCombatFeedback'),phaseTransition,comboMilestone);
- if(shouldAnimate)playReplayAudioCue(event,combatFeedback,phaseTransition,comboMilestone);
+ if(shouldAnimate)playReplayAudioCue(event,combatFeedback,phaseTransition,comboMilestone,replayAudioVolume);
  const boardEl=$('replayBoard'),boardWrap=$('replayBoardWrap');boardEl.innerHTML='';
  if(frame.board){frame.board.forEach((rune,index)=>{const cell=document.createElement('div');cell.className='replay-orb '+rune;cell.textContent=icons[rune]??'？';cell.setAttribute('aria-label','第 '+(index+1)+' 格 '+(elementNames[rune]??rune));boardEl.appendChild(cell);});}
  applyReplayAnimation(animationPlan,boardEl,boardWrap);
@@ -464,6 +468,14 @@ function toggleReplayPlayback(){
 function initializeReplayViewer(){
  restoreLastLiveReplay();
  syncReplayAudioToggle();
+ const replayVolumeInput=$('replayAudioVolume'),replayVolumeOutput=$('replayAudioVolumeValue');
+ replayVolumeInput.addEventListener('input',()=>{
+  const value=Number(replayVolumeInput.value);
+  replayAudioVolume=Number.isFinite(value)?Math.min(100,Math.max(0,value))/100:0.7;
+  const label=Math.round(replayAudioVolume*100)+'%';
+  replayVolumeOutput.textContent=label;
+  replayVolumeInput.setAttribute('aria-valuetext',label);
+ });
  $('replayAudioToggle').addEventListener('click',()=>{
   replayAudioEnabled=!replayAudioEnabled;syncReplayAudioToggle();
   $('replayStatus').textContent=replayAudioEnabled
