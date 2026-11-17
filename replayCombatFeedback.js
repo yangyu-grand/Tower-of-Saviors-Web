@@ -18,7 +18,7 @@ function safeHp(value) {
 
 function safeText(value, fallback, maxLength) {
   if (typeof value !== "string") return fallback;
-  const normalized = value.replace(/\\s+/g, " ").trim();
+  const normalized = value.replace(/\s+/g, " ").trim();
   return normalized ? normalized.slice(0, maxLength) : fallback;
 }
 
