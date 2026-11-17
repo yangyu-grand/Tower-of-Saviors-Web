@@ -27,14 +27,34 @@ test("player-action feedback combines rune and skill healing and keeps combat to
 
 test("enemy-action feedback separates HP damage from shield absorption", () => {
   assert.deepEqual(getReplayCombatFeedback(event("enemy-action", {
+    action: { label: "月輪連斬", damage: 59, healing: 0 },
     hpDamageTaken: 17,
     shieldAbsorbed: 42,
     partyHpAfterTurn: 183
   })), {
     kind: "enemy-action",
+    actionLabel: "月輪連斬",
+    incomingDamage: 59,
+    enemyHealing: 0,
     hpDamageTaken: 17,
     shieldAbsorbed: 42,
     partyHpAfter: 183
+  });
+});
+
+test("zero-damage enemy actions retain a readable action label", () => {
+  assert.deepEqual(getReplayCombatFeedback(event("enemy-action", {
+    action: { label: "蓄力", damage: 0, healing: 0 },
+    hpDamageTaken: 0,
+    shieldAbsorbed: 0
+  })), {
+    kind: "enemy-action",
+    actionLabel: "蓄力",
+    incomingDamage: 0,
+    enemyHealing: 0,
+    hpDamageTaken: 0,
+    shieldAbsorbed: 0,
+    partyHpAfter: null
   });
 });
 
