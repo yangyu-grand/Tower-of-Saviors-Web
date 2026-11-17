@@ -1136,7 +1136,7 @@ function retryCurrentEncounter(){
  campaign={...campaign,turn:0,enemyHp:encounter.hp,completed:false,campaignComplete:false};
  cells=createBoard();selected=-1;dragFrom=-1;dragPointerId=null;suppressClick=false;busy=false;
  hp=maxHp;skillStates=createSkillStates(teamIds);shield=0;pendingDamageMultiplier=1;
- defeatResultVisible=false;startNewLiveEncounter();
+ defeatResultVisible=false;renderDefeatResult();startNewLiveEncounter();
  $('combatBreakdown').textContent='本波已重新開始。';
  $('log').textContent='重新挑戰 '+encounter.name+'！已保留先前波次進度。';
  renderTeam();render();renderInventory();persist('已重新挑戰本波');
