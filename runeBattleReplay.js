@@ -162,7 +162,9 @@ export function createRuneBattleReplay(simulation) {
       runeCounts: turn.move.runeCounts,
       damage: turn.damageDealt,
       calculatedDamage: turn.calculatedDamage ?? turn.move.damage,
-      damageByElement: clone(turn.damageByElement ?? turn.move.damageByElement ?? []),
+      ...(Array.isArray(turn.damageByElement ?? turn.move.damageByElement)
+        ? { damageByElement: clone(turn.damageByElement ?? turn.move.damageByElement) }
+        : {}),
       healing: turn.healingApplied,
       skillHealing: turn.skillHealingApplied,
       enemyHpBeforeAttack: turn.enemyHpBeforeAttack,
