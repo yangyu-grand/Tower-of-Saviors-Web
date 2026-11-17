@@ -130,6 +130,23 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .replay-board-wrap,.replay-event{min-width:0;padding:12px;background:#080f20aa;border:1px solid #52658b55;border-radius:13px}
 .replay-board{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:5px;padding:7px;background:#070d1b;border-radius:11px}
 .replay-orb{min-width:0;aspect-ratio:1;border:1px solid #ffffff45;border-radius:50%;display:grid;place-items:center;font-size:clamp(17px,3.4vw,27px);box-shadow:inset 0 2px 5px #fff4,inset 0 -5px 8px #0006}
+.replay-board-wrap{position:relative;overflow:hidden}
+.replay-orb--swap,.replay-orb--drop,.replay-orb--refill{will-change:transform,opacity,filter}
+.replay-orb--swap{z-index:2;animation:replay-swap 220ms cubic-bezier(.2,.8,.2,1) both}
+.replay-orb--drop{animation:replay-drop var(--replay-duration,460ms) cubic-bezier(.2,.75,.3,1) both}
+.replay-orb--refill{animation:replay-refill var(--replay-duration,460ms) cubic-bezier(.16,.84,.34,1) both}
+.replay-board-wrap--enemy-hit{animation:replay-enemy-hit 380ms ease-out both}
+.replay-board-wrap--skill{animation:replay-skill-pulse 420ms ease-out both}
+.replay-board-wrap--player-action{animation:replay-player-pulse 320ms ease-out both}
+@keyframes replay-swap{from{transform:translate(var(--replay-from-x,0),var(--replay-from-y,0)) scale(.88);filter:brightness(1.35)}to{transform:translate(0,0) scale(1);filter:brightness(1)}}
+@keyframes replay-drop{from{transform:translateY(-16px) scale(.92);opacity:.48}to{transform:translateY(0) scale(1);opacity:1}}
+@keyframes replay-refill{0%{transform:translateY(-12px) scale(.58);opacity:.12;filter:brightness(1.7)}72%{transform:translateY(1px) scale(1.06);opacity:1}100%{transform:translateY(0) scale(1);opacity:1;filter:brightness(1)}}
+@keyframes replay-enemy-hit{0%,100%{transform:translateX(0);border-color:#52658b55;box-shadow:none}18%{transform:translateX(-3px);border-color:#ef7777;box-shadow:0 0 18px #ef555566}42%{transform:translateX(3px)}68%{transform:translateX(-1px)}}
+@keyframes replay-skill-pulse{0%,100%{box-shadow:none}35%{box-shadow:0 0 22px #f6c96b88;border-color:#f6c96b}}
+@keyframes replay-player-pulse{0%,100%{box-shadow:none}35%{box-shadow:0 0 18px #72d8b077;border-color:#72d8b0}}
+@media(prefers-reduced-motion:reduce){
+ .replay-orb--swap,.replay-orb--drop,.replay-orb--refill,.replay-board-wrap--enemy-hit,.replay-board-wrap--skill,.replay-board-wrap--player-action{animation-duration:1ms!important;animation-delay:0ms!important}
+}
 .replay-board-caption,.replay-metadata,.replay-status{color:var(--muted);font-size:12px;line-height:1.6}
 .replay-board-caption{margin:8px 0 0}
 .replay-event h3{margin:0;color:var(--gold);font-size:17px}
@@ -253,7 +270,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
   </div>
   <p class="replay-keyboard-hint">鍵盤快捷鍵：空白鍵播放／暫停，←／→切換事件，Home／End 跳到開頭／結尾。先聚焦此重播區。</p>
   <div class="replay-layout">
-   <div class="replay-board-wrap"><div id="replayBoard" class="replay-board" aria-label="重播符石盤"></div><p id="replayBoardCaption" class="replay-board-caption">載入重播後顯示最近一次完整盤面快照。</p></div>
+   <div id="replayBoardWrap" class="replay-board-wrap"><div id="replayBoard" class="replay-board" aria-label="重播符石盤"></div><p id="replayBoardCaption" class="replay-board-caption">載入重播後顯示最近一次完整盤面快照。</p></div>
    <div class="replay-event" aria-live="polite"><h3 id="replayEventTitle">尚未載入重播</h3><p id="replayEventDetails">事件內容會顯示符石交換、Combo、傷害、回復與敵人行動。</p><p id="replayMetadata" class="replay-metadata"></p></div>
   </div>
   <p id="replayStatus" class="replay-status" role="status" aria-live="polite">尚未載入重播。</p>
@@ -283,18 +300,41 @@ import { createLiveBattleRecorder } from "./liveBattleRecorder.js";
 import { createReplayViewerState, seekReplayViewer, stepReplayViewer, setReplayViewerPlaying, advanceReplayViewer, getReplayViewerFrame, describeReplayEvent } from "./replayViewer.js";
 import { getReplayIntervalMs } from "./replayPlayback.js";
 import { getReplayKeyboardAction } from "./replayKeyboard.js";
+import { getReplayAnimationPlan } from "./replayAnimation.js";
 (()=>{
 const icons={fire:'🔥',water:'💧',wood:'🌿',light:'✨',dark:'🌙',heart:'💗'},elementNames={fire:'火',water:'水',wood:'木',light:'光',dark:'暗',heart:'心'};
 const $=id=>document.getElementById(id);
 
-let replayViewerState=null,replayTimer=null,lastLiveReplay=null;
+let replayViewerState=null,replayTimer=null,lastLiveReplay=null,lastReplayRenderIndex=null;
 function stopReplayTimer(){if(replayTimer!==null){window.clearInterval(replayTimer);replayTimer=null;}}
+function applyReplayAnimation(plan,boardEl,boardWrap){
+ const wrapClasses=['replay-board-wrap--enemy-hit','replay-board-wrap--skill','replay-board-wrap--player-action'];
+ boardWrap.classList.remove(...wrapClasses);
+ if(!plan)return;
+ const wrapClass=plan.kind==='enemy-hit'?'replay-board-wrap--enemy-hit':
+  plan.kind==='skill'?'replay-board-wrap--skill':
+  plan.kind==='player-action'?'replay-board-wrap--player-action':null;
+ if(wrapClass){void boardWrap.offsetWidth;boardWrap.classList.add(wrapClass);}
+ for(const item of plan.cells??[]){
+  const cell=boardEl.children[item.index];if(!cell)continue;
+  cell.classList.add('replay-orb--'+item.effect);
+  cell.style.animationDuration=plan.durationMs+'ms';
+  cell.style.animationDelay=(item.delayMs??0)+'ms';
+  if(item.effect==='swap'){
+   cell.style.setProperty('--replay-from-x',(item.offsetX*100)+'%');
+   cell.style.setProperty('--replay-from-y',(item.offsetY*100)+'%');
+  }
+ }
+}
 function renderReplay(){
  const state=replayViewerState,range=$('replaySeek');
  const controls=['replayPrevious','replayPlay','replayNext','replayExport','replaySeek'];
  $('replayLoadLive').disabled=!lastLiveReplay;
- if(!state){controls.forEach(id=>$(id).disabled=true);$('replayPosition').textContent='尚未載入';return;}
+ if(!state){controls.forEach(id=>$(id).disabled=true);$('replayPosition').textContent='尚未載入';lastReplayRenderIndex=null;return;}
+ const previousIndex=lastReplayRenderIndex;
  const frame=getReplayViewerFrame(state),event=frame.event,description=describeReplayEvent(event);
+ const shouldAnimate=previousIndex!==null&&state.index===previousIndex+1;
+ const animationPlan=shouldAnimate?getReplayAnimationPlan(event):null;
  const last=state.replay.eventCount-1;
  range.min='0';range.max=String(last);range.value=String(state.index);range.disabled=false;
  $('replayPrevious').disabled=state.index===0;$('replayNext').disabled=state.index===last;
@@ -303,13 +343,15 @@ function renderReplay(){
  $('replayPosition').textContent='事件 '+(state.index+1)+' / '+state.replay.eventCount+' · 第 '+event.turn+' 回合';
  $('replayEventTitle').textContent=description.title;$('replayEventDetails').textContent=description.detail;
  $('replayMetadata').textContent=(state.replay.stage.name??'未知章節')+'／'+(state.replay.encounter.name??'未知敵人')+' · 種子 '+state.replay.seed+' · '+state.replay.status;
- const boardEl=$('replayBoard');boardEl.innerHTML='';
+ const boardEl=$('replayBoard'),boardWrap=$('replayBoardWrap');boardEl.innerHTML='';
  if(frame.board){frame.board.forEach((rune,index)=>{const cell=document.createElement('div');cell.className='replay-orb '+rune;cell.textContent=icons[rune]??'？';cell.setAttribute('aria-label','第 '+(index+1)+' 格 '+(elementNames[rune]??rune));boardEl.appendChild(cell);});}
- $('replayBoardCaption').textContent=frame.board?'事件 '+(state.index+1)+' 的最近完整盤面快照。':'此事件之前尚無盤面快照。';
+ applyReplayAnimation(animationPlan,boardEl,boardWrap);
+ lastReplayRenderIndex=state.index;
+ $('replayBoardCaption').textContent=frame.board?'事件 '+(state.index+1)+' 的最近完整盤面快照。連續播放時會呈現交換、消除與補珠動畫。':'此事件之前尚無盤面快照。';
  $('replayStatus').textContent='已載入 '+(state.replay.encounter.name??'戰鬥重播')+'，共 '+state.replay.eventCount+' 個事件。';
 }
 function loadReplayData(replay,sourceLabel){
- stopReplayTimer();replayViewerState=createReplayViewerState(replay);renderReplay();
+ stopReplayTimer();lastReplayRenderIndex=null;replayViewerState=createReplayViewerState(replay);renderReplay();
  $('replayStatus').textContent=sourceLabel+'：'+(replayViewerState.replay.encounter.name??'戰鬥重播')+'，共 '+replayViewerState.replay.eventCount+' 個事件。';
 }
 function startReplayTimer(){
