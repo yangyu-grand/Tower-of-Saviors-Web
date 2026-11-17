@@ -116,6 +116,16 @@ test("Chromium announces the live fourth-chapter Boss phase transition", async (
     campaignComplete: false
   };
   save.unlockedStageIndex = 3;
+  // Use a fixed match-free board whose first legal attack swap is a single
+  // three-fire match. The default party deals 216 damage, crossing 50% HP
+  // without defeating the 926-HP Boss before its next phase is announced.
+  save.board = [
+    "fire", "fire", "water", "wood", "light", "dark",
+    "water", "wood", "fire", "dark", "heart", "fire",
+    "wood", "light", "dark", "heart", "fire", "water",
+    "light", "dark", "heart", "fire", "water", "wood",
+    "dark", "heart", "fire", "water", "wood", "light"
+  ];
   save.battleStats = createBattleStats(3);
   const serializedSave = JSON.stringify(normalizeSave(save));
   await page.addInitScript(({ key, value }) => localStorage.setItem(key, value), {
@@ -128,7 +138,8 @@ test("Chromium announces the live fourth-chapter Boss phase transition", async (
   assert.equal(await page.locator("#liveCombatFeedback .live-combat-number--boss-phase").count(), 0,
     "loading into the first Boss phase must not announce a transition");
   const move = await findValidAttackSwap(page);
-  assert.ok(move, "the seeded Boss board should expose a legal attack-rune match");
+  assert.deepEqual(move, [2, 8],
+    "the fixed board should select the non-lethal three-fire swap that crosses 50% HP");
   const [from, to] = move;
   const start = await page.locator('.orb[data-i="' + from + '"]').boundingBox();
   const end = await page.locator('.orb[data-i="' + to + '"]').boundingBox();

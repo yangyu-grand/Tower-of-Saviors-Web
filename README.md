@@ -287,3 +287,6 @@ For Boss encounters, the same overlay also announces a phase transition when the
 The migration regression test also covers version-1 and version-2 profiles that were saved after completing a stage but before per-stage battle summaries existed. It verifies that campaign progress and score survive, the migrated result is marked as already dismissed, and no encounter defeats or rewards are invented. Re-normalizing the migrated version-4 save must remain stable.
 
 Run it with `node --test tests/legacy-completed-save-migration.test.js` or the full `npm test` suite.
+
+
+Version-3 migration coverage also verifies that an already-recorded completed-stage battle summary, encounter IDs, reward totals, and evolution-material balances survive migration to save version 4 unchanged. The test is `tests/v3-completed-save-migration.test.js` and checks a second normalization pass for stability.
