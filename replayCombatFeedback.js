@@ -120,6 +120,15 @@ export function getReplayBossPhaseTransition(replay, eventIndex) {
   return { fromPhase, toPhase };
 }
 
+export function getReplayComboMilestone(event) {
+  assertEvent(event);
+  if (event.type !== "player-action") return null;
+  const combo = safeAmount(event.data.combo);
+  if (combo >= 8) return { tier: "frenzy", label: "極限連鎖", combo };
+  if (combo >= 5) return { tier: "high", label: "高連擊", combo };
+  return null;
+}
+
 export function getReplayEnemyHp(replay, eventIndex) {
   if (!isRecord(replay) || !isRecord(replay.encounter) || !Array.isArray(replay.events)) {
     throw new TypeError("replay enemy HP requires replay metadata and events");
