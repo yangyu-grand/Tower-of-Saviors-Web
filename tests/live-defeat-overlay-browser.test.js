@@ -93,6 +93,15 @@ test("Chromium shows a defeat overlay and retries only the current wave", async 
   await page.waitForFunction(() => !document.querySelector("#defeatResult").hidden, null, { timeout: 10000 });
   assert.equal(await page.locator("#defeatTitle").innerText(), "隊伍戰敗");
   assert.equal(await page.evaluate(() => document.activeElement.id), "defeatResult", "opening the defeat dialog must move focus into the dialog");
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "defeatRetry", "Tab from the dialog container must focus the first action");
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "defeatDismiss", "Tab must move to the last action");
+  await page.keyboard.press("Tab");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "defeatRetry", "Tab from the last action must wrap to the first");
+  await page.keyboard.press("Shift+Tab");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "defeatDismiss", "Shift+Tab from the first action must wrap to the last");
+  await page.keyboard.press("Tab");
   assert.match(await page.locator("#defeatSubtitle").innerText(), /灰燼山徑.*燼甲守衛/);
   assert.match(await page.locator("#defeatSummary").innerText(), /造成傷害/);
   const scoreBeforeRetry = Number(await page.locator("#score").innerText());
@@ -110,5 +119,21 @@ test("Chromium shows a defeat overlay and retries only the current wave", async 
   assert.equal(saved.score, scoreBeforeRetry, "retry must preserve the accumulated score");
   assert.equal(saved.battleStats.defeatedEncounterIds.length, 0,
     "retry must not invent a defeat reward for the wave that defeated the party");
-  assert.deepEqual(pageErrors, [], "the defeat and retry flow must not raise page errors");
+
+  // Reload the original one-HP profile to exercise Escape dismissal separately.
+  await page.reload({ waitUntil: "networkidle" });
+  if (await page.locator("#tutorialPanel").isVisible()) await page.locator("#tutorialSkip").click();
+  const escapeStart = await page.locator('.orb[data-i="2"]').boundingBox();
+  const escapeEnd = await page.locator('.orb[data-i="8"]').boundingBox();
+  assert.ok(escapeStart && escapeEnd);
+  await page.mouse.move(escapeStart.x + escapeStart.width / 2, escapeStart.y + escapeStart.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(escapeEnd.x + escapeEnd.width / 2, escapeEnd.y + escapeEnd.height / 2, { steps: 8 });
+  await page.mouse.up();
+  await page.waitForFunction(() => !document.querySelector("#defeatResult").hidden, null, { timeout: 10000 });
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => document.querySelector("#defeatResult").hidden);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "enemyName",
+    "Escape must dismiss the dialog and restore focus to the encounter heading");
+  assert.deepEqual(pageErrors, [], "the defeat, retry, and keyboard-dismiss flows must not raise page errors");
 });
