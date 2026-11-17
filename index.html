@@ -137,6 +137,8 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .replay-combat-number--combo{color:#f6d58b}.replay-combat-number--damage{color:#ff9b86}.replay-combat-number--heal{color:#8ee0a8}.replay-combat-number--incoming{color:#ff8189}.replay-combat-number--shield{color:#9bd5ff}
 .replay-combat-number--element-label{color:#d6e2f4;background:#17243b}.replay-combat-number--element{font-size:11px;background:#111b30}
 .replay-combat-number--fire{color:#ff9b86}.replay-combat-number--water{color:#8fd6ff}.replay-combat-number--wood{color:#a5df91}.replay-combat-number--light{color:#ffe08c}.replay-combat-number--dark{color:#c4a2ff}.replay-combat-number--overkill{color:#ffd27b}
+.replay-combat-number--skill{color:#a9c8f3;background:#17243b}.replay-combat-number--skill-detail{color:#d4deed;background:#101b2e;max-width:100%;white-space:normal;line-height:1.45}
+.replay-combat-number--phase{color:#f6d58b;background:#352a18}.replay-combat-number--enrage{color:#ff8189;background:#3a141c}
 @keyframes replay-number-pop{0%{opacity:0;transform:translateY(10px) scale(.82)}18%{opacity:1;transform:translateY(-3px) scale(1.04)}72%{opacity:1;transform:translateY(-12px) scale(1)}100%{opacity:0;transform:translateY(-22px) scale(.98)}}
 .replay-enemy-health{margin-top:12px;padding:10px;background:#080f20aa;border:1px solid #52658b55;border-radius:10px}
 .replay-enemy-health-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;margin-bottom:7px}
@@ -347,7 +349,10 @@ function renderReplayCombatFeedback(feedback,element){
   if(['fire','water','wood','light','dark'].includes(elementType))node.classList.add('replay-combat-number--'+elementType);
   element.appendChild(node);
  };
- if(feedback.kind==='player-action'){
+ if(feedback.kind==='skill'){
+  add('skill','技能發動 · '+feedback.skillName);
+  if(feedback.summary)add('skill-detail',feedback.summary);
+ }else if(feedback.kind==='player-action'){
   if(feedback.combo>0)add('combo','Combo '+feedback.combo);
   if(feedback.damage>0)add('damage','−'+feedback.damage.toLocaleString('zh-TW')+' 傷害');
   if(feedback.damageByElement?.length){
@@ -358,11 +363,13 @@ function renderReplayCombatFeedback(feedback,element){
   }
   if(feedback.healing>0)add('heal','+'+feedback.healing.toLocaleString('zh-TW')+' HP');
  }else if(feedback.kind==='enemy-action'){
+  if(feedback.phaseName)add('phase','Boss 階段 · '+feedback.phaseName);
+  if(feedback.enraged)add('enrage','狂暴');
   if(feedback.hpDamageTaken>0)add('incoming','−'+feedback.hpDamageTaken.toLocaleString('zh-TW')+' HP');
   if(feedback.shieldAbsorbed>0)add('shield','護盾吸收 '+feedback.shieldAbsorbed.toLocaleString('zh-TW'));
   if(feedback.hpDamageTaken===0&&feedback.shieldAbsorbed===0&&feedback.incomingDamage>0)add('incoming','敵方攻擊 '+feedback.incomingDamage.toLocaleString('zh-TW')+'（減傷前）');
   if(feedback.enemyHealing>0)add('heal','敵方回復 '+feedback.enemyHealing.toLocaleString('zh-TW')+' HP');
-  if(element.childElementCount===0)add('incoming','敵方行動 · '+feedback.actionLabel);
+  if(feedback.hpDamageTaken===0&&feedback.shieldAbsorbed===0&&feedback.incomingDamage===0&&feedback.enemyHealing===0)add('incoming','敵方行動 · '+feedback.actionLabel);
  }
 }
 function renderReplay(){

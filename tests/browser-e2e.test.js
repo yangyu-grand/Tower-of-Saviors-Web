@@ -468,6 +468,66 @@ test("Chromium plays, pauses, seeks, imports, and exports deterministic battle r
 });
 
 
+test("Chromium displays active-skill effects and Boss phase/enrage callouts", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.goto(url, { waitUntil: "networkidle" });
+
+  const replay = createRuneBattleReplay(simulateRuneEncounter({
+    stageIndex: 3, waveIndex: 2, seed: 81, skillPolicy: "greedy", maxTurns: 8
+  }));
+  replay.events.splice(1, 0, {
+    index: 1,
+    turn: 1,
+    type: "skill",
+    data: { name: "測試技能", summary: "火屬性攻擊提升 1.5 倍。" }
+  });
+  const enemyAction = replay.events.find((event) => event.type === "enemy-action");
+  assert.ok(enemyAction, "the seeded Boss replay should include an enemy response");
+  enemyAction.data.action = {
+    ...enemyAction.data.action,
+    phase: "月蝕姿態",
+    enraged: true
+  };
+  replay.events.forEach((event, index) => { event.index = index; });
+  replay.eventCount = replay.events.length;
+
+  await page.locator("#replayImport").setInputFiles({
+    name: "boss-phase-skill-replay.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(replay))
+  });
+  await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入成功"));
+
+  await page.locator("#replayNext").click();
+  await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.includes("技能發動"));
+  const skillFeedback = page.locator("#replayCombatFeedback");
+  assert.match(await skillFeedback.innerText(), /測試技能/);
+  assert.match(await skillFeedback.innerText(), /火屬性攻擊提升 1.5 倍/);
+  assert.equal(await skillFeedback.locator("img").count(), 0, "skill summaries must render as text, not HTML");
+
+  const enemyActionIndex = replay.events.findIndex((event) => event.type === "enemy-action");
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, enemyActionIndex);
+  await page.locator("#replayNext").click();
+  await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.includes("Boss 階段"));
+  const phaseFeedback = await page.locator("#replayCombatFeedback").innerText();
+  assert.match(phaseFeedback, /月蝕姿態/);
+  assert.match(phaseFeedback, /狂暴/);
+  assert.deepEqual(pageErrors, [], "Boss phase and skill feedback should not raise browser errors");
+});
+
+
 test("Chromium records a real player-controlled encounter and restores its replay after reload", async (t) => {
   const { server, url } = await startStaticServer();
   let browser;

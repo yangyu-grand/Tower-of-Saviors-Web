@@ -16,6 +16,12 @@ function safeHp(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
+function safeText(value, fallback, maxLength) {
+  if (typeof value !== "string") return fallback;
+  const normalized = value.replace(/\s+/g, " ").trim();
+  return normalized ? normalized.slice(0, maxLength) : fallback;
+}
+
 const DAMAGE_ELEMENTS = new Set(["fire", "water", "wood", "light", "dark"]);
 const DAMAGE_RELATIONS = new Set(["advantage", "disadvantage", "neutral"]);
 
@@ -34,6 +40,14 @@ function normalizeDamageByElement(value) {
 export function getReplayCombatFeedback(event) {
   assertEvent(event);
   const data = event.data;
+
+  if (event.type === "skill") {
+    return {
+      kind: "skill",
+      skillName: safeText(data.name, "角色技能", 48),
+      summary: safeText(data.summary, "技能效果已發動。", 140)
+    };
+  }
 
   if (event.type === "player-action") {
     const healing = Math.min(
@@ -57,15 +71,19 @@ export function getReplayCombatFeedback(event) {
   if (event.type === "enemy-action") {
     const action = isRecord(data.action) ? data.action : {};
     const rawLabel = action.label ?? action.name ?? action.type;
-    return {
+    const feedback = {
       kind: "enemy-action",
-      actionLabel: typeof rawLabel === "string" && rawLabel.trim() ? rawLabel : "敵人行動",
+      actionLabel: safeText(rawLabel, "敵人行動", 64),
       incomingDamage: safeAmount(action.damage),
       enemyHealing: safeAmount(action.healing),
       hpDamageTaken: safeAmount(data.hpDamageTaken),
       shieldAbsorbed: safeAmount(data.shieldAbsorbed),
       partyHpAfter: safeHp(data.partyHpAfterTurn)
     };
+    const phaseName = safeText(action.phase, "", 48);
+    if (phaseName) feedback.phaseName = phaseName;
+    if (action.enraged === true) feedback.enraged = true;
+    return feedback;
   }
 
   return null;
