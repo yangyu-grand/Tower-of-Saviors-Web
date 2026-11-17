@@ -453,6 +453,8 @@ export function simulateRuneEncounter(options = {}) {
       enemyHpBeforeAttack,
       enemyHpAfterTurn: damageResult.defeated ? 0 : state.enemyHp,
       damageDealt,
+      calculatedDamage: move.damage,
+      damageByElement: move.damageByElement.map((item) => ({ ...item })),
       healingApplied: runeHealing,
       skillHealingApplied: skillEvent?.restored ?? 0,
       enemyAction,
