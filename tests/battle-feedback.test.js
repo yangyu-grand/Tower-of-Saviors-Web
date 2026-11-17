@@ -12,7 +12,7 @@ function makeClassList() {
 }
 
 function makeAudioContext() {
-  const calls = { oscillators: 0, starts: 0, stops: 0, frequencies: [] };
+  const calls = { oscillators: 0, starts: 0, stops: 0, frequencies: [], peakVolumes: [] };
   const context = {
     currentTime: 2,
     state: "running",
@@ -31,7 +31,9 @@ function makeAudioContext() {
       return {
         gain: {
           setValueAtTime() {},
-          exponentialRampToValueAtTime() {}
+          exponentialRampToValueAtTime(value) {
+            if (value > 0.0001) calls.peakVolumes.push(value);
+          }
         },
         connect() {}
       };
@@ -128,6 +130,27 @@ test("reduced-motion preference disables decorative animation hooks", () => {
   assert.equal(board.classList.contains("board-skill"), false);
   assert.equal(enemy.classList.contains("enemy-hit"), false);
   assert.equal(board.classList.contains("board-victory"), false);
+});
+
+test("per-cue volume scaling clamps safely and zero volume creates no tone", () => {
+  const audio = makeAudioContext();
+  const feedback = createBattleFeedback({
+    audioContextFactory: () => audio.context,
+    reducedMotion: true
+  });
+  feedback.setMuted(false);
+
+  feedback.playHit(0.5);
+  assert.deepEqual(audio.calls.peakVolumes, [0.02]);
+
+  feedback.playHit(2);
+  assert.deepEqual(audio.calls.peakVolumes, [0.02, 0.04]);
+
+  const oscillatorCount = audio.calls.oscillators;
+  feedback.playHit(0);
+  feedback.playHit(-1);
+  assert.equal(audio.calls.oscillators, oscillatorCount);
+  feedback.destroy();
 });
 
 test("unsupported audio keeps the control safely muted", () => {
