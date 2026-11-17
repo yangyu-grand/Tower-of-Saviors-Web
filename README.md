@@ -47,6 +47,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - Party attack stats are applied to matched-rune damage; extra runes beyond three add a small bonus.
 - Responsive layout for narrow screens.
 - Opt-in, synthesized Web Audio feedback and reduced-motion-aware battle animations; no external audio or art assets are required.
+- When `prefers-reduced-motion: reduce` is active, selecting a rune keeps its focus outline but removes the selected-orb scale transform; the normal selection feedback remains unchanged for other motion preferences.
 - Live battle feedback floats the resolved Combo count, total damage, each contributing element's damage, and heart-rune healing above the board without changing combat calculations.
 - Live Boss phase changes are announced only when a Boss moves from one recorded phase to another; initial and unchanged phases stay silent.
 - First-run onboarding tutorial covering rune matching, cascading Combo, active skills, five-card party formation, inventory progression, and summoning; tutorial completion/skip is stored separately from the game save, and existing saved profiles are not interrupted.
