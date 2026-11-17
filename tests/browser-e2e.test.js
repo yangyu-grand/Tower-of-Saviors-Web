@@ -539,3 +539,57 @@ test("Chromium replay panel supports keyboard shortcuts without hijacking native
   assert.equal(await page.locator("#replayPlay").innerText(), "播放");
   assert.deepEqual(pageErrors, [], "keyboard replay controls should not raise browser errors");
 });
+
+
+test("Chromium animates sequential swap and cascade replay frames", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.goto(url, { waitUntil: "networkidle" });
+  await page.locator("#replayGenerate").click();
+  await page.waitForFunction(() => Number(document.querySelector("#replaySeek").max) > 0);
+
+  const eventCount = Number(await page.locator("#replaySeek").getAttribute("max")) + 1;
+  const titles = [];
+  for (let index = 0; index < eventCount; index += 1) {
+    await page.locator("#replaySeek").evaluate((input, value) => {
+      input.value = String(value);
+      input.dispatchEvent(new Event("input", { bubbles: true }));
+    }, index);
+    titles.push(await page.locator("#replayEventTitle").innerText());
+  }
+  const swapIndex = titles.findIndex((title) => title.includes("符石交換"));
+  const cascadeIndex = titles.findIndex((title) => title.includes("Combo") && title.includes("消除"));
+  assert.ok(swapIndex > 0, "sample replay should contain a swap event");
+  assert.ok(cascadeIndex > 0, "sample replay should contain a cascade event");
+
+  await page.locator("#replaySeek").evaluate((input, value) => {
+    input.value = String(value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, swapIndex - 1);
+  await page.locator("#replayNext").click();
+  assert.equal(await page.locator("#replayBoard .replay-orb--swap").count(), 2);
+  assert.equal(
+    await page.locator("#replayBoard .replay-orb--swap").first().evaluate((cell) => getComputedStyle(cell).animationName),
+    "replay-swap"
+  );
+
+  await page.locator("#replaySeek").evaluate((input, value) => {
+    input.value = String(value);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, cascadeIndex - 1);
+  await page.locator("#replayNext").click();
+  assert.ok(await page.locator("#replayBoard .replay-orb--refill").count() >= 3);
+  assert.equal(
+    await page.locator("#replayBoard .replay-orb--refill").first().evaluate((cell) => getComputedStyle(cell).animationName),
+    "replay-refill"
+  );
+  assert.deepEqual(pageErrors, [], "replay animations should not raise browser errors");
+});
