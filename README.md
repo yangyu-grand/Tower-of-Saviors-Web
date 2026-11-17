@@ -112,7 +112,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 1. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
-3. Add explicit victory/defeat overlays for live battles.
+3. Add a per-encounter victory overlay distinct from the existing stage-clear summary.
 
 ## Live battle feedback
 
@@ -290,3 +290,11 @@ Run it with `node --test tests/legacy-completed-save-migration.test.js` or the f
 
 
 Version-3 migration coverage also verifies that an already-recorded completed-stage battle summary, encounter IDs, reward totals, and evolution-material balances survive migration to save version 4 unchanged. The test is `tests/v3-completed-save-migration.test.js` and checks a second normalization pass for stability.
+
+
+## Live defeat and current-wave retry
+
+- When an enemy turn reduces party HP to zero, the live battle opens an accessible defeat dialog with the current chapter and encounter, turn count, damage dealt, and remaining shield.
+- The player can retry only the current wave. The defeated encounter's HP and turn counter reset, party HP is restored, and skill cooldowns/shield are reset; earlier cleared waves, earned rewards, inventory, currencies, unlocked progress, and total score remain intact.
+- The defeat dialog can be dismissed without deleting the saved campaign state. The most recent live replay remains available when browser storage is available.
+- Validation: `tests/live-defeat-overlay-browser.test.js` uses a fixed match-free board and Chromium pointer drag to trigger a deterministic party defeat, verify the dialog, retry the same wave, and confirm saved progress and score are preserved.
