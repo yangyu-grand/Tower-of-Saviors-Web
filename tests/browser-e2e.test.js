@@ -828,3 +828,98 @@ test("Chromium shows numeric overkill and final-hit callouts only during sequent
   assert.equal(await finalHit.count(), 0, "direct seeking must not replay final-hit feedback");
   assert.deepEqual(pageErrors, [], "overkill/final-hit replay should not raise browser errors");
 });
+
+
+test("Chromium replay audio is opt-in, respects master mute, and ignores direct timeline seeking", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    window.__audioOscillatorStarts = 0;
+    window.AudioContext = class FakeAudioContext {
+      constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; }
+      createOscillator() {
+        return {
+          type: "sine",
+          frequency: { setValueAtTime() {} },
+          connect() {},
+          start() { window.__audioOscillatorStarts += 1; },
+          stop() {}
+        };
+      }
+      createGain() {
+        return {
+          gain: { setValueAtTime() {}, exponentialRampToValueAtTime() {} },
+          connect() {}
+        };
+      }
+      resume() { return Promise.resolve(); }
+      close() { this.state = "closed"; return Promise.resolve(); }
+    };
+  });
+  await page.goto(url, { waitUntil: "networkidle" });
+
+  const replay = createRuneBattleReplay(simulateRuneEncounter({
+    stageIndex: 3, waveIndex: 2, seed: 904, skillPolicy: "greedy", maxTurns: 8
+  }));
+  const playerActionIndex = replay.events.findIndex((event, index) => index > 0 && event.type === "player-action" && Number.isSafeInteger(event.data?.enemyHpAfterTurn) && event.data.enemyHpAfterTurn > 0);
+  assert.ok(playerActionIndex > 0, "the seeded encounter should contain a player action");
+  replay.events[playerActionIndex].data.combo = 8;
+  replay.events.forEach((event, index) => { event.index = index; });
+  replay.eventCount = replay.events.length;
+
+  await page.locator("#replayImport").setInputFiles({
+    name: "replay-audio-cue.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(replay))
+  });
+  await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入成功"));
+  const replayAudioToggle = page.locator("#replayAudioToggle");
+  assert.equal(await replayAudioToggle.getAttribute("aria-pressed"), "false");
+
+  await replayAudioToggle.click();
+  assert.equal(await replayAudioToggle.getAttribute("aria-pressed"), "true");
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  await page.locator("#replayNext").click();
+  assert.equal(await page.evaluate(() => window.__audioOscillatorStarts), 0,
+    "replay cues must remain silent while the master sound is muted");
+
+  await page.locator("#soundToggle").click();
+  const masterEnableOscillators = await page.evaluate(() => window.__audioOscillatorStarts);
+  assert.ok(masterEnableOscillators >= 2, "enabling master sound should initialize the synthesized audio feedback");
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  await page.locator("#replayNext").click();
+  assert.equal(await page.evaluate(() => window.__audioOscillatorStarts), masterEnableOscillators + 1,
+    "the sequential 8-Combo event should emit exactly one replay cue");
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  assert.equal(await page.evaluate(() => window.__audioOscillatorStarts), masterEnableOscillators + 1,
+    "direct timeline seeking must not emit replay audio");
+
+  await replayAudioToggle.click();
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  await page.locator("#replayNext").click();
+  assert.equal(await page.evaluate(() => window.__audioOscillatorStarts), masterEnableOscillators + 1,
+    "the replay-audio toggle must suppress cues when disabled");
+  assert.deepEqual(pageErrors, [], "opt-in replay audio should not raise browser errors");
+});
