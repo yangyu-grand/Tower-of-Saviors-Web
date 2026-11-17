@@ -731,7 +731,7 @@ test("Chromium shows a frenzy Combo milestone only during sequential replay play
   const replay = createRuneBattleReplay(simulateRuneEncounter({
     stageIndex: 0, waveIndex: 0, seed: 902, skillPolicy: "greedy", maxTurns: 8
   }));
-  const playerActionIndex = replay.events.findIndex((event, index) => index > 0 && event.type === "player-action");
+  const playerActionIndex = replay.events.findIndex((event, index) => index > 0 && event.type === "player-action" && Number.isSafeInteger(event.data?.enemyHpAfterTurn) && event.data.enemyHpAfterTurn > 0);
   assert.ok(playerActionIndex > 0, "the seeded encounter should contain a sequential player action");
   replay.events[playerActionIndex].data.combo = 8;
 
@@ -867,7 +867,7 @@ test("Chromium replay audio is opt-in, respects master mute, and ignores direct 
   await page.goto(url, { waitUntil: "networkidle" });
 
   const replay = createRuneBattleReplay(simulateRuneEncounter({
-    stageIndex: 0, waveIndex: 0, seed: 904, skillPolicy: "greedy", maxTurns: 8
+    stageIndex: 3, waveIndex: 2, seed: 904, skillPolicy: "greedy", maxTurns: 8
   }));
   const playerActionIndex = replay.events.findIndex((event, index) => index > 0 && event.type === "player-action");
   assert.ok(playerActionIndex > 0, "the seeded encounter should contain a player action");
