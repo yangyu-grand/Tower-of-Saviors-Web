@@ -713,3 +713,54 @@ test("Chromium animates sequential swap and cascade replay frames", async (t) =>
   );
   assert.deepEqual(pageErrors, [], "replay animations should not raise browser errors");
 });
+
+
+test("Chromium shows a frenzy Combo milestone only during sequential replay playback", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.goto(url, { waitUntil: "networkidle" });
+
+  const replay = createRuneBattleReplay(simulateRuneEncounter({
+    stageIndex: 0, waveIndex: 0, seed: 902, skillPolicy: "greedy", maxTurns: 8
+  }));
+  const playerActionIndex = replay.events.findIndex((event, index) => index > 0 && event.type === "player-action");
+  assert.ok(playerActionIndex > 0, "the seeded encounter should contain a sequential player action");
+  replay.events[playerActionIndex].data.combo = 8;
+
+  replay.events.forEach((event, index) => { event.index = index; });
+  replay.eventCount = replay.events.length;
+  await page.locator("#replayImport").setInputFiles({
+    name: "combo-milestone-replay.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(replay))
+  });
+  await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入成功"));
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  await page.locator("#replayNext").click();
+  const milestone = page.locator("#replayCombatFeedback .replay-combat-number--combo-milestone-frenzy");
+  await page.waitForFunction(() => document.querySelector("#replayCombatFeedback").textContent.includes("極限連鎖"));
+  assert.equal(await milestone.count(), 1);
+  assert.match(await page.locator("#replayCombatFeedback").innerText(), /Combo 8/);
+  assert.equal(await milestone.evaluate((node) => getComputedStyle(node).animationName), "replay-combo-frenzy");
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  assert.equal(await page.locator("#replayCombatFeedback .replay-combat-number--combo-milestone-frenzy").count(), 0,
+    "direct seeking must not replay the Combo milestone animation");
+
+  assert.deepEqual(pageErrors, [], "Combo milestone playback should not raise browser errors");
+});
