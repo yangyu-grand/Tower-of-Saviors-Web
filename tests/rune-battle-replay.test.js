@@ -40,6 +40,33 @@ test("replay timeline contains ordered turn, skill, swap, cascade, enemy, and ba
   assert.equal(validateRuneBattleReplay(replay), true);
 });
 
+test("player-action replay events preserve exact per-element damage attribution", () => {
+  const replay = createRuneBattleReplay(sampleSimulation());
+  const detailedActions = replay.events.filter((event) => event.type === "player-action" && event.data.damageByElement?.length > 0);
+  assert.ok(detailedActions.length > 0, "seeded combat should record at least one elemental damage breakdown");
+  for (const event of detailedActions) {
+    assert.equal(event.data.damageByElement.reduce((sum, item) => sum + item.damage, 0), event.data.calculatedDamage);
+    assert.ok(event.data.damageByElement.every((item) => ["fire", "water", "wood", "light", "dark"].includes(item.element)));
+  }
+  const corrupted = structuredClone(replay);
+  const action = corrupted.events.find((event) => event.type === "player-action" && event.data.damageByElement.length > 0);
+  action.data.damageByElement[0].element = "void";
+  assert.throws(() => validateRuneBattleReplay(corrupted), /elemental damage breakdown/);
+});
+
+test("legacy simulation objects without optional elemental fields remain replayable", () => {
+  const simulation = sampleSimulation();
+  for (const turn of simulation.turns) {
+    delete turn.calculatedDamage;
+    delete turn.damageByElement;
+  }
+  const replay = createRuneBattleReplay(simulation);
+  const playerAction = replay.events.find((event) => event.type === "player-action");
+  assert.ok(playerAction);
+  assert.equal("damageByElement" in playerAction.data, false);
+  assert.equal(validateRuneBattleReplay(replay), true);
+});
+
 test("replay generation is deterministic for identical seeded simulations", () => {
   const first = createRuneBattleReplay(sampleSimulation());
   const second = createRuneBattleReplay(sampleSimulation());

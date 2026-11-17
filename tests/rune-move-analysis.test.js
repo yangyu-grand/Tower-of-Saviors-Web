@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { createRuneBoard, createSeededRandom, findRuneMatches } from "../runeBoard.js";
 import { analyzeRuneMoves, buildRuneMoveQualityReport, formatRuneMoveQualityReport } from "../runeMoveAnalysis.js";
+import { getElementalMatchup } from "../combat.js";
 
 function playableBoard() {
   return createRuneBoard({ random: () => 0, maxAttempts: 1 });
@@ -46,6 +47,17 @@ test("move analysis uses the selected team leader and elemental matchup", () => 
   assert.equal(fireLeader.team.leaderSkill, "赤焰先鋒");
   assert.equal(waterLeader.team.leaderSkill, "潮汐韻律");
   assert.notDeepEqual(fireLeader.team.attackByElement, waterLeader.team.attackByElement);
+});
+
+test("move analysis attributes cascade damage to the correct elements and matchup", () => {
+  const analysis = analyzeRuneMoves(playableBoard(), { seed: 20261117, enemyElement: "wood" });
+  const move = analysis.moves.find((candidate) => candidate.damageByElement.length > 0);
+  assert.ok(move, "at least one legal move should include an attack element");
+  assert.equal(move.damageByElement.reduce((sum, item) => sum + item.damage, 0), move.damage);
+  assert.equal(move.damageByElement.reduce((sum, item) => sum + item.runeCount, 0),
+    Object.entries(move.runeCounts).filter(([element]) => element !== "heart").reduce((sum, [, count]) => sum + count, 0));
+  for (const item of move.damageByElement) assert.equal(item.relation, getElementalMatchup(item.element, "wood").relation);
+  for (const cascade of move.cascades) assert.equal(cascade.damageByElement.reduce((sum, item) => sum + item.damage, 0), cascade.damage);
 });
 
 test("heart matches contribute healing to move utility", () => {

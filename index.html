@@ -135,6 +135,8 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
 .replay-combat-feedback:empty{display:none}
 .replay-combat-number{display:inline-flex;align-items:center;min-height:28px;padding:5px 9px;border:1px solid currentColor;border-radius:999px;background:#081020e8;box-shadow:0 4px 12px #0007;font-size:12px;font-weight:900;animation:replay-number-pop 680ms cubic-bezier(.16,.8,.3,1) both}
 .replay-combat-number--combo{color:#f6d58b}.replay-combat-number--damage{color:#ff9b86}.replay-combat-number--heal{color:#8ee0a8}.replay-combat-number--incoming{color:#ff8189}.replay-combat-number--shield{color:#9bd5ff}
+.replay-combat-number--element-label{color:#d6e2f4;background:#17243b}.replay-combat-number--element{font-size:11px;background:#111b30}
+.replay-combat-number--fire{color:#ff9b86}.replay-combat-number--water{color:#8fd6ff}.replay-combat-number--wood{color:#a5df91}.replay-combat-number--light{color:#ffe08c}.replay-combat-number--dark{color:#c4a2ff}.replay-combat-number--overkill{color:#ffd27b}
 @keyframes replay-number-pop{0%{opacity:0;transform:translateY(10px) scale(.82)}18%{opacity:1;transform:translateY(-3px) scale(1.04)}72%{opacity:1;transform:translateY(-12px) scale(1)}100%{opacity:0;transform:translateY(-22px) scale(.98)}}
 .replay-enemy-health{margin-top:12px;padding:10px;background:#080f20aa;border:1px solid #52658b55;border-radius:10px}
 .replay-enemy-health-head{display:flex;align-items:center;justify-content:space-between;gap:8px;color:var(--muted);font-size:12px;margin-bottom:7px}
@@ -340,10 +342,20 @@ function applyReplayAnimation(plan,boardEl,boardWrap){
 function renderReplayCombatFeedback(feedback,element){
  element.replaceChildren();
  if(!feedback)return;
- const add=(kind,label)=>{const node=document.createElement('span');node.className='replay-combat-number replay-combat-number--'+kind;node.textContent=label;element.appendChild(node);};
+ const add=(kind,label,elementType=null)=>{
+  const node=document.createElement('span');node.className='replay-combat-number replay-combat-number--'+kind;node.textContent=label;
+  if(['fire','water','wood','light','dark'].includes(elementType))node.classList.add('replay-combat-number--'+elementType);
+  element.appendChild(node);
+ };
  if(feedback.kind==='player-action'){
   if(feedback.combo>0)add('combo','Combo '+feedback.combo);
   if(feedback.damage>0)add('damage','−'+feedback.damage.toLocaleString('zh-TW')+' 傷害');
+  if(feedback.damageByElement?.length){
+   add('element-label','屬性計算');
+   const relations={advantage:'克制',disadvantage:'被克制',neutral:'普通'};
+   feedback.damageByElement.forEach(item=>add('element',icons[item.element]+' '+elementNames[item.element]+' '+item.damage.toLocaleString('zh-TW')+' · '+relations[item.relation],item.element));
+   if(feedback.calculatedDamage>feedback.damage)add('overkill','含溢傷');
+  }
   if(feedback.healing>0)add('heal','+'+feedback.healing.toLocaleString('zh-TW')+' HP');
  }else if(feedback.kind==='enemy-action'){
   if(feedback.hpDamageTaken>0)add('incoming','−'+feedback.hpDamageTaken.toLocaleString('zh-TW')+' HP');
@@ -882,12 +894,16 @@ async function swapTry(a,b){
  pendingReplaySkills.forEach(skill=>liveBattleRecorder.recordSkill(skill));pendingReplaySkills=[];
  const swappedBoard=[...cells],direction=b-a===1?"right":b-a===-1?"left":b-a===6?"down":"up";
  liveBattleRecorder.recordSwap({from:a,to:b,direction,boardBeforeMove,swappedBoard});
- let combo=0,totalDamage=0,totalHeal=0;const damageLines=[],totalRuneCounts={};let reshuffled=false;
+ let combo=0,totalDamage=0,totalHeal=0;const damageLines=[],totalRuneCounts={},damageByElementTotals={};let reshuffled=false;
  while(matches.size&&combo<12){
   combo++;totalRunesMatched+=matches.size;const cascadeIndices=[...matches],removed=cascadeIndices.map(i=>cells[i]),counts={};removed.forEach(t=>{counts[t]=(counts[t]||0)+1;totalRuneCounts[t]=(totalRuneCounts[t]||0)+1;});
   const target=getCurrentEncounter(campaign)||getCurrentStage(campaign).waves.at(-1);
   const result=calculateCombatResult({counts,combo,enemyElement:target.element,teamAttackByElement:currentTeam.attackByElement,skillMultiplier:pendingDamageMultiplier,comboStepBonus:currentTeam.leaderSkill?.comboStepBonus??0,healingMultiplier:currentTeam.leaderSkill?.healingMultiplier??1});
   totalDamage+=result.damage;totalHeal+=result.healing;
+  result.breakdown.forEach(item=>{
+   const current=damageByElementTotals[item.element]??{element:item.element,runeCount:0,damage:0,relation:item.relation};
+   current.runeCount+=item.count;current.damage+=item.damage;current.relation=item.relation;damageByElementTotals[item.element]=current;
+  });
   let detail=result.breakdown.map(item=>icons[item.element]+' '+item.count+'顆×隊伍攻擊 '+item.baseDamage+'×符石 '+item.runeCountMultiplier.toFixed(2)+'×Combo '+result.comboMultiplier.toFixed(2)+'×屬性 '+item.multiplier.toFixed(2)+'×技能 '+result.skillMultiplier.toFixed(2)+'='+item.damage).join('；');
   if(!detail)detail='沒有攻擊符石';if(result.healing)detail+='；💗回復 '+result.healing;
   damageLines.push('Combo '+combo+'：'+detail);const matchScore=matches.size*10*combo;score+=matchScore;runeScoreEarned+=matchScore;
@@ -904,7 +920,7 @@ async function swapTry(a,b){
  const outcome=damageCurrentEnemy(campaign,totalDamage);campaign=outcome.state;
  liveReplayTotals.totalDamageDealt+=Math.round(totalDamage);
  liveReplayTotals.totalHealingApplied+=Math.round(totalHeal+pendingReplaySkillHealing);
- liveBattleRecorder.recordPlayerAction({combo,matchedRuneCount:totalRunesMatched,runeCounts:{...totalRuneCounts},damage:Math.round(totalDamage),healing:Math.round(totalHeal),skillHealing:Math.round(pendingReplaySkillHealing),enemyHpBeforeAttack,enemyHpAfterTurn:outcome.defeated?0:campaign.enemyHp});
+ liveBattleRecorder.recordPlayerAction({combo,matchedRuneCount:totalRunesMatched,runeCounts:{...totalRuneCounts},damage:Math.round(totalDamage),calculatedDamage:Math.round(totalDamage),damageByElement:Object.values(damageByElementTotals).map(item=>({...item})),healing:Math.round(totalHeal),skillHealing:Math.round(pendingReplaySkillHealing),enemyHpBeforeAttack,enemyHpAfterTurn:outcome.defeated?0:campaign.enemyHp});
  if(totalDamage>0){if(outcome.defeated)feedback.playVictory();else feedback.playHit();}
  if(totalHeal>0)feedback.playHeal();
  if(outcome.defeated){

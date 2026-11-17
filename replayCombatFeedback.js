@@ -16,6 +16,21 @@ function safeHp(value) {
   return Number.isSafeInteger(value) && value >= 0 ? value : null;
 }
 
+const DAMAGE_ELEMENTS = new Set(["fire", "water", "wood", "light", "dark"]);
+const DAMAGE_RELATIONS = new Set(["advantage", "disadvantage", "neutral"]);
+
+function normalizeDamageByElement(value) {
+  if (!Array.isArray(value)) return undefined;
+  const seen = new Set();
+  return value.filter((item) => {
+    if (!isRecord(item) || !DAMAGE_ELEMENTS.has(item.element) || seen.has(item.element) ||
+        !Number.isSafeInteger(item.runeCount) || item.runeCount < 1 ||
+        !Number.isSafeInteger(item.damage) || item.damage < 0 || !DAMAGE_RELATIONS.has(item.relation)) return false;
+    seen.add(item.element);
+    return true;
+  }).map((item) => ({ element: item.element, runeCount: item.runeCount, damage: item.damage, relation: item.relation }));
+}
+
 export function getReplayCombatFeedback(event) {
   assertEvent(event);
   const data = event.data;
@@ -25,7 +40,7 @@ export function getReplayCombatFeedback(event) {
       Number.MAX_SAFE_INTEGER,
       safeAmount(data.healing) + safeAmount(data.skillHealing)
     );
-    return {
+    const feedback = {
       kind: "player-action",
       combo: safeAmount(data.combo),
       damage: safeAmount(data.damage),
@@ -33,6 +48,10 @@ export function getReplayCombatFeedback(event) {
       enemyHpBefore: safeHp(data.enemyHpBeforeAttack),
       enemyHpAfter: safeHp(data.enemyHpAfterTurn)
     };
+    if (Number.isSafeInteger(data.calculatedDamage) && data.calculatedDamage >= 0) feedback.calculatedDamage = data.calculatedDamage;
+    const damageByElement = normalizeDamageByElement(data.damageByElement);
+    if (damageByElement !== undefined) feedback.damageByElement = damageByElement;
+    return feedback;
   }
 
   if (event.type === "enemy-action") {

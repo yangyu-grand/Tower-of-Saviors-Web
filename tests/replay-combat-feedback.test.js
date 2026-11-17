@@ -25,6 +25,38 @@ test("player-action feedback combines rune and skill healing and keeps combat to
   });
 });
 
+test("player-action feedback exposes validated per-element damage and overkill context", () => {
+  assert.deepEqual(getReplayCombatFeedback(event("player-action", {
+    combo: 3, damage: 900, calculatedDamage: 1180,
+    damageByElement: [
+      { element: "fire", runeCount: 6, damage: 700, relation: "advantage" },
+      { element: "water", runeCount: 3, damage: 480, relation: "neutral" }
+    ]
+  })), {
+    kind: "player-action", combo: 3, damage: 900, healing: 0,
+    enemyHpBefore: null, enemyHpAfter: null, calculatedDamage: 1180,
+    damageByElement: [
+      { element: "fire", runeCount: 6, damage: 700, relation: "advantage" },
+      { element: "water", runeCount: 3, damage: 480, relation: "neutral" }
+    ]
+  });
+});
+
+test("malformed elemental feedback entries are ignored safely", () => {
+  const feedback = getReplayCombatFeedback(event("player-action", {
+    damage: 100, calculatedDamage: -1,
+    damageByElement: [
+      { element: "fire", runeCount: 3, damage: 100, relation: "advantage" },
+      { element: "fire", runeCount: 3, damage: 100, relation: "advantage" },
+      { element: "void", runeCount: 3, damage: 100, relation: "neutral" },
+      { element: "water", runeCount: 3, damage: -1, relation: "neutral" },
+      { element: "wood", runeCount: 3, damage: 0, relation: "unknown" }
+    ]
+  }));
+  assert.equal("calculatedDamage" in feedback, false);
+  assert.deepEqual(feedback.damageByElement, [{ element: "fire", runeCount: 3, damage: 100, relation: "advantage" }]);
+});
+
 test("enemy-action feedback separates HP damage from shield absorption", () => {
   assert.deepEqual(getReplayCombatFeedback(event("enemy-action", {
     action: { label: "月輪連斬", damage: 59, healing: 0 },

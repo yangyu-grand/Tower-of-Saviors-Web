@@ -32,7 +32,7 @@ An original browser-based puzzle RPG prototype with original placeholder charact
 - A party-composition balance sweep that enumerates every cost-valid leader/four-member lineup from the 15-card catalog and evaluates all twelve encounters using shared team, combat, enemy-turn, and skill-cooldown rules.
 - A shared 6 × 5 rune-board engine with seeded board generation, horizontal/vertical run detection, legal-swap validation, stable gravity/refill, cascade resolution, and automatic reshuffling when no legal move remains.
 - A seeded move-quality analyzer that enumerates all 49 adjacent swaps, resolves each legal move with deterministic refill, and scores real team damage/healing against a selected enemy element.
-- A versioned battle replay timeline with exact board snapshots, swap positions, per-cascade match indices/refills, active skills, player damage, enemy actions, cooldowns, shields, and turn-end state.
+- A versioned battle replay timeline with exact board snapshots, swap positions, per-cascade match indices/refills, active skills, per-element damage attribution (rune counts and elemental matchup), player damage, enemy actions, cooldowns, shields, and turn-end state.
 - Searchable enemy codex for all twelve encounters, with chapter/element/role filters and data-driven attack, support, special-skill, and boss-phase details.
 - Enemy intent previews, wave transitions, stage-clear rewards, and campaign completion.
 - A ten-card starter inventory plus five original summon-only characters across three rarity tiers; owned-card-only team selection.
@@ -108,7 +108,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 ## Next priorities
 
-1. Add richer Combo callouts, per-element damage breakdowns, and Boss-phase labels to sequential replay playback without changing the replay schema.
+1. Add Boss-phase labels, skill-effect callouts, and clearer overkill context to sequential replay playback without changing the replay schema.
 2. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 3. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
 
@@ -124,13 +124,13 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - `balanceScenarios.js` — active-skill cooldown-aware simulations and representative match-distribution reports.
 - `partyBalance.js` — exhaustive cost-valid party enumeration and twelve-encounter composition ranking.
 - `runeBoard.js` — seeded 6 × 5 board generation, match detection, legal swaps, gravity/refill, and cascade resolution.
-- `runeMoveAnalysis.js` — deterministic evaluation of all legal adjacent swaps using the shared team and combat rules.
+- `runeMoveAnalysis.js` — deterministic evaluation of legal adjacent swaps using shared team/combat rules and per-element damage attribution across cascades.
 - `runeBattleSimulation.js` — seeded board-driven encounter turns with active skills, enemy responses, boss phases, shields, and HP tracking.
 - `runeBattleReplay.js` — validated, JSON-serializable battle event timelines with exact cascade board snapshots.
 - `replayViewer.js` — validated replay-viewer state, bounded step/seek/playback transitions, board-snapshot lookup, and localized event summaries.
 - `replayPlayback.js` — validated replay-speed multipliers and minimum-bounded playback intervals.
 - `replayKeyboard.js` — replay-panel-scoped keyboard shortcuts with native-control and modifier exclusions.
-- `replayCombatFeedback.js` — validated player/enemy damage feedback and deterministic enemy-HP lookup at any replay event.
+- `replayCombatFeedback.js` — validated player/enemy feedback, per-element damage display data, and deterministic enemy-HP lookup at any replay event.
 - `tests/replay-combat-feedback.test.js` — combat feedback, healing/shield separation, HP timeline, and invalid-input coverage.
 - `tests/replay-playback.test.js` and `tests/replay-keyboard.test.js` — deterministic playback timing and keyboard-action tests.
 - `scripts/rune-battle-replay-report.js` — deterministic sample replay timeline report.
