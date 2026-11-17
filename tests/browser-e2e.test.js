@@ -1035,6 +1035,10 @@ test("Chromium plays the dominant recorded element timbre during sequential repl
     input.value = "50";
     input.dispatchEvent(new Event("input", { bubbles: true }));
   });
+  await page.evaluate(() => {
+    window.__elementAudioEvents.length = 0;
+    window.__elementAudioPeaks.length = 0;
+  });
 
   await page.locator("#replaySeek").evaluate((input, index) => {
     input.value = String(index - 1);
