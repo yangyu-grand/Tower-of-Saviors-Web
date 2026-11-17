@@ -497,3 +497,45 @@ test("Chromium records a real player-controlled encounter and restores its repla
   assert.deepEqual(pageErrors, [], "live replay recording and restoration should not raise browser errors");
   await context.close();
 });
+
+
+test("Chromium replay panel supports keyboard shortcuts without hijacking native controls", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.goto(url, { waitUntil: "networkidle" });
+  await page.locator("#replayGenerate").click();
+  await page.waitForFunction(() => Number(document.querySelector("#replaySeek").max) > 0);
+
+  await page.locator("#replayPanel").focus();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await page.locator("#replaySeek").inputValue(), "1");
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(await page.locator("#replaySeek").inputValue(), "0");
+
+  await page.keyboard.press("End");
+  const lastIndex = Number(await page.locator("#replaySeek").getAttribute("max"));
+  assert.equal(await page.locator("#replaySeek").inputValue(), String(lastIndex));
+  await page.keyboard.press("Home");
+  assert.equal(await page.locator("#replaySeek").inputValue(), "0");
+
+  await page.locator("#replaySpeed").focus();
+  const indexBeforeNativeControl = await page.locator("#replaySeek").inputValue();
+  await page.keyboard.press("ArrowRight");
+  assert.equal(await page.locator("#replaySeek").inputValue(), indexBeforeNativeControl);
+
+  await page.locator("#replayPanel").focus();
+  await page.keyboard.press("Space");
+  assert.equal(await page.locator("#replayPlay").innerText(), "暫停");
+  await page.waitForFunction(() => Number(document.querySelector("#replaySeek").value) > 0);
+  await page.keyboard.press("Space");
+  assert.equal(await page.locator("#replayPlay").innerText(), "播放");
+  assert.deepEqual(pageErrors, [], "keyboard replay controls should not raise browser errors");
+});
