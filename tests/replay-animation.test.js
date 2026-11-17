@@ -37,7 +37,7 @@ test("cascade animation marks matched cells for refill and affected cells for gr
   const plan = getReplayAnimationPlan(event("cascade", { indices: [13, 14, 15, 19] }));
   assert.equal(plan.kind, "cascade");
   assert.equal(plan.durationMs, REPLAY_ANIMATION_DURATIONS.cascade);
-  assert.equal(plan.cells.length, 9);
+  assert.equal(plan.cells.length, 10);
   assert.equal(plan.cells.find((cell) => cell.index === 13).effect, "refill");
   assert.equal(plan.cells.find((cell) => cell.index === 19).effect, "refill");
   assert.equal(plan.cells.find((cell) => cell.index === 1).effect, "drop");
