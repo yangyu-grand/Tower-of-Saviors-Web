@@ -42,7 +42,11 @@ export function createBattleFeedback({
     return audioContext;
   }
 
-  function playTone(frequency, duration, waveform = "sine", delay = 0, volume = DEFAULT_VOLUME) {
+  function playTone(frequency, duration, waveform = "sine", delay = 0, volume = DEFAULT_VOLUME, volumeScale = 1) {
+    const safeVolumeScale = Number.isFinite(volumeScale)
+      ? Math.min(1, Math.max(0, volumeScale))
+      : 1;
+    if (safeVolumeScale === 0) return false;
     const context = getAudioContext();
     if (!context) return false;
     try {
@@ -52,7 +56,7 @@ export function createBattleFeedback({
       oscillator.type = waveform;
       oscillator.frequency.setValueAtTime(frequency, startAt);
       gain.gain.setValueAtTime(0.0001, startAt);
-      gain.gain.exponentialRampToValueAtTime(volume, startAt + 0.012);
+      gain.gain.exponentialRampToValueAtTime(Math.max(0.0001, volume * safeVolumeScale), startAt + 0.012);
       gain.gain.exponentialRampToValueAtTime(0.0001, startAt + duration);
       oscillator.connect(gain);
       gain.connect(context.destination);
@@ -71,7 +75,7 @@ export function createBattleFeedback({
     element.classList.add(className);
   }
 
-  function playMatch(indices = [], combo = 1) {
+  function playMatch(indices = [], combo = 1, volumeScale = 1) {
     if (!reducedMotion && boardElement?.querySelector) {
       indices.forEach((index, offset) => {
         const orb = boardElement.querySelector('[data-i="' + Number(index) + '"]');
@@ -80,36 +84,36 @@ export function createBattleFeedback({
         orb.classList.add("match-pop");
       });
     }
-    playTone(280 + Math.min(Math.max(Number(combo) || 1, 1), 8) * 38, 0.13, "triangle", 0, 0.028);
+    playTone(280 + Math.min(Math.max(Number(combo) || 1, 1), 8) * 38, 0.13, "triangle", 0, 0.028, volumeScale);
   }
 
-  function playHit() {
+  function playHit(volumeScale = 1) {
     pulse(enemyElement, "enemy-hit");
-    playTone(145, 0.17, "sawtooth", 0, 0.04);
+    playTone(145, 0.17, "sawtooth", 0, 0.04, volumeScale);
   }
 
-  function playEnemyAttack() {
+  function playEnemyAttack(volumeScale = 1) {
     pulse(boardElement, "board-hit");
-    playTone(190, 0.12, "square", 0, 0.025);
-    playTone(120, 0.16, "sawtooth", 0.08, 0.03);
+    playTone(190, 0.12, "square", 0, 0.025, volumeScale);
+    playTone(120, 0.16, "sawtooth", 0.08, 0.03, volumeScale);
   }
 
-  function playHeal() {
+  function playHeal(volumeScale = 1) {
     pulse(boardElement, "board-heal");
-    playTone(523.25, 0.12, "sine", 0, 0.025);
-    playTone(783.99, 0.18, "sine", 0.1, 0.025);
+    playTone(523.25, 0.12, "sine", 0, 0.025, volumeScale);
+    playTone(783.99, 0.18, "sine", 0.1, 0.025, volumeScale);
   }
 
-  function playSkill() {
+  function playSkill(volumeScale = 1) {
     pulse(boardElement, "board-skill");
-    playTone(440, 0.1, "triangle", 0, 0.025);
-    playTone(659.25, 0.15, "triangle", 0.09, 0.025);
+    playTone(440, 0.1, "triangle", 0, 0.025, volumeScale);
+    playTone(659.25, 0.15, "triangle", 0.09, 0.025, volumeScale);
   }
 
-  function playVictory() {
+  function playVictory(volumeScale = 1) {
     pulse(boardElement, "board-victory");
     [523.25, 659.25, 783.99].forEach((frequency, index) => {
-      playTone(frequency, 0.22, "triangle", index * 0.12, 0.03);
+      playTone(frequency, 0.22, "triangle", index * 0.12, 0.03, volumeScale);
     });
   }
 
