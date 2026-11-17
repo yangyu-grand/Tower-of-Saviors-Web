@@ -110,7 +110,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 1. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
-3. Add a short replay-audio preview so players can audition the five elemental timbres before enabling them during playback.
+3. Add distinct floating damage-number animations for the five elements and Combo cascades.
 
 ## Project structure
 
@@ -263,3 +263,12 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - The five two-note timbres reuse Web Audio synthesis and the replay-only volume slider; no external audio assets or replay-schema changes are introduced.
 - Elemental cues are emitted only during sequential forward playback. Loading or directly seeking to an event remains silent.
 - Validation: unit tests cover all five frequency/waveform signatures, dominant-element selection, deterministic ties, malformed data, and cue priority; Chromium verifies the fire timbre and 50% replay-volume scaling.
+
+
+## Replay elemental timbre preview
+
+- Five compact preview buttons let players audition fire, water, wood, light, and dark synthesized hit timbres before enabling sequential replay audio.
+- Previewing does not turn on the replay-audio toggle and does not require a replay to be loaded; it does require the page-level sound control to be enabled.
+- Previews use the replay-only volume slider, including its zero-volume mute behavior, and do not change live combat state or Replay Schema v1.
+- The controls have individual accessible names and wrap on narrow screens.
+- Chromium end-to-end coverage verifies all five two-note signatures, replay-volume scaling, master mute, zero volume, and that previewing leaves replay audio disabled.
