@@ -1,6 +1,8 @@
 import { RUNE_BOARD_SIZE, RUNE_TYPES } from "./runeBoard.js";
 
 const RUNE_TYPE_SET = new Set(RUNE_TYPES);
+const DAMAGE_ELEMENT_SET = new Set(["fire", "water", "wood", "light", "dark"]);
+const DAMAGE_RELATION_SET = new Set(["advantage", "disadvantage", "neutral"]);
 const EVENT_TYPES = new Set([
   "turn-start", "skill", "swap", "cascade",
   "player-action", "enemy-action", "turn-end", "battle-end"
@@ -159,6 +161,8 @@ export function createRuneBattleReplay(simulation) {
       matchedRuneCount: turn.move.matchedRuneCount,
       runeCounts: turn.move.runeCounts,
       damage: turn.damageDealt,
+      calculatedDamage: turn.calculatedDamage ?? turn.move.damage,
+      damageByElement: clone(turn.damageByElement ?? turn.move.damageByElement ?? []),
       healing: turn.healingApplied,
       skillHealing: turn.skillHealingApplied,
       enemyHpBeforeAttack: turn.enemyHpBeforeAttack,
@@ -257,6 +261,27 @@ export function validateRuneBattleReplay(replay) {
         throw new TypeError("invalid replay cascade event");
       }
       event.data.indices.forEach((cell) => assertCellIndex(cell, "cascade cell"));
+    }
+    if (event.type === "player-action") {
+      if (event.data.calculatedDamage !== undefined) assertSafeInteger(event.data.calculatedDamage, "calculatedDamage");
+      if (event.data.damageByElement !== undefined) {
+        if (!Array.isArray(event.data.damageByElement)) throw new TypeError("player-action damageByElement must be an array");
+        const seenElements = new Set();
+        let breakdownTotal = 0;
+        for (const item of event.data.damageByElement) {
+          if (!isRecord(item) || !DAMAGE_ELEMENT_SET.has(item.element) || seenElements.has(item.element) ||
+              !Number.isSafeInteger(item.runeCount) || item.runeCount < 1 ||
+              !Number.isSafeInteger(item.damage) || item.damage < 0 || !DAMAGE_RELATION_SET.has(item.relation)) {
+            throw new TypeError("player-action contains an invalid elemental damage breakdown");
+          }
+          seenElements.add(item.element);
+          breakdownTotal += item.damage;
+          if (!Number.isSafeInteger(breakdownTotal)) throw new RangeError("elemental damage breakdown exceeds the safe integer range");
+        }
+        if (event.data.calculatedDamage !== undefined && breakdownTotal !== event.data.calculatedDamage) {
+          throw new Error("elemental damage breakdown must sum to calculatedDamage");
+        }
+      }
     }
   });
   return true;
