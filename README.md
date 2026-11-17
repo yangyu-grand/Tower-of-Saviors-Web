@@ -110,7 +110,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 1. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
-3. Add distinct floating damage-number animations for the five elements and Combo cascades.
+3. Add Boss phase-transition and defeat animations to the live battle scene.
 
 ## Project structure
 
@@ -272,3 +272,12 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - Previews use the replay-only volume slider, including its zero-volume mute behavior, and do not change live combat state or Replay Schema v1.
 - The controls have individual accessible names and wrap on narrow screens.
 - Chromium end-to-end coverage verifies all five two-note signatures, replay-volume scaling, master mute, zero volume, and that previewing leaves replay audio disabled.
+
+
+## Live elemental damage numbers
+
+- Live combat now displays one floating damage number for each valid attacking element, using the exact per-element totals already calculated for the current turn.
+- A Combo label appears alongside elemental numbers when the turn contains more than one cascade.
+- If a future combat action has total damage but no valid elemental attribution, the UI falls back to one neutral total-damage number.
+- Invalid elements, non-positive values, and malformed numeric values are ignored; the presentation helper is covered by deterministic unit tests.
+- The transient overlay is attached to the enemy panel, uses textContent, and respects prefers-reduced-motion. It does not modify damage, HP, replay data, or save state.
