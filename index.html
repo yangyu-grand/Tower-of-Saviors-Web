@@ -209,7 +209,7 @@ footer{color:#8391ad;text-align:center;font-size:12px;margin-top:16px}
    <div class="stat"><small>隊伍生命</small><b id="hp">100</b></div><div class="stat"><small>總攻擊力</small><b id="atk">0</b></div><div class="stat"><small>總分</small><b id="score">0</b></div><div class="stat"><small>最大 Combo</small><b id="combo">0</b></div>
   </div>
   <div class="battle">
-   <div><div class="live-board-wrap"><div id="board" class="board" aria-label="符石盤"></div><div id="liveCombatFeedback" class="live-combat-feedback" aria-live="polite" aria-atomic="true"></div></div><p class="hint">操作：點選兩顆相鄰符石交換，或用滑鼠／手指拖曳。橫向或直向連成 3 顆即可消除。</p></div>
+   <div><div class="live-board-wrap"><div id="board" class="board" role="group" aria-label="符石盤" aria-describedby="boardInstructions"></div><div id="liveCombatFeedback" class="live-combat-feedback" aria-live="polite" aria-atomic="true"></div></div><p class="hint" id="boardInstructions">操作：點選兩顆相鄰符石交換，或用滑鼠／手指拖曳。鍵盤可先 Tab 到符石，再用方向鍵移動、Enter／Space 選取或交換。橫向或直向連成 3 顆即可消除。</p></div>
    <aside class="side">
     <div class="panel wide"><div class="stage-status"><div><strong id="stageName">灰燼山徑</strong><span class="stage-difficulty" id="stageDifficulty">初階</span></div><span id="stageProgress">第 1 / 3 波</span></div><div class="enemy" id="enemy">🐉</div><b id="enemyName" tabindex="-1">熔岩幼龍</b><p class="hint" id="enemyElement">敵人屬性：🔥 火</p><p class="hint">敵方生命</p><div class="bar"><div class="fill" id="enemyBar"></div></div><p class="hint" id="enemyHp"></p><p class="hint" id="enemyIntent" role="status" aria-live="polite">敵人預告：普通攻擊</p><p class="hint" id="shieldStatus">護盾：0</p><p class="hint" id="skillEffectStatus">下一次攻擊增益：無</p><button id="nextStage" hidden>前往下一關</button></div>
     <div class="panel"><b>隊伍屬性</b><p class="hint">火 🔥　水 💧　木 🌿<br>光 ✨　暗 🌙　心 💗</p><div class="actions"><button id="heal">隊伍回復技能</button></div></div>
@@ -622,7 +622,7 @@ window.addEventListener('pagehide',event=>{if(!event.persisted)feedback.destroy(
 syncSoundToggle();
 let teamIds=[...profile.teamIds],currentTeam=buildTeam(teamIds,{levels:getCardLevels(profile.inventory),evolutionLevels:getCardEvolutionLevels(profile.inventory)}),maxHp=currentTeam.totalHp;
 let skillStates=profile.skillStates,shield=profile.shield,pendingDamageMultiplier=profile.pendingDamageMultiplier;
-let cells=profile.board?[...profile.board]:createBoard(),selected=-1,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex,battleStats=profile.battleStats;
+let cells=profile.board?[...profile.board]:createBoard(),selected=-1,focusedRuneIndex=0,dragFrom=-1,dragPointerId=null,suppressClick=false,busy=false,hp=profile.hp,score=profile.score,maxCombo=profile.maxCombo,unlockedStageIndex=profile.unlockedStageIndex,battleStats=profile.battleStats;
 
 const LIVE_REPLAY_KEY="tower_of_saviors_live_replay_v1";
 let liveBattleRecorder=null,liveTurnBoardAtStart=null,liveTurnReshuffled=false,liveBossPhase=null;
@@ -1020,7 +1020,7 @@ function useSkill(cardId){
  feedback.playSkill();updateTutorial("skill");
  render();$('log').textContent=result.summary;persist();
 }
-function render(){boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label',t);b.dataset.i=i;b.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return}tap(i)});boardEl.appendChild(b)});stats()}
+function render(){const activeIndex=boardEl.contains(document.activeElement)?cellIndex(document.activeElement):-1;if(activeIndex>=0)focusedRuneIndex=activeIndex;boardEl.innerHTML='';cells.forEach((t,i)=>{const b=document.createElement('button');b.className='orb '+t+(selected===i?' selected':'');b.textContent=icons[t];b.setAttribute('aria-label','第 '+(Math.floor(i/6)+1)+' 列，第 '+(i%6+1)+' 行，'+(elementNames[t]??t));b.dataset.i=i;b.tabIndex=focusedRuneIndex===i?0:-1;b.addEventListener('click',()=>{if(suppressClick){suppressClick=false;return}tap(i)});boardEl.appendChild(b)});if(activeIndex>=0)boardEl.querySelector('.orb[data-i="'+focusedRuneIndex+'"]')?.focus({preventScroll:true});stats()}
 function renderLiveCombatFeedback(combo,damageByElement,totalDamage,totalHealing,bossPhaseTransition=null){
  const container=$('liveCombatFeedback');if(!container)return;
  container.replaceChildren();
@@ -1045,11 +1045,13 @@ function cellIndex(target){const cell=target&&target.closest?target.closest('.or
 function onBoardPointerDown(event){if(busy||hp<=0||campaign.completed||event.isPrimary===false||(event.pointerType==='mouse'&&event.button!==0))return;const index=cellIndex(event.target);if(index<0)return;dragFrom=index;dragPointerId=event.pointerId}
 function onWindowPointerUp(event){if(dragPointerId===null||event.pointerId!==dragPointerId)return;const start=dragFrom,end=cellIndex(event.target);dragFrom=-1;dragPointerId=null;if(start<0||end<0||start===end)return;suppressClick=true;setTimeout(()=>{suppressClick=false},0);if(adjacent(start,end)){selected=-1;swapTry(start,end)}else{$('log').textContent='只能交換上下或左右相鄰的符石。'}}
 function onWindowPointerCancel(event){if(dragPointerId!==null&&event.pointerId===dragPointerId){dragFrom=-1;dragPointerId=null}}
+boardEl.addEventListener('focusin',event=>{const index=cellIndex(event.target);if(index<0)return;focusedRuneIndex=index;boardEl.querySelectorAll('.orb').forEach((orb,i)=>{orb.tabIndex=i===index?0:-1});});
+boardEl.addEventListener('keydown',event=>{const current=cellIndex(event.target);if(current<0)return;const row=Math.floor(current/6),column=current%6;let next=current;switch(event.key){case 'ArrowLeft':if(column>0)next--;break;case 'ArrowRight':if(column<5)next++;break;case 'ArrowUp':if(row>0)next-=6;break;case 'ArrowDown':if(row<4)next+=6;break;default:return;}event.preventDefault();if(next!==current){focusedRuneIndex=next;boardEl.querySelector('.orb[data-i="'+next+'"]')?.focus({preventScroll:true});}});
 boardEl.addEventListener('pointerdown',onBoardPointerDown);
 window.addEventListener('pointerup',onWindowPointerUp);
 window.addEventListener('pointercancel',onWindowPointerCancel);
 function adjacent(a,b){return isAdjacentRuneCells(a,b)}
-function tap(i){if(busy||hp<=0||campaign.completed)return;if(selected<0){selected=i;render();return}if(selected===i){selected=-1;render();return}const a=selected;selected=-1;if(adjacent(a,i))swapTry(a,i);else{selected=i;render()}}
+function tap(i){if(busy||hp<=0||campaign.completed)return;focusedRuneIndex=i;if(selected<0){selected=i;render();return}if(selected===i){selected=-1;render();return}const a=selected;selected=-1;if(adjacent(a,i))swapTry(a,i);else{selected=i;render()}}
 function findMatches(){return findRuneMatches(cells)}
 async function swapTry(a,b){
  if(busy||hp<=0||campaign.completed||!adjacent(a,b))return;
