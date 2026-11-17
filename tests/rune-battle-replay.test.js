@@ -54,6 +54,19 @@ test("player-action replay events preserve exact per-element damage attribution"
   assert.throws(() => validateRuneBattleReplay(corrupted), /elemental damage breakdown/);
 });
 
+test("legacy simulation objects without optional elemental fields remain replayable", () => {
+  const simulation = sampleSimulation();
+  for (const turn of simulation.turns) {
+    delete turn.calculatedDamage;
+    delete turn.damageByElement;
+  }
+  const replay = createRuneBattleReplay(simulation);
+  const playerAction = replay.events.find((event) => event.type === "player-action");
+  assert.ok(playerAction);
+  assert.equal("damageByElement" in playerAction.data, false);
+  assert.equal(validateRuneBattleReplay(replay), true);
+});
+
 test("replay generation is deterministic for identical seeded simulations", () => {
   const first = createRuneBattleReplay(sampleSimulation());
   const second = createRuneBattleReplay(sampleSimulation());
