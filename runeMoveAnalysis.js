@@ -11,6 +11,7 @@ import { ELEMENTS, calculateCombatResult } from "./combat.js";
 import { buildTeam, DEFAULT_TEAM } from "./team.js";
 
 const ADJACENT_SWAP_COUNT = RUNE_BOARD_HEIGHT * (RUNE_BOARD_WIDTH - 1) + (RUNE_BOARD_HEIGHT - 1) * RUNE_BOARD_WIDTH;
+const DAMAGE_ELEMENT_ORDER = Object.freeze(["fire", "water", "wood", "light", "dark"]);
 
 function assertSafeSeed(seed) {
   if (!Number.isSafeInteger(seed)) {
@@ -40,6 +41,7 @@ function summarizeMove(move) {
     combo: move.combo,
     matchedRuneCount: move.matchedRuneCount,
     runeCounts: { ...move.runeCounts },
+    damageByElement: move.damageByElement.map((item) => ({ ...item })),
     damage: move.damage,
     healing: move.healing,
     utility: move.utility,
@@ -102,6 +104,7 @@ export function analyzeRuneMoves(board, options = {}) {
     let damage = 0;
     let healing = 0;
     const cascadeResults = [];
+    const elementDamageTotals = new Map();
 
     for (const cascade of resolved.cascades) {
       addCounts(runeCounts, cascade.counts);
@@ -117,11 +120,24 @@ export function analyzeRuneMoves(board, options = {}) {
       });
       damage += combat.damage;
       healing += combat.healing;
+      for (const item of combat.breakdown) {
+        const current = elementDamageTotals.get(item.element) ?? {
+          element: item.element,
+          runeCount: 0,
+          damage: 0,
+          relation: item.relation
+        };
+        current.runeCount += item.count;
+        current.damage += item.damage;
+        current.relation = item.relation;
+        elementDamageTotals.set(item.element, current);
+      }
       cascadeResults.push({
         combo: cascade.combo,
         counts: { ...cascade.counts },
         damage: combat.damage,
-        healing: combat.healing
+        healing: combat.healing,
+        damageByElement: combat.breakdown.map((item) => ({ element: item.element, runeCount: item.count, damage: item.damage, relation: item.relation }))
       });
     }
 
@@ -132,6 +148,7 @@ export function analyzeRuneMoves(board, options = {}) {
       combo: resolved.combo,
       matchedRuneCount,
       runeCounts,
+      damageByElement: DAMAGE_ELEMENT_ORDER.filter((element) => elementDamageTotals.has(element)).map((element) => ({ ...elementDamageTotals.get(element) })),
       damage,
       healing,
       utility: round(damage + healing * healingWeight, 3),
