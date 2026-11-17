@@ -110,7 +110,7 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 
 1. Compare greedy, random-legal, and conservative policies against recorded live-player replay samples before changing Boss or enemy values.
 2. Complete physical-device mobile QA for touch dragging, audio permission behavior, and layout on real iOS/Android browsers. Chromium currently covers desktop flows and mobile viewport/touch-event emulation in CI.
-3. Add optional per-element replay timbres and a separate replay-volume control after physical-device audio QA.
+3. Add a short replay-audio preview so players can audition the five elemental timbres before enabling them during playback.
 
 ## Project structure
 
@@ -253,3 +253,13 @@ The replay is derived from the simulator's exact seeded refill stream; it does n
 - Setting replay volume to 0 suppresses synthesized replay tones while leaving the opt-in control state unchanged.
 - Volume is an in-session preference and is not written into the versioned game save.
 - Unit and Chromium tests verify gain scaling, clamping, the default value, accessible value text, and zero-volume silence.
+
+
+## Replay elemental timbres
+
+- Ordinary player-action damage uses the dominant recorded elemental damage to select one synthesized hit timbre: fire, water, wood, light, or dark.
+- When an action contains multiple damage elements, the element with the largest recorded damage is selected; equal values use the first recorded element for deterministic playback.
+- Final-hit, Combo milestone, and overkill cues keep their existing higher priority, while events without valid per-element damage fall back to the generic hit cue.
+- The five two-note timbres reuse Web Audio synthesis and the replay-only volume slider; no external audio assets or replay-schema changes are introduced.
+- Elemental cues are emitted only during sequential forward playback. Loading or directly seeking to an event remains silent.
+- Validation: unit tests cover all five frequency/waveform signatures, dominant-element selection, deterministic ties, malformed data, and cue priority; Chromium verifies the fire timbre and 50% replay-volume scaling.

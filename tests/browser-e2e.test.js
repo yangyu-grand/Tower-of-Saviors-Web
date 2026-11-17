@@ -953,3 +953,106 @@ test("Chromium replay audio is opt-in, respects master mute, and ignores direct 
     "the replay-audio toggle must suppress cues when disabled");
   assert.deepEqual(pageErrors, [], "opt-in replay audio should not raise browser errors");
 });
+
+
+test("Chromium plays the dominant recorded element timbre during sequential replay only", async (t) => {
+  const { server, url } = await startStaticServer();
+  let browser;
+  t.after(async () => {
+    if (browser) await browser.close();
+    await new Promise((resolveClose) => server.close(resolveClose));
+  });
+  browser = await chromium.launch({ headless: true, args: ["--no-sandbox", "--disable-dev-shm-usage"] });
+  const page = await browser.newPage({ viewport: { width: 390, height: 844 } });
+  const pageErrors = [];
+  page.on("pageerror", (error) => pageErrors.push(error.message));
+  await page.addInitScript(() => {
+    window.__elementAudioEvents = [];
+    window.__elementAudioPeaks = [];
+    window.AudioContext = class FakeAudioContext {
+      constructor() { this.state = "running"; this.currentTime = 0; this.destination = {}; }
+      createOscillator() {
+        const oscillator = {
+          type: "sine",
+          frequencyValue: 0,
+          frequency: { setValueAtTime(value) { oscillator.frequencyValue = value; } },
+          connect() {},
+          start() { window.__elementAudioEvents.push({ frequency: oscillator.frequencyValue, waveform: oscillator.type }); },
+          stop() {}
+        };
+        return oscillator;
+      }
+      createGain() {
+        return {
+          gain: {
+            setValueAtTime() {},
+            exponentialRampToValueAtTime(value) {
+              if (value > 0.0001) window.__elementAudioPeaks.push(value);
+            }
+          },
+          connect() {}
+        };
+      }
+      resume() { return Promise.resolve(); }
+      close() { this.state = "closed"; return Promise.resolve(); }
+    };
+  });
+  await page.goto(url, { waitUntil: "networkidle" });
+
+  const replay = createRuneBattleReplay(simulateRuneEncounter({
+    stageIndex: 0, waveIndex: 0, seed: 913, skillPolicy: "greedy", maxTurns: 8
+  }));
+  const playerActionIndex = replay.events.findIndex((event, index) =>
+    index > 0 && event.type === "player-action" &&
+    Number.isSafeInteger(event.data?.enemyHpBeforeAttack) &&
+    event.data.enemyHpBeforeAttack > 50 &&
+    Number.isSafeInteger(event.data?.enemyHpAfterTurn) &&
+    event.data.enemyHpAfterTurn > 0
+  );
+  assert.ok(playerActionIndex > 0, "the seeded replay should contain a non-final player attack");
+  const action = replay.events[playerActionIndex].data;
+  action.combo = 3;
+  action.damage = 50;
+  action.calculatedDamage = 50;
+  action.damageByElement = [
+    { element: "fire", runeCount: 3, damage: 35, relation: "neutral" },
+    { element: "water", runeCount: 3, damage: 15, relation: "advantage" }
+  ];
+  action.enemyHpAfterTurn = action.enemyHpBeforeAttack - 50;
+  replay.events.forEach((event, index) => { event.index = index; });
+  replay.eventCount = replay.events.length;
+
+  await page.locator("#replayImport").setInputFiles({
+    name: "elemental-audio-replay.json",
+    mimeType: "application/json",
+    buffer: Buffer.from(JSON.stringify(replay))
+  });
+  await page.waitForFunction(() => document.querySelector("#replayStatus").textContent.includes("匯入成功"));
+  await page.locator("#replayAudioToggle").click();
+  await page.locator("#soundToggle").click();
+  await page.locator("#replayAudioVolume").evaluate((input) => {
+    input.value = "50";
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  });
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index - 1);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  await page.locator("#replayNext").click();
+
+  assert.deepEqual(await page.evaluate(() => window.__elementAudioEvents), [
+    { frequency: 196, waveform: "sawtooth" },
+    { frequency: 294, waveform: "triangle" }
+  ], "the fire element with the largest recorded damage should select its two-note timbre");
+  assert.deepEqual(await page.evaluate(() => window.__elementAudioPeaks), [0.013, 0.011],
+    "the 50% replay volume should scale both fire timbre notes");
+
+  await page.locator("#replaySeek").evaluate((input, index) => {
+    input.value = String(index);
+    input.dispatchEvent(new Event("input", { bubbles: true }));
+  }, playerActionIndex);
+  assert.equal(await page.evaluate(() => window.__elementAudioEvents.length), 2,
+    "direct timeline seeking must not replay elemental audio");
+  assert.deepEqual(pageErrors, [], "elemental replay timbres should not raise browser errors");
+});
