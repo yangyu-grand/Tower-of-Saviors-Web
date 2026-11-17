@@ -299,3 +299,8 @@ Version-3 migration coverage also verifies that an already-recorded completed-st
 - The defeat dialog can be dismissed without deleting the saved campaign state. The most recent live replay remains available when browser storage is available.
 - Validation: `tests/live-defeat-overlay-browser.test.js` uses a fixed match-free board and Chromium pointer drag to trigger a deterministic party defeat, verify the dialog, retry the same wave, and confirm saved progress and score are preserved.
 - Accessibility: the defeat dialog receives focus when opened, exposes its summary through `aria-describedby`, and returns focus to the current encounter heading after retry or dismissal.
+
+
+## Defeat dialog keyboard accessibility
+
+The live defeat dialog traps Tab and Shift+Tab within its available actions while it is open. Escape dismisses the dialog without resetting campaign progress and returns focus to the current encounter heading. The Chromium regression test verifies forward/reverse focus wrapping, current-wave retry, Escape dismissal, and focus restoration.
