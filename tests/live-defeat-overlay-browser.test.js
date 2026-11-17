@@ -92,12 +92,14 @@ test("Chromium shows a defeat overlay and retries only the current wave", async 
 
   await page.waitForFunction(() => !document.querySelector("#defeatResult").hidden, null, { timeout: 10000 });
   assert.equal(await page.locator("#defeatTitle").innerText(), "隊伍戰敗");
+  assert.equal(await page.evaluate(() => document.activeElement.id), "defeatResult", "opening the defeat dialog must move focus into the dialog");
   assert.match(await page.locator("#defeatSubtitle").innerText(), /灰燼山徑.*燼甲守衛/);
   assert.match(await page.locator("#defeatSummary").innerText(), /造成傷害/);
   const scoreBeforeRetry = Number(await page.locator("#score").innerText());
 
   await page.locator("#defeatRetry").click();
   await page.waitForFunction(() => document.querySelector("#defeatResult").hidden);
+  assert.equal(await page.evaluate(() => document.activeElement.id), "enemyName", "retry must return focus to the current encounter heading");
   assert.match(await page.locator("#log").innerText(), /重新挑戰 燼甲守衛/);
   const saved = await page.evaluate(key => JSON.parse(localStorage.getItem(key)), SAVE_KEY);
   assert.equal(saved.campaign.stageIndex, 0);
