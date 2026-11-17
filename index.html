@@ -348,6 +348,9 @@ function renderReplayCombatFeedback(feedback,element){
  }else if(feedback.kind==='enemy-action'){
   if(feedback.hpDamageTaken>0)add('incoming','−'+feedback.hpDamageTaken.toLocaleString('zh-TW')+' HP');
   if(feedback.shieldAbsorbed>0)add('shield','護盾吸收 '+feedback.shieldAbsorbed.toLocaleString('zh-TW'));
+  if(feedback.hpDamageTaken===0&&feedback.shieldAbsorbed===0&&feedback.incomingDamage>0)add('incoming','敵方攻擊 '+feedback.incomingDamage.toLocaleString('zh-TW')+'（減傷前）');
+  if(feedback.enemyHealing>0)add('heal','敵方回復 '+feedback.enemyHealing.toLocaleString('zh-TW')+' HP');
+  if(element.childElementCount===0)add('incoming','敵方行動 · '+feedback.actionLabel);
  }
 }
 function renderReplay(){
