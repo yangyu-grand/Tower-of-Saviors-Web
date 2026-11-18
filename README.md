@@ -313,6 +313,7 @@ The live defeat dialog traps Tab and Shift+Tab within its available actions whil
 - Press Enter or Space to use the focused rune with the existing select/swap interaction. Home/End moves to the first/last cell in the current row; Ctrl/Cmd+Home and Ctrl/Cmd+End move to the first/last cell of the board. Board re-renders preserve the focused cell when possible.
 - The Chromium regression test verifies four-direction movement, edge bounds, focus retention, and that Tab/Shift+Tab enter or leave the board without visiting all 30 runes.
 - Press Escape to cancel the current rune selection while keeping focus on the same cell; `tests/keyboard-rune-cancel-selection.test.js` verifies the selection clears without a page error.
+- The focused rune button exposes its current selection through `aria-pressed`, so assistive technology can distinguish selected and unselected runes; the Chromium test checks the state after selection and Escape cancellation.
 - Each live rune button exposes its supported keys through `aria-keyshortcuts`; the on-page instructions list arrow movement, Enter/Space, Home/End, Ctrl/Cmd+Home/End, and Escape so keyboard and assistive-technology users can discover the controls.
 - `tests/keyboard-rune-shortcut-discovery.test.js` verifies shortcut metadata is present on all 30 cells and that the visible instructions describe the supported keys.
 - Run it with `node --test tests/keyboard-rune-navigation.test.js` or the full `npm test` suite.
