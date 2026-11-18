@@ -315,5 +315,6 @@ The live defeat dialog traps Tab and Shift+Tab within its available actions whil
 - Press Escape to cancel the current rune selection while keeping focus on the same cell; `tests/keyboard-rune-cancel-selection.test.js` verifies the selection clears without a page error.
 - The focused rune button exposes its current selection through `aria-pressed`, so assistive technology can distinguish selected and unselected runes; the Chromium test checks the state after selection and Escape cancellation.
 - Each live rune button exposes its supported keys through `aria-keyshortcuts`; the on-page instructions list arrow movement, Enter/Space, Home/End, Ctrl/Cmd+Home/End, and Escape so keyboard and assistive-technology users can discover the controls.
+- Each live rune button's accessible name reports its 1-based grid coordinate in row-first order (for example, 第 2 行，第 3 列), matching the 6 × 5 board; `tests/keyboard-rune-coordinate-labels.test.js` verifies all 30 cells.
 - `tests/keyboard-rune-shortcut-discovery.test.js` verifies shortcut metadata is present on all 30 cells and that the visible instructions describe the supported keys.
 - Run it with `node --test tests/keyboard-rune-navigation.test.js` or the full `npm test` suite.
