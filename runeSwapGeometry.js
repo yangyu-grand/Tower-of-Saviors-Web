@@ -1,5 +1,5 @@
 export function isOrthogonallyAdjacentRuneSwap(startIndex, endIndex, board = {}) {
-  if (!board || typeof board !== "object") return false;
+  if (!board || typeof board !== "object" || Array.isArray(board)) return false;
   const rows = board.rows ?? 5;
   const columns = board.columns ?? 6;
   if (!Number.isInteger(rows) || rows <= 0 || !Number.isInteger(columns) || columns <= 0) return false;
