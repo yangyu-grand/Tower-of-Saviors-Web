@@ -167,7 +167,7 @@ For Boss encounters, the same overlay also announces a phase transition when the
 - `battleFeedback.js` — reduced-motion-aware visual feedback and opt-in synthesized audio.
 - `tutorial.js` — versioned first-run tutorial steps, event-gated progression, and independent browser-storage persistence.
 - `battleResults.js` — validated per-stage combat statistics, idempotent encounter reward accounting, and resumable stage-clear summaries.
-- `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, replay playback/import/export, and responsive/touch behavior; the live damage-feedback fixture chooses an attack rune element supported by the default party to avoid zero-attack false failures.
+- `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, replay playback/import/export, and responsive/touch behavior; the live damage-feedback fixture chooses an attack rune element supported by the default party to avoid zero-attack false failures. It also asserts that the detected match element is one of the starter team's positive-attack elements on both desktop and mobile. The fixture also verifies that selected rune swaps are orthogonally adjacent and do not wrap across rows.
 - `tests/live-boss-phase-browser.test.js` — real Chromium coverage for the live fourth-chapter Boss phase transition at the 50% HP boundary.
 - `tests/browser-script.test.js` — embedded browser-module syntax and UI integration checks.
 - `tests/battle-feedback.test.js` — opt-in audio, unsupported-audio fallback, animation hooks, and reduced-motion tests.
@@ -319,3 +319,9 @@ The live defeat dialog traps Tab and Shift+Tab within its available actions whil
 - The board group also exposes its dimensions as an accessible description (`5 行 6 列，共 30 顆符石`), so users hear the board size before navigating individual cells; `tests/keyboard-rune-grid-dimensions.test.js` verifies the description, 30-cell count, and that Left Arrow at the first cell does not wrap focus before Right Arrow moves to the adjacent cell.
 - `tests/keyboard-rune-shortcut-discovery.test.js` verifies shortcut metadata is present on all 30 cells and that the visible instructions describe the supported keys.
 - Run it with `node --test tests/keyboard-rune-navigation.test.js` or the full `npm test` suite.
+
+
+## Orthogonal rune-swap geometry
+
+- The browser fixture shares the pure `isOrthogonallyAdjacentRuneSwap()` helper with unit tests, checking the 6 × 5 board's four-way adjacency without diagonal or row-wrap swaps.
+- Run the focused geometry tests with `node --test tests/rune-swap-adjacency.test.js`.
