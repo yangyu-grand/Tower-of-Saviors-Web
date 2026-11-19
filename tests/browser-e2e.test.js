@@ -85,11 +85,11 @@ async function findValidSwap(page, supportedAttackElements = DEFAULT_ATTACK_ELEM
             const index = row * 6 + column;
             const type = cells[index];
             if (!type || !supportedAttackElements.includes(type)) continue;
-            if (column <= 3 && cells[index + 1] === type && cells[index + 2] === type) return true;
-            if (row <= 2 && cells[index + 6] === type && cells[index + 12] === type) return true;
+            if (column <= 3 && cells[index + 1] === type && cells[index + 2] === type) return type;
+            if (row <= 2 && cells[index + 6] === type && cells[index + 12] === type) return type;
           }
         }
-        return false;
+        return null;
       };
 
       for (let index = 0; index < board.length; index += 1) {
@@ -99,7 +99,8 @@ async function findValidSwap(page, supportedAttackElements = DEFAULT_ATTACK_ELEM
         for (const neighbor of neighbors) {
           const candidate = [...board];
           [candidate[index], candidate[neighbor]] = [candidate[neighbor], candidate[index]];
-          if (hasMatch(candidate)) return [index, neighbor];
+          const matchedElement = hasMatch(candidate);
+          if (matchedElement) return [index, neighbor, matchedElement];
         }
       }
       return null;
@@ -174,7 +175,8 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
 
   const desktopMove = await findValidSwap(page);
   assert.ok(desktopMove, "a legal match-producing adjacent swap should be available after board resets");
-  const [desktopStart, desktopEnd] = desktopMove;
+  const [desktopStart, desktopEnd, desktopElement] = desktopMove;
+  assert.ok(DEFAULT_ATTACK_ELEMENTS.includes(desktopElement), "the fixture should report a matched element supported by the starter team");
   const startBox = await page.locator('.orb[data-i="' + desktopStart + '"]').boundingBox();
   const endBox = await page.locator('.orb[data-i="' + desktopEnd + '"]').boundingBox();
   assert.ok(startBox && endBox, "rune cells should have visible hit targets");
@@ -248,7 +250,8 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
 
   const mobileMove = await findValidSwap(mobilePage);
   assert.ok(mobileMove, "a legal match-producing move should be available on the mobile viewport");
-  const [mobileStart, mobileEnd] = mobileMove;
+  const [mobileStart, mobileEnd, mobileElement] = mobileMove;
+  assert.ok(DEFAULT_ATTACK_ELEMENTS.includes(mobileElement), "the mobile fixture should report a matched element supported by the starter team");
   await mobilePage.locator('.orb[data-i="' + mobileStart + '"]').dispatchEvent("pointerdown", {
     pointerId: 71,
     pointerType: "touch",
