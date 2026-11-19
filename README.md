@@ -167,7 +167,7 @@ For Boss encounters, the same overlay also announces a phase transition when the
 - `battleFeedback.js` — reduced-motion-aware visual feedback and opt-in synthesized audio.
 - `tutorial.js` — versioned first-run tutorial steps, event-gated progression, and independent browser-storage persistence.
 - `battleResults.js` — validated per-stage combat statistics, idempotent encounter reward accounting, and resumable stage-clear summaries.
-- `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, replay playback/import/export, and responsive/touch behavior; the live damage-feedback fixture chooses an attack rune element supported by the default party to avoid zero-attack false failures. It also asserts that the detected match element is one of the starter team's positive-attack elements on both desktop and mobile.
+- `tests/browser-e2e.test.js` — real Chromium browser checks for core gameplay, persistence, sound, replay playback/import/export, and responsive/touch behavior; the live damage-feedback fixture chooses an attack rune element supported by the default party to avoid zero-attack false failures. It also asserts that the detected match element is one of the starter team's positive-attack elements on both desktop and mobile. The fixture also verifies that selected rune swaps are orthogonally adjacent and do not wrap across rows.
 - `tests/live-boss-phase-browser.test.js` — real Chromium coverage for the live fourth-chapter Boss phase transition at the 50% HP boundary.
 - `tests/browser-script.test.js` — embedded browser-module syntax and UI integration checks.
 - `tests/battle-feedback.test.js` — opt-in audio, unsupported-audio fallback, animation hooks, and reduced-motion tests.
