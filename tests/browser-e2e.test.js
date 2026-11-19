@@ -5,12 +5,16 @@ import { readFile } from "node:fs/promises";
 import { extname, resolve, sep } from "node:path";
 import { fileURLToPath } from "node:url";
 import { chromium } from "playwright";
+import { DEFAULT_TEAM, buildTeam } from "../team.js";
 import { createDefaultSave, normalizeSave, SAVE_KEY } from "../inventory.js";
 import { createBattleStats, recordBattleTurn, recordEncounterDefeat, completeBattleStats } from "../battleResults.js";
 import { simulateRuneEncounter } from "../runeBattleSimulation.js";
 import { createRuneBattleReplay } from "../runeBattleReplay.js";
 
 const ROOT = resolve(fileURLToPath(new URL("../", import.meta.url)));
+const DEFAULT_ATTACK_ELEMENTS = Object.entries(buildTeam(DEFAULT_TEAM).attackByElement)
+  .filter(([, attack]) => attack > 0)
+  .map(([element]) => element);
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
@@ -68,9 +72,9 @@ function startStaticServer() {
   });
 }
 
-async function findValidSwap(page) {
+async function findValidSwap(page, supportedAttackElements = DEFAULT_ATTACK_ELEMENTS) {
   for (let attempt = 0; attempt < 12; attempt += 1) {
-    const move = await page.evaluate(() => {
+    const move = await page.evaluate((supportedAttackElements) => {
       const types = ["fire", "water", "wood", "light", "dark", "heart"];
       const board = [...document.querySelectorAll("#board .orb")].map((orb) =>
         types.find((type) => orb.classList.contains(type))
@@ -80,7 +84,7 @@ async function findValidSwap(page) {
           for (let column = 0; column < 6; column += 1) {
             const index = row * 6 + column;
             const type = cells[index];
-            if (!type) continue;
+            if (!type || !supportedAttackElements.includes(type)) continue;
             if (column <= 3 && cells[index + 1] === type && cells[index + 2] === type) return true;
             if (row <= 2 && cells[index + 6] === type && cells[index + 12] === type) return true;
           }
@@ -99,7 +103,7 @@ async function findValidSwap(page) {
         }
       }
       return null;
-    });
+    }, supportedAttackElements);
 
     if (move) return move;
     await page.locator("#newGame").click();
