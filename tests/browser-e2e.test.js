@@ -15,13 +15,7 @@ const ROOT = resolve(fileURLToPath(new URL("../", import.meta.url)));
 const DEFAULT_ATTACK_ELEMENTS = Object.entries(buildTeam(DEFAULT_TEAM).attackByElement)
   .filter(([, attack]) => attack > 0)
   .map(([element]) => element);
-function isAdjacentRuneSwap(startIndex, endIndex) {
-  if (!Number.isInteger(startIndex) || !Number.isInteger(endIndex)) return false;
-  if (startIndex < 0 || startIndex >= 30 || endIndex < 0 || endIndex >= 30) return false;
-  const rowDelta = Math.abs(Math.floor(startIndex / 6) - Math.floor(endIndex / 6));
-  const columnDelta = Math.abs((startIndex % 6) - (endIndex % 6));
-  return rowDelta + columnDelta === 1;
-}
+import { isOrthogonallyAdjacentRuneSwap } from "../runeSwapGeometry.js";
 
 const MIME_TYPES = {
   ".html": "text/html; charset=utf-8",
@@ -185,7 +179,7 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   assert.ok(desktopMove, "a legal match-producing adjacent swap should be available after board resets");
   const [desktopStart, desktopEnd, desktopElement] = desktopMove;
   assert.ok(DEFAULT_ATTACK_ELEMENTS.includes(desktopElement), "the fixture should report a matched element supported by the starter team");
-  assert.ok(isAdjacentRuneSwap(desktopStart, desktopEnd), "the desktop fixture should use orthogonally adjacent rune cells without row wrapping");
+  assert.ok(isOrthogonallyAdjacentRuneSwap(desktopStart, desktopEnd), "the desktop fixture should use orthogonally adjacent rune cells without row wrapping");
   const startBox = await page.locator('.orb[data-i="' + desktopStart + '"]').boundingBox();
   const endBox = await page.locator('.orb[data-i="' + desktopEnd + '"]').boundingBox();
   assert.ok(startBox && endBox, "rune cells should have visible hit targets");
@@ -261,7 +255,7 @@ test("Chromium exercises gameplay, save persistence, sound, and mobile layout", 
   assert.ok(mobileMove, "a legal match-producing move should be available on the mobile viewport");
   const [mobileStart, mobileEnd, mobileElement] = mobileMove;
   assert.ok(DEFAULT_ATTACK_ELEMENTS.includes(mobileElement), "the mobile fixture should report a matched element supported by the starter team");
-  assert.ok(isAdjacentRuneSwap(mobileStart, mobileEnd), "the mobile fixture should use orthogonally adjacent rune cells without row wrapping");
+  assert.ok(isOrthogonallyAdjacentRuneSwap(mobileStart, mobileEnd), "the mobile fixture should use orthogonally adjacent rune cells without row wrapping");
   await mobilePage.locator('.orb[data-i="' + mobileStart + '"]').dispatchEvent("pointerdown", {
     pointerId: 71,
     pointerType: "touch",

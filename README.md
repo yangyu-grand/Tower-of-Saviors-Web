@@ -319,3 +319,9 @@ The live defeat dialog traps Tab and Shift+Tab within its available actions whil
 - The board group also exposes its dimensions as an accessible description (`5 行 6 列，共 30 顆符石`), so users hear the board size before navigating individual cells; `tests/keyboard-rune-grid-dimensions.test.js` verifies the description, 30-cell count, and that Left Arrow at the first cell does not wrap focus before Right Arrow moves to the adjacent cell.
 - `tests/keyboard-rune-shortcut-discovery.test.js` verifies shortcut metadata is present on all 30 cells and that the visible instructions describe the supported keys.
 - Run it with `node --test tests/keyboard-rune-navigation.test.js` or the full `npm test` suite.
+
+
+## Orthogonal rune-swap geometry
+
+- The browser fixture shares the pure `isOrthogonallyAdjacentRuneSwap()` helper with unit tests, checking the 6 × 5 board's four-way adjacency without diagonal or row-wrap swaps.
+- Run the focused geometry tests with `node --test tests/rune-swap-adjacency.test.js`.
