@@ -22,7 +22,7 @@ test("rune swap geometry rejects out-of-range and non-integer positions", () => 
 });
 
 test("rune swap geometry supports custom rectangular boards and rejects invalid dimensions", () => {
-  assert.equal(isOrthogonallyAdjacentRuneSwap(2, 5, { rows: 3, columns: 4 }), true);
+  assert.equal(isOrthogonallyAdjacentRuneSwap(2, 6, { rows: 3, columns: 4 }), true);
   assert.equal(isOrthogonallyAdjacentRuneSwap(3, 4, { rows: 3, columns: 4 }), false, "custom-board row wrap must not count");
   assert.equal(isOrthogonallyAdjacentRuneSwap(0, 1, { rows: 0, columns: 6 }), false);
   assert.equal(isOrthogonallyAdjacentRuneSwap(0, 1, { rows: 5, columns: 2.5 }), false);
