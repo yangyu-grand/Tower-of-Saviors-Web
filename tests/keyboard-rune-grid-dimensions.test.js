@@ -52,6 +52,8 @@ test("rune board announces its 5-row by 6-column dimensions", async t => {
   assert.equal(await cells.count(), 30);
   assert.equal(await cells.first().getAttribute("tabindex"), "0");
   await cells.first().focus();
+  await page.keyboard.press("ArrowLeft");
+  assert.equal(await cells.first().evaluate(el => el === document.activeElement), true);
   await page.keyboard.press("ArrowRight");
   assert.equal(await cells.nth(1).evaluate(el => el === document.activeElement), true);
   assert.equal(await board.getAttribute("aria-description"), "5 行 6 列，共 30 顆符石");
